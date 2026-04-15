@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="AutoNext.Plotform.App.Backoffice.Client/AutoNext.Plotform.App.Backoffice.Client.csproj" />
+  <Project Path="AutoNext.Plotform.App.Backoffice/AutoNext.Plotform.App.Backoffice.csproj" />
+</Solution>
