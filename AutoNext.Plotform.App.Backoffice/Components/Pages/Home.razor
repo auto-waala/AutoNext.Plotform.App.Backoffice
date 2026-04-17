@@ -1,7 +1,549 @@
 ﻿@page "/"
+@using BlazorBootstrap
 
-<PageTitle>Home</PageTitle>
+<div class="dashboard">
+    <!-- Welcome Header -->
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dashboard-title">Dashboard</h1>
+            <p class="dashboard-subtitle">Welcome back! Here's what's happening today.</p>
+        </div>
+        <div class="date-badge">
+            <i class="bi bi-calendar"></i>
+            <span>@DateTime.Now.ToString("MMMM dd, yyyy")</span>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon bg-primary">
+                <i class="bi bi-currency-dollar"></i>
+            </div>
+            <div class="stat-info">
+                <h3>$54,239</h3>
+                <p>Total Revenue</p>
+                <span class="trend up">↑ 12.5%</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon bg-success">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="stat-info">
+                <h3>2,847</h3>
+                <p>Active Users</p>
+                <span class="trend up">↑ 8.2%</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon bg-warning">
+                <i class="bi bi-cart"></i>
+            </div>
+            <div class="stat-info">
+                <h3>1,423</h3>
+                <p>Total Orders</p>
+                <span class="trend down">↓ 3.1%</span>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon bg-info">
+                <i class="bi bi-graph-up"></i>
+            </div>
+            <div class="stat-info">
+                <h3>24.8%</h3>
+                <p>Conversion Rate</p>
+                <span class="trend up">↑ 5.4%</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="charts-row">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h5>Revenue Overview</h5>
+                <select class="chart-select">
+                    <option>Last 7 days</option>
+                    <option>Last 30 days</option>
+                    <option>Last 3 months</option>
+                </select>
+            </div>
+            <div class="chart-body">
+                <div class="bar-chart">
+                    <div class="bar" style="height: 60%"></div>
+                    <div class="bar" style="height: 45%"></div>
+                    <div class="bar" style="height: 80%"></div>
+                    <div class="bar" style="height: 55%"></div>
+                    <div class="bar" style="height: 70%"></div>
+                    <div class="bar" style="height: 90%"></div>
+                    <div class="bar" style="height: 75%"></div>
+                </div>
+                <div class="chart-labels">
+                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-card">
+            <div class="chart-header">
+                <h5>Recent Activity</h5>
+                <button class="btn-link">View All</button>
+            </div>
+            <div class="activity-list">
+                <div class="activity-item">
+                    <div class="activity-dot bg-primary"></div>
+                    <div class="activity-content">
+                        <p>New user registered</p>
+                        <small>2 minutes ago</small>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-dot bg-success"></div>
+                    <div class="activity-content">
+                        <p>Order #ORD-004 completed</p>
+                        <small>15 minutes ago</small>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-dot bg-warning"></div>
+                    <div class="activity-content">
+                        <p>Product "iPhone 15" updated</p>
+                        <small>1 hour ago</small>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-dot bg-info"></div>
+                    <div class="activity-content">
+                        <p>System backup completed</p>
+                        <small>2 hours ago</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Orders Table -->
+    <div class="table-card">
+        <div class="table-header">
+            <h5>Recent Orders</h5>
+            <button class="btn-outline">View All Orders</button>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th class="hide-mobile">Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th class="hide-mobile">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>#ORD-001</td>
+                        <td>John Doe</td>
+                        <td class="hide-mobile">2024-01-15</td>
+                        <td>$299.00</td>
+                        <td><span class="status-badge success">Completed</span></td>
+                        <td class="hide-mobile">
+                            <button class="icon-btn"><i class="bi bi-eye"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>#ORD-002</td>
+                        <td>Jane Smith</td>
+                        <td class="hide-mobile">2024-01-14</td>
+                        <td>$149.00</td>
+                        <td><span class="status-badge warning">Pending</span></td>
+                        <td class="hide-mobile">
+                            <button class="icon-btn"><i class="bi bi-eye"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>#ORD-003</td>
+                        <td>Mike Johnson</td>
+                        <td class="hide-mobile">2024-01-13</td>
+                        <td>$499.00</td>
+                        <td><span class="status-badge info">Processing</span></td>
+                        <td class="hide-mobile">
+                            <button class="icon-btn"><i class="bi bi-eye"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
+<style>
+    .dashboard {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+    
+    .dashboard-subtitle {
+        color: #64748b;
+        margin: 0;
+    }
+    
+    .date-badge {
+        background: white;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+    }
+    
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    .stat-icon.bg-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .stat-icon.bg-success { background: linear-gradient(135deg, #10b981, #059669); }
+    .stat-icon.bg-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .stat-icon.bg-info { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+    
+    .stat-info {
+        flex: 1;
+    }
+    
+    .stat-info h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0 0 0.25rem 0;
+    }
+    
+    .stat-info p {
+        color: #64748b;
+        margin: 0 0 0.5rem 0;
+        font-size: 0.875rem;
+    }
+    
+    .trend {
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .trend.up { color: #10b981; }
+    .trend.down { color: #ef4444; }
+    
+    .charts-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .chart-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .chart-header h5 {
+        margin: 0;
+        font-weight: 600;
+    }
+    
+    .chart-select, .btn-link {
+        padding: 0.25rem 0.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        background: white;
+        font-size: 0.875rem;
+    }
+    
+    .btn-link {
+        color: #3b82f6;
+        text-decoration: none;
+        border: none;
+    }
+    
+    .bar-chart {
+        display: flex;
+        align-items: flex-end;
+        gap: 1rem;
+        height: 200px;
+        margin-bottom: 1rem;
+    }
+    
+    .bar {
+        flex: 1;
+        background: linear-gradient(180deg, #3b82f6, #2563eb);
+        border-radius: 4px 4px 0 0;
+        transition: height 0.3s;
+        min-width: 30px;
+    }
+    
+    .chart-labels {
+        display: flex;
+        justify-content: space-around;
+        color: #64748b;
+        font-size: 0.75rem;
+    }
+    
+    .activity-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .activity-item {
+        display: flex;
+        gap: 0.75rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    
+    .activity-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-top: 0.5rem;
+    }
+    
+    .activity-dot.bg-primary { background: #3b82f6; }
+    .activity-dot.bg-success { background: #10b981; }
+    .activity-dot.bg-warning { background: #f59e0b; }
+    .activity-dot.bg-info { background: #06b6d4; }
+    
+    .activity-content {
+        flex: 1;
+    }
+    
+    .activity-content p {
+        margin: 0 0 0.25rem 0;
+        font-weight: 500;
+    }
+    
+    .activity-content small {
+        color: #64748b;
+        font-size: 0.75rem;
+    }
+    
+    .table-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .table-header h5 {
+        margin: 0;
+        font-weight: 600;
+    }
+    
+    .btn-outline {
+        padding: 0.5rem 1rem;
+        border: 1px solid #e2e8f0;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-outline:hover {
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 1rem 1.5rem;
+        text-align: left;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .data-table th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #475569;
+        font-size: 0.875rem;
+    }
+    
+    .data-table tr:hover {
+        background: #f8fafc;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .status-badge.success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-badge.warning {
+        background: #fed7aa;
+        color: #92400e;
+    }
+    
+    .status-badge.info {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .icon-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem;
+        color: #64748b;
+        transition: color 0.2s;
+    }
+    
+    .icon-btn:hover {
+        color: #3b82f6;
+    }
+    
+    @@media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .charts-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .stat-card {
+            padding: 1rem;
+        }
+        
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.25rem;
+        }
+        
+        .stat-info h3 {
+            font-size: 1.25rem;
+        }
+        
+        .hide-mobile {
+            display: none;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .dashboard-header {
+            margin-bottom: 1.5rem;
+        }
+        
+        .dashboard-title {
+            font-size: 1.5rem;
+        }
+    }
+    
+    @@media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .page-content {
+            padding: 1rem;
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .btn-outline {
+            width: 100%;
+            text-align: center;
+        }
+    }
+</style>
