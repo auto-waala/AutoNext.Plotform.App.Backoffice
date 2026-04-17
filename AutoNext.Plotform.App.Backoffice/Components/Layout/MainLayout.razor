@@ -1,23 +1,421 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+<div class="app-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar-responsive @(isSidebarOpen ? "open" : "")">
+        <div class="sidebar-header">
+            <div class="logo-area">
+                <i class="bi bi-building fs-3"></i>
+                <div class="logo-text">
+                    <h5 class="mb-0">AutoNext</h5>
+                    <small>Backoffice Platform</small>
+                </div>
+            </div>
+            <button class="mobile-close-btn" @onclick="CloseSidebar">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
-
-        <article class="content px-4">
+        
+        <div class="sidebar-user">
+            <i class="bi bi-person-circle fs-1"></i>
+            <div class="ms-2">
+                <div class="fw-bold">Admin User</div>
+                <small>admin@autonext.com</small>
+            </div>
+        </div>
+        
+        <NavMenu />
+        
+        <div class="sidebar-footer">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-dot"></i>
+                <small>System Online</small>
+            </div>
+            <div class="mt-2">
+                <small>Version 1.0.0</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mobile Overlay -->
+    @if (isSidebarOpen)
+    {
+        <div class="mobile-overlay" @onclick="CloseSidebar"></div>
+    }
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <nav class="top-navbar">
+            <div class="navbar-container">
+                <button class="mobile-menu-btn" @onclick="ToggleSidebar">
+                    <i class="bi bi-list"></i>
+                </button>
+                
+                <div class="navbar-search d-none d-md-block">
+                    <i class="bi bi-search"></i>
+                    <input type="text" placeholder="Search..." />
+                </div>
+                
+                <div class="navbar-actions">
+                    <button class="action-btn">
+                        <i class="bi bi-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <button class="action-btn">
+                        <i class="bi bi-envelope"></i>
+                        <span class="badge">5</span>
+                    </button>
+                    
+                    <!-- Profile Dropdown - Pure Blazor -->
+                    <div class="profile-dropdown">
+                        <button class="action-btn" @onclick="ToggleProfileMenu" @onclick:stopPropagation="true">
+                            <i class="bi bi-person-circle"></i>
+                        </button>
+                        
+                        @if (showProfileMenu)
+                        {
+                            <div class="dropdown-menu-custom">
+                                <a class="dropdown-item" href="#">
+                                    <i class="bi bi-person me-2"></i> Profile
+                                </a>
+                                <a class="dropdown-item" href="#">
+                                    <i class="bi bi-gear me-2"></i> Settings
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item text-danger" href="#">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Logout
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
+        <div class="page-content">
             @Body
-        </article>
+        </div>
     </main>
 </div>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+<style>
+    /* Reset and Base */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    .app-wrapper {
+        display: flex;
+        min-height: 100vh;
+        background: #f5f7fb;
+        position: relative;
+    }
+    
+    /* Sidebar Styles */
+    .sidebar-responsive {
+        width: 280px;
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        color: white;
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        transition: transform 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    }
+    
+    /* Desktop: sidebar always visible */
+    @@media (min-width: 769px) {
+        .sidebar-responsive {
+            transform: translateX(0) !important;
+        }
+        
+        .mobile-close-btn {
+            display: none;
+        }
+        
+        .mobile-overlay {
+            display: none !important;
+        }
+    }
+    
+    /* Mobile: sidebar hidden by default */
+    @@media (max-width: 768px) {
+        .sidebar-responsive {
+            transform: translateX(-100%);
+        }
+        
+            .sidebar-responsive.open {
+                transform: translateX(0);
+            }
+        
+        .mobile-close-btn {
+            display: block;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.25rem;
+            cursor: pointer;
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+        }
+        
+        .mobile-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        
+        .main-content {
+            margin-left: 0 !important;
+        }
+    }
+    
+    /* Desktop main content margin */
+    @@media (min-width: 769px) {
+        .main-content {
+            margin-left: 280px;
+        }
+    }
+    
+    .sidebar-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid rgba(255,255,255,0.15);
+        position: relative;
+    }
+    
+    .logo-area {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .logo-text h5 {
+        color: white;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .logo-text small {
+        color: rgba(255,255,255,0.8);
+        font-size: 0.75rem;
+    }
+    
+    .sidebar-user {
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+    
+    .sidebar-footer {
+        margin-top: auto;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid rgba(255,255,255,0.15);
+        font-size: 0.75rem;
+    }
+    
+    /* Main Content */
+    .main-content {
+        flex: 1;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        transition: margin-left 0.3s ease;
+    }
+    
+    .top-navbar {
+        background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        position: sticky;
+        top: 0;
+        z-index: 99;
+    }
+    
+    .navbar-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1.5rem;
+        gap: 1rem;
+    }
+    
+    .mobile-menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 8px;
+        color: #1e293b;
+    }
+    
+    @@media (max-width: 768px) {
+        .mobile-menu-btn {
+            display: block;
+        }
+        
+        .navbar-container {
+            padding: 0.5rem 1rem;
+        }
+        
+        .page-content {
+            padding: 1rem;
+        }
+    }
+    
+    .mobile-menu-btn:hover {
+        background: #f1f5f9;
+    }
+    
+    .navbar-search {
+        flex: 1;
+        max-width: 300px;
+        position: relative;
+    }
+    
+        .navbar-search i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+    
+        .navbar-search input {
+            width: 100%;
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+    
+            .navbar-search input:focus {
+                outline: none;
+                border-color: #06b6d4;
+                box-shadow: 0 0 0 3px rgba(6,182,212,0.1);
+            }
+    
+    .navbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        position: relative;
+    }
+    
+    .action-btn {
+        position: relative;
+        background: none;
+        border: none;
+        font-size: 1.25rem;
+        padding: 0.5rem;
+        cursor: pointer;
+        border-radius: 8px;
+        color: #475569;
+    }
+    
+        .action-btn:hover {
+            background: #f1f5f9;
+        }
+    
+        .action-btn .badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #ef4444;
+            color: white;
+            font-size: 0.65rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 10px;
+        }
+    
+    /* Profile Dropdown - Pure CSS */
+    .profile-dropdown {
+        position: relative;
+    }
+    
+    .dropdown-menu-custom {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 0.5rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        min-width: 200px;
+        z-index: 1000;
+        overflow: hidden;
+    }
+    
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        padding: 0.625rem 1rem;
+        color: #1e293b;
+        text-decoration: none;
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+    
+        .dropdown-item:hover {
+            background: #f1f5f9;
+        }
+    
+    .dropdown-divider {
+        margin: 0.25rem 0;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .page-content {
+        padding: 1.5rem;
+        flex: 1;
+    }
+</style>
+
+@code {
+    private bool isSidebarOpen = false;
+    private bool showProfileMenu = false;
+    
+    private void ToggleSidebar()
+    {
+        isSidebarOpen = !isSidebarOpen;
+    }
+    
+    private void CloseSidebar()
+    {
+        isSidebarOpen = false;
+    }
+    
+    private void ToggleProfileMenu()
+    {
+        showProfileMenu = !showProfileMenu;
+    }
+    
+    private void CloseProfileMenu()
+    {
+        showProfileMenu = false;
+    }
+    
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += (sender, args) =>
+        {
+            // Close menus on navigation
+            isSidebarOpen = false;
+            showProfileMenu = false;
+            InvokeAsync(StateHasChanged);
+        };
+    }
+}

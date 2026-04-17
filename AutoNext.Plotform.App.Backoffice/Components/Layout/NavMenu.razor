@@ -1,30 +1,110 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">AutoNext.Plotform.App.Backoffice</a>
+﻿<nav class="nav-container">
+    <div class="nav-section">
+        <div class="nav-section-title">MAIN</div>
+        
+        <NavLink href="/" class="nav-item" Match="NavLinkMatch.All">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard</span>
+        </NavLink>
+        
+        <NavLink href="/analytics" class="nav-item">
+            <i class="bi bi-graph-up"></i>
+            <span>Analytics</span>
+        </NavLink>
     </div>
-</div>
+    
+    <div class="nav-section">
+        <div class="nav-section-title">MANAGEMENT</div>
+        
+        <NavLink href="/users" class="nav-item">
+            <i class="bi bi-people"></i>
+            <span>Users</span>
+        </NavLink>
+        
+        <NavLink href="/products" class="nav-item">
+            <i class="bi bi-box"></i>
+            <span>Products</span>
+        </NavLink>
+        
+        <NavLink href="/orders" class="nav-item">
+            <i class="bi bi-cart"></i>
+            <span>Orders</span>
+            <span class="nav-badge">12</span>
+        </NavLink>
+    </div>
+    
+    <div class="nav-section">
+        <div class="nav-section-title">SYSTEM</div>
+        
+        <NavLink href="/settings" class="nav-item">
+            <i class="bi bi-gear"></i>
+            <span>Settings</span>
+        </NavLink>
+        
+        <NavLink href="/help" class="nav-item">
+            <i class="bi bi-question-circle"></i>
+            <span>Help</span>
+        </NavLink>
+    </div>
+</nav>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-    </nav>
-</div>
-
+<style>
+    .nav-container {
+        padding: 1rem 0;
+        flex: 1;
+    }
+    
+    .nav-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .nav-section-title {
+        padding: 0.5rem 1.5rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: rgba(255,255,255,0.6);
+    }
+    
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 1.5rem;
+        color: rgba(255,255,255,0.85);
+        text-decoration: none;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+    
+        .nav-item.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border-left: 3px solid white;
+        }
+    
+        .nav-item i {
+            font-size: 1.2rem;
+            width: 24px;
+        }
+    
+        .nav-item span {
+            flex: 1;
+        }
+    
+    .nav-badge {
+        background: rgba(255,255,255,0.25);
+        color: white;
+        font-size: 0.7rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 10px;
+        min-width: 28px;
+        text-align: center;
+    }
+</style>

@@ -58,3 +58,28 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+.nav-link {
+    cursor: pointer;
+}
+
+    .nav-link:hover {
+        background-color: #495057;
+        color: white;
+        border-radius: 5px;
+    }
+
+.nav-scrollable {
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+}
+
+
+.nav-link {
+    cursor: pointer;
+}
+
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.12);
+        color: white;
+        border-radius: 6px;
+    }
