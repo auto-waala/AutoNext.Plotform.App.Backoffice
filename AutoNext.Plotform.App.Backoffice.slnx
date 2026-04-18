@@ -1,4 +1,7 @@
 <Solution>
   <Project Path="AutoNext.Plotform.App.Backoffice.Client/AutoNext.Plotform.App.Backoffice.Client.csproj" />
+  <Project Path="AutoNext.Plotform.App.Backoffice.Gateway/AutoNext.Plotform.App.Backoffice.Gateway.csproj" Id="9b234a7f-8f39-4539-addb-882245386e06" />
+  <Project Path="AutoNext.Plotform.App.Backoffice.Integrations/AutoNext.Plotform.App.Backoffice.Integrations.csproj" Id="414fad61-f640-40a1-bf70-5be5db80a746" />
+  <Project Path="AutoNext.Plotform.App.Backoffice.Models/AutoNext.Plotform.App.Backoffice.Models.csproj" Id="dd753ad3-9b18-485c-b377-eccc408525e6" />
   <Project Path="AutoNext.Plotform.App.Backoffice/AutoNext.Plotform.App.Backoffice.csproj" />
 </Solution>
