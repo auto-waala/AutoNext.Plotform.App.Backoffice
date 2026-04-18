@@ -6,7 +6,6 @@ on:
     branches: [ master ]
 
 jobs:
-  # ==================== GATEWAY DEPLOYMENT ====================
   deploy-gateway-dev:
     if: github.event.pull_request.merged == true
     runs-on: windows-latest
@@ -28,16 +27,51 @@ jobs:
       run: |
         dotnet publish AutoNext.Plotform.App.Backoffice.Gateway/AutoNext.Plotform.App.Backoffice.Gateway.csproj --configuration Release --output ./publish/gateway/dev -p:EnvironmentName=Development
 
-    - name: Deploy Gateway to Dev Environment via FTP
-      uses: SamKirkland/FTP-Deploy-Action@4.3.0
-      with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        local-dir: ./publish/gateway/dev/
-        server-dir: ${{ secrets.FTP_GATEWAY_DEV_PATH }}/
-        port: 21
-        state-name: .ftp-deploy-sync-state-gateway-dev.json
+    - name: Deploy Gateway to Dev via FTP with Retry
+      shell: powershell
+      run: |
+        $maxRetries = 5
+        $retryDelay = 10
+        $success = $false
+        
+        for ($i = 1; $i -le $maxRetries; $i++) {
+          try {
+            Write-Host "Attempt $i of $maxRetries"
+            
+            $ftpServer = "${{ secrets.FTP_SERVER }}"
+            $ftpUser = "${{ secrets.FTP_USERNAME }}"
+            $ftpPass = "${{ secrets.FTP_PASSWORD }}"
+            $localPath = ".\publish\gateway\dev\*"
+            $remotePath = "${{ secrets.FTP_GATEWAY_DEV_PATH }}/"
+            
+            $webclient = New-Object System.Net.WebClient
+            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
+            $webclient.BaseAddress = "ftp://$ftpServer$remotePath"
+            
+            # Upload each file
+            Get-ChildItem -Path $localPath -File | ForEach-Object {
+              $file = $_
+              $remoteFile = $webclient.BaseAddress + $file.Name
+              Write-Host "Uploading $($file.Name)..."
+              $webclient.UploadFile($remoteFile, $file.FullName)
+            }
+            
+            $success = $true
+            Write-Host "Deployment successful!"
+            break
+          }
+          catch {
+            Write-Host "Attempt $i failed: $_"
+            if ($i -lt $maxRetries) {
+              Write-Host "Waiting $retryDelay seconds before retry..."
+              Start-Sleep -Seconds $retryDelay
+            }
+          }
+        }
+        
+        if (-not $success) {
+          throw "FTP deployment failed after $maxRetries attempts"
+        }
 
   deploy-gateway-prod:
     if: github.event.pull_request.merged == true
@@ -61,16 +95,50 @@ jobs:
       run: |
         dotnet publish AutoNext.Plotform.App.Backoffice.Gateway/AutoNext.Plotform.App.Backoffice.Gateway.csproj --configuration Release --output ./publish/gateway/prod -p:EnvironmentName=Production
 
-    - name: Deploy Gateway to Production Environment via FTP
-      uses: SamKirkland/FTP-Deploy-Action@4.3.0
-      with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        local-dir: ./publish/gateway/prod/
-        server-dir: ${{ secrets.FTP_GATEWAY_PROD_PATH }}/
-        port: 21
-        state-name: .ftp-deploy-sync-state-gateway-prod.json
+    - name: Deploy Gateway to Prod via FTP with Retry
+      shell: powershell
+      run: |
+        $maxRetries = 5
+        $retryDelay = 10
+        $success = $false
+        
+        for ($i = 1; $i -le $maxRetries; $i++) {
+          try {
+            Write-Host "Attempt $i of $maxRetries"
+            
+            $ftpServer = "${{ secrets.FTP_SERVER }}"
+            $ftpUser = "${{ secrets.FTP_USERNAME }}"
+            $ftpPass = "${{ secrets.FTP_PASSWORD }}"
+            $localPath = ".\publish\gateway\prod\*"
+            $remotePath = "${{ secrets.FTP_GATEWAY_PROD_PATH }}/"
+            
+            $webclient = New-Object System.Net.WebClient
+            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
+            $webclient.BaseAddress = "ftp://$ftpServer$remotePath"
+            
+            Get-ChildItem -Path $localPath -File | ForEach-Object {
+              $file = $_
+              $remoteFile = $webclient.BaseAddress + $file.Name
+              Write-Host "Uploading $($file.Name)..."
+              $webclient.UploadFile($remoteFile, $file.FullName)
+            }
+            
+            $success = $true
+            Write-Host "Deployment successful!"
+            break
+          }
+          catch {
+            Write-Host "Attempt $i failed: $_"
+            if ($i -lt $maxRetries) {
+              Write-Host "Waiting $retryDelay seconds before retry..."
+              Start-Sleep -Seconds $retryDelay
+            }
+          }
+        }
+        
+        if (-not $success) {
+          throw "FTP deployment failed after $maxRetries attempts"
+        }
 
   # ==================== BACKOFFICE DEPLOYMENT ====================
   deploy-backoffice-dev:
@@ -95,16 +163,50 @@ jobs:
       run: |
         dotnet publish AutoNext.Plotform.App.Backoffice/AutoNext.Plotform.App.Backoffice.csproj --configuration Release --output ./publish/backoffice/dev -p:EnvironmentName=Development
 
-    - name: Deploy Backoffice to Dev Environment via FTP
-      uses: SamKirkland/FTP-Deploy-Action@4.3.0
-      with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        local-dir: ./publish/backoffice/dev/
-        server-dir: ${{ secrets.FTP_BACKOFFICE_DEV_PATH }}/
-        port: 21
-        state-name: .ftp-deploy-sync-state-backoffice-dev.json
+    - name: Deploy Backoffice to Dev via FTP with Retry
+      shell: powershell
+      run: |
+        $maxRetries = 5
+        $retryDelay = 10
+        $success = $false
+        
+        for ($i = 1; $i -le $maxRetries; $i++) {
+          try {
+            Write-Host "Attempt $i of $maxRetries"
+            
+            $ftpServer = "${{ secrets.FTP_SERVER }}"
+            $ftpUser = "${{ secrets.FTP_USERNAME }}"
+            $ftpPass = "${{ secrets.FTP_PASSWORD }}"
+            $localPath = ".\publish\backoffice\dev\*"
+            $remotePath = "${{ secrets.FTP_BACKOFFICE_DEV_PATH }}/"
+            
+            $webclient = New-Object System.Net.WebClient
+            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
+            $webclient.BaseAddress = "ftp://$ftpServer$remotePath"
+            
+            Get-ChildItem -Path $localPath -File | ForEach-Object {
+              $file = $_
+              $remoteFile = $webclient.BaseAddress + $file.Name
+              Write-Host "Uploading $($file.Name)..."
+              $webclient.UploadFile($remoteFile, $file.FullName)
+            }
+            
+            $success = $true
+            Write-Host "Deployment successful!"
+            break
+          }
+          catch {
+            Write-Host "Attempt $i failed: $_"
+            if ($i -lt $maxRetries) {
+              Write-Host "Waiting $retryDelay seconds before retry..."
+              Start-Sleep -Seconds $retryDelay
+            }
+          }
+        }
+        
+        if (-not $success) {
+          throw "FTP deployment failed after $maxRetries attempts"
+        }
 
   deploy-backoffice-prod:
     if: github.event.pull_request.merged == true
@@ -128,13 +230,47 @@ jobs:
       run: |
         dotnet publish AutoNext.Plotform.App.Backoffice/AutoNext.Plotform.App.Backoffice.csproj --configuration Release --output ./publish/backoffice/prod -p:EnvironmentName=Production
 
-    - name: Deploy Backoffice to Production Environment via FTP
-      uses: SamKirkland/FTP-Deploy-Action@4.3.0
-      with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        local-dir: ./publish/backoffice/prod/
-        server-dir: ${{ secrets.FTP_BACKOFFICE_PROD_PATH }}/
-        port: 21
-        state-name: .ftp-deploy-sync-state-backoffice-prod.json
+    - name: Deploy Backoffice to Prod via FTP with Retry
+      shell: powershell
+      run: |
+        $maxRetries = 5
+        $retryDelay = 10
+        $success = $false
+        
+        for ($i = 1; $i -le $maxRetries; $i++) {
+          try {
+            Write-Host "Attempt $i of $maxRetries"
+            
+            $ftpServer = "${{ secrets.FTP_SERVER }}"
+            $ftpUser = "${{ secrets.FTP_USERNAME }}"
+            $ftpPass = "${{ secrets.FTP_PASSWORD }}"
+            $localPath = ".\publish\backoffice\prod\*"
+            $remotePath = "${{ secrets.FTP_BACKOFFICE_PROD_PATH }}/"
+            
+            $webclient = New-Object System.Net.WebClient
+            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
+            $webclient.BaseAddress = "ftp://$ftpServer$remotePath"
+            
+            Get-ChildItem -Path $localPath -File | ForEach-Object {
+              $file = $_
+              $remoteFile = $webclient.BaseAddress + $file.Name
+              Write-Host "Uploading $($file.Name)..."
+              $webclient.UploadFile($remoteFile, $file.FullName)
+            }
+            
+            $success = $true
+            Write-Host "Deployment successful!"
+            break
+          }
+          catch {
+            Write-Host "Attempt $i failed: $_"
+            if ($i -lt $maxRetries) {
+              Write-Host "Waiting $retryDelay seconds before retry..."
+              Start-Sleep -Seconds $retryDelay
+            }
+          }
+        }
+        
+        if (-not $success) {
+          throw "FTP deployment failed after $maxRetries attempts"
+        }
