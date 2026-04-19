@@ -1,6 +1,6 @@
 ﻿using AutoNext.Plotform.App.Backoffice.Models.Core;
-using System.Net.Http.Json;
-
+using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace AutoNext.Plotform.App.Backoffice.Integrations.Core
 {
@@ -23,7 +23,15 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Core
 
         public async Task<IEnumerable<Brand>> GetActiveBrandsAsync()
         {
-            return await _httpClient.GetFromJsonAsync<IEnumerable<Brand>>("/brands/active");
+            var response = await _httpClient.GetAsync("api/v1/brands/active");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var brands = JsonConvert.DeserializeObject<IEnumerable<Brand>>(content);
+                return brands ?? Enumerable.Empty<Brand>();
+            }
+            return Enumerable.Empty<Brand>();
         }
 
         public async Task<IEnumerable<Brand>> GetAllBrandsAsync()
@@ -33,7 +41,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Core
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                var brands = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<Brand>>(content);
+                var brands = JsonConvert.DeserializeObject<IEnumerable<Brand>>(content);
                 return brands ?? Enumerable.Empty<Brand>();
             }
             return Enumerable.Empty<Brand>();

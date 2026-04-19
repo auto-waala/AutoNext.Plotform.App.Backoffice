@@ -1,6 +1,5 @@
 ﻿using AutoNext.Plotform.App.Backoffice.Integrations.Core;
 using AutoNext.Plotform.App.Backoffice.Models.Core;
-using BlazorBootstrap;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -12,39 +11,45 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
         [Inject] protected NavigationManager Navigation { get; set; } = default!;
         [Inject] protected IJSRuntime JSRuntime { get; set; } = default!;
 
-        protected IEnumerable<Brand> Brands { get; set; } = new List<Brand>();
-        protected IEnumerable<Brand> brands => Brands;
+        protected List<Brand> AllBrands { get; set; } = new();
 
         protected int ItemsPerPage { get; set; } = 25;
         protected int CurrentPage { get; set; } = 1;
         protected int TotalCount { get; set; }
         protected bool IsLoading { get; set; } = false;
 
-        protected IEnumerable<int> PageSizeOptions = new[] { 10, 25, 50, 100 };
+        protected int ActiveCount => AllBrands.Count(b => b.IsActive);
+        protected int InactiveCount => AllBrands.Count(b => !b.IsActive);
+        protected int TotalPages => (int)Math.Ceiling((double)TotalCount / ItemsPerPage);
 
-        // Required by razor: SelectedBrands for bulk delete
-        protected IList<Brand> SelectedBrands { get; set; } = new List<Brand>();
+        protected List<Brand> PaginatedBrands => AllBrands
+            .Skip((CurrentPage - 1) * ItemsPerPage)
+            .Take(ItemsPerPage)
+            .ToList();
+
+        protected IEnumerable<int> PageSizeOptions = new[] { 10, 25, 50, 100 };
+        protected List<Brand> SelectedBrands { get; set; } = new();
 
         protected override async Task OnInitializedAsync()
         {
-            await LoadBrandsAsync();
+            await LoadAllBrandsAsync();
         }
 
-        protected async Task LoadBrandsAsync()
+        protected async Task LoadAllBrandsAsync()
         {
             try
             {
                 IsLoading = true;
                 StateHasChanged();
 
-                var allBrands = await BrandService.GetAllBrandsAsync();
-                Brands = allBrands ?? new List<Brand>();
-                TotalCount = Brands.Count();
+                var brands = await BrandService.GetAllBrandsAsync();
+                AllBrands = brands?.ToList() ?? new List<Brand>();
+                TotalCount = AllBrands.Count;
+                CurrentPage = 1;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Log exception here if you have a logger injected
-                throw; // preserves original stack trace
+                Console.WriteLine($"Error loading brands: {ex.Message}");
             }
             finally
             {
@@ -53,10 +58,61 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             }
         }
 
-        protected void CreateNewBrand()
+        protected void GoToPage(int page)
         {
-            Navigation.NavigateTo("/brands/create");
+            if (page < 1 || page > TotalPages) return;
+            CurrentPage = page;
+            StateHasChanged();
         }
+
+        protected async Task OnPageSizeChanged(ChangeEventArgs e)
+        {
+            if (int.TryParse(e.Value?.ToString(), out var size))
+            {
+                ItemsPerPage = size;
+                CurrentPage = 1;
+                StateHasChanged();
+            }
+        }
+
+        protected void OnBrandSelectionChanged(Brand brand)
+        {
+            if (brand.IsSelected)
+            {
+                if (!SelectedBrands.Contains(brand))
+                    SelectedBrands.Add(brand);
+            }
+            else
+            {
+                SelectedBrands.Remove(brand);
+            }
+            StateHasChanged();
+        }
+
+        protected void ToggleAllSelection()
+        {
+            var allSelected = SelectedBrands.Count == PaginatedBrands.Count && PaginatedBrands.Any();
+
+            foreach (var brand in PaginatedBrands)
+            {
+                if (allSelected)
+                {
+                    brand.IsSelected = false;
+                    SelectedBrands.Remove(brand);
+                }
+                else
+                {
+                    if (!SelectedBrands.Contains(brand))
+                    {
+                        brand.IsSelected = true;
+                        SelectedBrands.Add(brand);
+                    }
+                }
+            }
+            StateHasChanged();
+        }
+
+        protected void CreateNewBrand() => Navigation.NavigateTo("/brands/create");
 
         protected void EditBrand(Brand brand)
         {
@@ -70,17 +126,16 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
 
             bool confirmed = await JSRuntime.InvokeAsync<bool>(
                 "confirm", $"Delete brand '{brand.Name}'? This cannot be undone.");
-
             if (!confirmed) return;
 
             try
             {
                 await BrandService.DeleteBrandAsync(brand.Id.Value);
-                await LoadBrandsAsync();
+                await LoadAllBrandsAsync();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine($"Error deleting brand: {ex.Message}");
             }
         }
 
@@ -90,51 +145,21 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
 
             bool confirmed = await JSRuntime.InvokeAsync<bool>(
                 "confirm", $"Delete {SelectedBrands.Count} selected brand(s)? This cannot be undone.");
-
             if (!confirmed) return;
 
             try
             {
                 foreach (var brand in SelectedBrands.ToList())
-                {
                     if (brand?.Id is not null)
                         await BrandService.DeleteBrandAsync(brand.Id.Value);
-                }
 
                 SelectedBrands.Clear();
-                await LoadBrandsAsync();
+                await LoadAllBrandsAsync();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine($"Error during bulk delete: {ex.Message}");
             }
-        }
-
-        public string GetFlagEmoji(string country)
-        {
-            return country switch
-            {
-                "USA" => "🇺🇸",
-                "UK" => "🇬🇧",
-                "Germany" => "🇩🇪",
-                "France" => "🇫🇷",
-                "India" => "🇮🇳",
-                "China" => "🇨🇳",
-                _ => "🌍"
-            };
-        }
-
-        public async Task ItemsPerPageChanged(int itemsPerPage)
-        {
-            ItemsPerPage = itemsPerPage;
-            CurrentPage = 1;
-            await LoadBrandsAsync();
-        }
-
-        public async Task CurrentPageChanged(int currentPage)
-        {
-            CurrentPage = currentPage;
-            await LoadBrandsAsync();
         }
     }
 }
