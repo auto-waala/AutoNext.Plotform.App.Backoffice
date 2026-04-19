@@ -19,5 +19,6 @@ namespace AutoNext.Plotform.App.Backoffice.Models.Core
         public Dictionary<string, object>? Metadata { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public bool IsSelected { get; set; } = false;
     }
 }

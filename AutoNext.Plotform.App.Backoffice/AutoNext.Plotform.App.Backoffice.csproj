@@ -12,6 +12,7 @@
     <ProjectReference Include="..\AutoNext.Plotform.App.Backoffice.Models\AutoNext.Plotform.App.Backoffice.Models.csproj" />
     <PackageReference Include="Blazor.Bootstrap" Version="3.4.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.14" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
 </Project>
