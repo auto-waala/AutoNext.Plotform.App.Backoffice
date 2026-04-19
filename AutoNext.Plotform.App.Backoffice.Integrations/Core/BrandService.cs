@@ -1,13 +1,19 @@
 ﻿using AutoNext.Plotform.App.Backoffice.Models.Core;
+using System.Net.Http.Json;
 
 
 namespace AutoNext.Plotform.App.Backoffice.Integrations.Core
 {
-    internal class BrandService : IBrandService
+    public class BrandService : IBrandService
     {
-        public Task<Brand> CreateBrandAsync(Brand createDto)
+        private readonly HttpClient _httpClient;
+        public BrandService(HttpClient httpClient)
         {
-            throw new NotImplementedException();
+            _httpClient = httpClient;
+        }
+        public async Task<Brand> CreateBrandAsync(Brand createDto)
+        {
+            return new Brand();
         }
 
         public Task<bool> DeleteBrandAsync(Guid brandId)
@@ -15,14 +21,22 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Core
             throw new NotImplementedException();
         }
 
-        public Task<IEnumerable<Brand>> GetActiveBrandsAsync()
+        public async Task<IEnumerable<Brand>> GetActiveBrandsAsync()
         {
-            throw new NotImplementedException();
+            return await _httpClient.GetFromJsonAsync<IEnumerable<Brand>>("/brands/active");
         }
 
-        public Task<IEnumerable<Brand>> GetAllBrandsAsync()
+        public async Task<IEnumerable<Brand>> GetAllBrandsAsync()
         {
-            throw new NotImplementedException();
+            var response = await _httpClient.GetAsync("api/v1/brands");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var brands = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<Brand>>(content);
+                return brands ?? Enumerable.Empty<Brand>();
+            }
+            return Enumerable.Empty<Brand>();
         }
 
         public Task<Brand> GetBrandByIdAsync(Guid brandId)
