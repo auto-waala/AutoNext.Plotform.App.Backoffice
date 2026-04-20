@@ -1,0 +1,519 @@
+﻿@* BrandSidebar.razor *@
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@BrandModel" OnValidSubmit="@HandleValidSubmit" FormName="brandForm">
+        <!-- Header -->
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(BrandModel.Id.HasValue && BrandModel.Id.Value != Guid.Empty ? "Edit Brand" : "Add Brand")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+                
+                <!-- Brand Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Brand Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-building"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter brand name"
+                                   @bind-Value="BrandModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => BrandModel.Name)" />
+                    <small class="autonext-text-muted">Maximum 100 characters</small>
+                </div>
+
+                <!-- Brand Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Brand Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter brand code"
+                                   @bind-Value="BrandModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => BrandModel.Code)" />
+                    <small class="autonext-text-muted">Unique identifier (e.g., NIKE, ADIDAS)</small>
+                </div>
+
+                <!-- Slug -->
+                <div class="autonext-form-group">
+                    <label for="Slug">Slug</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-link-45deg"></i>
+                            </span>
+                        </div>
+                        <InputText id="Slug" class="autonext-form-control"
+                                   placeholder="URL-friendly slug"
+                                   @bind-Value="BrandModel.Slug" />
+                    </div>
+                    <ValidationMessage For="@(() => BrandModel.Slug)" />
+                    <small class="autonext-text-muted">Auto-generated from name if left empty</small>
+                </div>
+
+                <!-- Description -->
+                <div class="autonext-form-group">
+                    <label for="Description">Description</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-file-text"></i>
+                            </span>
+                        </div>
+                        <InputTextArea id="Description" class="autonext-form-control"
+                                       rows="3"
+                                       placeholder="Enter brand description"
+                                       @bind-Value="BrandModel.Description" />
+                    </div>
+                    <ValidationMessage For="@(() => BrandModel.Description)" />
+                </div>
+            </div>
+
+            <!-- Media & Online Presence Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-globe me-2"></i>Media & Online Presence
+                </h6>
+
+                <!-- Logo URL -->
+                <div class="autonext-form-group">
+                    <label for="LogoUrl">Logo URL</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-image"></i>
+                            </span>
+                        </div>
+                        <InputText id="LogoUrl" class="autonext-form-control"
+                                   placeholder="https://example.com/logo.png"
+                                   @bind-Value="BrandModel.LogoUrl" />
+                    </div>
+                    <ValidationMessage For="@(() => BrandModel.LogoUrl)" />
+                    @if (!string.IsNullOrEmpty(BrandModel.LogoUrl))
+                    {
+                        <div class="autonext-mt-2">
+                            <img src="@BrandModel.LogoUrl" alt="Logo preview"
+                                 style="max-width: 100px; max-height: 50px;"
+                                 onerror="this.style.display='none'" />
+                        </div>
+                    }
+                </div>
+
+                <!-- Website URL -->
+                <div class="autonext-form-group">
+                    <label for="WebsiteUrl">Website URL</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-browser-chrome"></i>
+                            </span>
+                        </div>
+                        <InputText id="WebsiteUrl" class="autonext-form-control"
+                                   placeholder="https://www.example.com"
+                                   @bind-Value="BrandModel.WebsiteUrl" />
+                    </div>
+                    <ValidationMessage For="@(() => BrandModel.WebsiteUrl)" />
+                </div>
+            </div>
+
+            <!-- Origin & History Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-geo-alt me-2"></i>Origin & History
+                </h6>
+
+                <!-- Country of Origin -->
+                <div class="autonext-form-group">
+                    <label for="CountryOfOrigin">Country of Origin</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-flag"></i>
+                            </span>
+                        </div>
+                        <InputText id="CountryOfOrigin" class="autonext-form-control"
+                                   placeholder="e.g., USA, Germany, Japan"
+                                   @bind-Value="BrandModel.CountryOfOrigin" />
+                    </div>
+                    <ValidationMessage For="@(() => BrandModel.CountryOfOrigin)" />
+                </div>
+
+                <!-- Founded Year -->
+                <div class="autonext-form-group">
+                    <label for="FoundedYear">Founded Year</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-calendar"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="FoundedYear" class="autonext-form-control"
+                                     placeholder="Enter founded year"
+                                     @bind-Value="BrandModel.FoundedYear" />
+                    </div>
+                    <ValidationMessage For="@(() => BrandModel.FoundedYear)" />
+                </div>
+            </div>
+
+            <!-- Categories Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-tags me-2"></i>Categories
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label>Applicable Categories</label>
+                    <div class="autonext-categories-input">
+                        <div class="autonext-input-group autonext-mb-2">
+                            <input type="text" class="autonext-form-control"
+                                   placeholder="Enter category"
+                                   @bind="newCategory"
+                                   @onkeypress="HandleCategoryKeyPress" />
+                            <button class="btn btn-outline-primary" type="button"
+                                    @onclick="AddCategory">
+                                <i class="bi bi-plus"></i> Add
+                            </button>
+                        </div>
+                        <div class="autonext-categories-list">
+                            @if (BrandModel.ApplicableCategories != null && BrandModel.ApplicableCategories.Any())
+                            {
+                                @foreach (var category in BrandModel.ApplicableCategories)
+                                {
+                                    <span class="autonext-category-tag">
+                                        @category
+                                        <button type="button" class="autonext-btn-close-category"
+                                                @onclick="() => RemoveCategory(category)">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+                                <small class="autonext-text-muted">No categories added yet</small>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Settings
+                </h6>
+
+                <!-- Display Order -->
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     placeholder="Display order"
+                                     @bind-Value="BrandModel.DisplayOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => BrandModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first</small>
+                </div>
+
+                <!-- Is Active -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="BrandModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(BrandModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive brands won't be displayed publicly</small>
+                </div>
+            </div>
+
+            <!-- Metadata Section (Advanced) -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title" @onclick="toggleMetadata">
+                    <i class="bi bi-database me-2"></i>
+                    Metadata (Advanced)
+                    <i class="bi @(showMetadata ? "bi-chevron-up" : "bi-chevron-down") ms-2"></i>
+                </h6>
+                
+                @if (showMetadata)
+                {
+                    <div class="autonext-metadata-editor">
+                        <div class="alert alert-info autonext-alert-sm">
+                            <i class="bi bi-info-circle"></i>
+                            Key-value pairs for additional brand data
+                        </div>
+                        
+                        @if (metadataEntries.Any())
+                        {
+                            @foreach (var entry in metadataEntries)
+                            {
+                                <div class="autonext-metadata-row">
+                                    <input type="text" class="autonext-form-control autonext-form-control-sm"
+                                           placeholder="Key" @bind="entry.Key" />
+                                    <input type="text" class="autonext-form-control autonext-form-control-sm"
+                                           placeholder="Value" @bind="entry.Value" />
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            @onclick="() => RemoveMetadataEntry(entry)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="autonext-text-muted autonext-mb-2">No metadata entries</div>
+                        }
+                        
+                        <button type="button" class="btn btn-sm btn-outline-secondary autonext-mt-2"
+                                @onclick="AddMetadataEntry">
+                            <i class="bi bi-plus-circle"></i> Add Metadata
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(BrandModel.Id.HasValue && BrandModel.Id.Value != Guid.Empty ? "bi-pencil" : "bi-save") me-1"></i>
+                @(BrandModel.Id.HasValue && BrandModel.Id.Value != Guid.Empty ? "Update" : "Save")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public Brand? BrandToEdit { get; set; }
+    [Parameter] public EventCallback<Brand> OnSave { get; set; }
+
+    private Brand BrandModel { get; set; } = new();
+    private EditContext? editContext;
+    private string newCategory = string.Empty;
+    private bool showMetadata = false;
+    private List<MetadataEntry> metadataEntries = new();
+
+    private class MetadataEntry
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+    }
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(BrandModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(BrandModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (BrandToEdit != null && BrandToEdit.Id.HasValue && BrandToEdit.Id.Value != Guid.Empty)
+        {
+            // Clone the brand for editing
+            BrandModel = new Brand
+            {
+                Id = BrandToEdit.Id,
+                Name = BrandToEdit.Name,
+                Code = BrandToEdit.Code,
+                Slug = BrandToEdit.Slug,
+                Description = BrandToEdit.Description,
+                LogoUrl = BrandToEdit.LogoUrl,
+                WebsiteUrl = BrandToEdit.WebsiteUrl,
+                CountryOfOrigin = BrandToEdit.CountryOfOrigin,
+                FoundedYear = BrandToEdit.FoundedYear,
+                ApplicableCategories = BrandToEdit.ApplicableCategories != null
+                    ? new List<string>(BrandToEdit.ApplicableCategories)
+                    : new List<string>(),
+                DisplayOrder = BrandToEdit.DisplayOrder,
+                IsActive = BrandToEdit.IsActive,
+                Metadata = BrandToEdit.Metadata != null
+                    ? new Dictionary<string, object>(BrandToEdit.Metadata)
+                    : new Dictionary<string, object>(),
+                CreatedAt = BrandToEdit.CreatedAt,
+                UpdatedAt = BrandToEdit.UpdatedAt
+            };
+            
+            // Load metadata into entries for editing
+            LoadMetadataEntries();
+        }
+        else if (BrandToEdit == null && (BrandModel.Id == null || BrandModel.Id == Guid.Empty))
+        {
+            // Reset form for new brand
+            BrandModel = new Brand
+            {
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                DisplayOrder = 0,
+                ApplicableCategories = new List<string>(),
+                Metadata = new Dictionary<string, object>(),
+                CreatedAt = DateTime.UtcNow
+            };
+            metadataEntries.Clear();
+        }
+    }
+
+    private void LoadMetadataEntries()
+    {
+        metadataEntries.Clear();
+        if (BrandModel.Metadata != null)
+        {
+            foreach (var kvp in BrandModel.Metadata)
+            {
+                metadataEntries.Add(new MetadataEntry
+                {
+                    Key = kvp.Key,
+                    Value = kvp.Value?.ToString() ?? string.Empty
+                });
+            }
+        }
+    }
+
+    private void SaveMetadataFromEntries()
+    {
+        BrandModel.Metadata = new Dictionary<string, object>();
+        foreach (var entry in metadataEntries)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.Key))
+            {
+                BrandModel.Metadata[entry.Key] = entry.Value;
+            }
+        }
+    }
+
+    private void AddMetadataEntry()
+    {
+        metadataEntries.Add(new MetadataEntry());
+    }
+
+    private void RemoveMetadataEntry(MetadataEntry entry)
+    {
+        metadataEntries.Remove(entry);
+    }
+
+    private void AddCategory()
+    {
+        if (!string.IsNullOrWhiteSpace(newCategory))
+        {
+            BrandModel.ApplicableCategories ??= new List<string>();
+            if (!BrandModel.ApplicableCategories.Contains(newCategory.Trim()))
+            {
+                BrandModel.ApplicableCategories.Add(newCategory.Trim());
+            }
+            newCategory = string.Empty;
+        }
+    }
+
+    private void RemoveCategory(string category)
+    {
+        BrandModel.ApplicableCategories?.Remove(category);
+    }
+
+    private void HandleCategoryKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddCategory();
+        }
+    }
+
+    private void toggleMetadata()
+    {
+        showMetadata = !showMetadata;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Save metadata from entries
+        SaveMetadataFromEntries();
+        
+        // Generate slug from name if not provided
+        if (string.IsNullOrWhiteSpace(BrandModel.Slug) && !string.IsNullOrWhiteSpace(BrandModel.Name))
+        {
+            BrandModel.Slug = GenerateSlug(BrandModel.Name);
+        }
+        
+        // Set audit fields
+        BrandModel.UpdatedAt = DateTime.UtcNow;
+        if (BrandModel.Id == null || BrandModel.Id == Guid.Empty)
+        {
+            BrandModel.Id = Guid.NewGuid();
+            BrandModel.CreatedAt = DateTime.UtcNow;
+        }
+        
+        await OnSave.InvokeAsync(BrandModel);
+    }
+
+    private string GenerateSlug(string name)
+    {
+        // Simple slug generation
+        return name.ToLower()
+                   .Replace(" ", "-")
+                   .Replace("&", "and")
+                   .Replace("'", "")
+                   .Replace("\"", "")
+                   .Replace(".", "")
+                   .Replace(",", "")
+                   .Replace("?", "")
+                   .Replace("!", "");
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        // EditContext doesn't need disposal in .NET Core 3.1+
+        // Just null out the reference
+        editContext = null;
+    }
+}
