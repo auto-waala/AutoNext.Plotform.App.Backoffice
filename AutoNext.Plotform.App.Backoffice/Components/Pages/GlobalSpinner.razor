@@ -1,0 +1,35 @@
+﻿@using AutoNext.Plotform.App.Backoffice.Handlers
+@inject GlobalSpinnerState SpinnerState
+
+@if (SpinnerState.IsVisible)
+{
+    <div class="global-spinner-overlay">
+        <div class="global-spinner-container">
+            <div class="global-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-logo">
+                    <i class="bi bi-building"></i>
+                </div>
+            </div>
+            <div class="spinner-text">
+                <h6 class="mb-1">@SpinnerState.Title</h6>
+                <small class="text-muted">@SpinnerState.Message</small>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        SpinnerState.OnChange += StateHasChanged;
+        base.OnInitialized();
+    }
+    
+    public void Dispose()
+    {
+        SpinnerState.OnChange -= StateHasChanged;
+    }
+}

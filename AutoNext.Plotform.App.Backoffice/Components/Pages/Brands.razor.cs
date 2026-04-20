@@ -1,4 +1,5 @@
-﻿using AutoNext.Plotform.App.Backoffice.Integrations.Core;
+﻿using AutoNext.Plotform.App.Backoffice.Handlers;
+using AutoNext.Plotform.App.Backoffice.Integrations.Core;
 using AutoNext.Plotform.App.Backoffice.Models.Core;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -10,9 +11,9 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
         [Inject] protected IBrandService BrandService { get; set; } = default!;
         [Inject] protected NavigationManager Navigation { get; set; } = default!;
         [Inject] protected IJSRuntime JSRuntime { get; set; } = default!;
+        [Inject] protected LoaderService LoaderService { get; set; } = default!;
 
         protected List<Brand> AllBrands { get; set; } = new();
-
         protected int ItemsPerPage { get; set; } = 25;
         protected int CurrentPage { get; set; } = 1;
         protected int TotalCount { get; set; }
@@ -30,6 +31,10 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
         protected IEnumerable<int> PageSizeOptions = new[] { 10, 25, 50, 100 };
         protected List<Brand> SelectedBrands { get; set; } = new();
 
+        // ✅ Fix: Computed property so the header checkbox reflects real state
+        protected bool AllPageSelected =>
+            PaginatedBrands.Any() && PaginatedBrands.All(b => b.IsSelected);
+
         protected override async Task OnInitializedAsync()
         {
             await LoadAllBrandsAsync();
@@ -39,6 +44,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
         {
             try
             {
+                LoaderService.Show("Loading brands...");
                 IsLoading = true;
                 StateHasChanged();
 
@@ -46,13 +52,11 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
                 AllBrands = brands?.ToList() ?? new List<Brand>();
                 TotalCount = AllBrands.Count;
                 CurrentPage = 1;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading brands: {ex.Message}");
+                SelectedBrands.Clear(); // ✅ Fix: clear selections on reload
             }
             finally
             {
+                LoaderService.Hide();
                 IsLoading = false;
                 StateHasChanged();
             }
@@ -75,9 +79,12 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             }
         }
 
-        protected void OnBrandSelectionChanged(Brand brand)
+        // ✅ Fix: This is now properly called from the razor via @onchange
+        protected void OnBrandSelectionChanged(Brand brand, bool isChecked)
         {
-            if (brand.IsSelected)
+            brand.IsSelected = isChecked;
+
+            if (isChecked)
             {
                 if (!SelectedBrands.Contains(brand))
                     SelectedBrands.Add(brand);
@@ -91,22 +98,20 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
 
         protected void ToggleAllSelection()
         {
-            var allSelected = SelectedBrands.Count == PaginatedBrands.Count && PaginatedBrands.Any();
+            bool selectAll = !AllPageSelected;
 
             foreach (var brand in PaginatedBrands)
             {
-                if (allSelected)
+                brand.IsSelected = selectAll;
+
+                if (selectAll)
                 {
-                    brand.IsSelected = false;
-                    SelectedBrands.Remove(brand);
+                    if (!SelectedBrands.Contains(brand))
+                        SelectedBrands.Add(brand);
                 }
                 else
                 {
-                    if (!SelectedBrands.Contains(brand))
-                    {
-                        brand.IsSelected = true;
-                        SelectedBrands.Add(brand);
-                    }
+                    SelectedBrands.Remove(brand);
                 }
             }
             StateHasChanged();
@@ -124,42 +129,56 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
         {
             if (brand?.Id is null) return;
 
-            bool confirmed = await JSRuntime.InvokeAsync<bool>(
+            var confirmed = await JSRuntime.InvokeAsync<bool>(
                 "confirm", $"Delete brand '{brand.Name}'? This cannot be undone.");
+
             if (!confirmed) return;
 
             try
             {
+                LoaderService.Show($"Deleting {brand.Name}...");
                 await BrandService.DeleteBrandAsync(brand.Id.Value);
-                await LoadAllBrandsAsync();
             }
-            catch (Exception ex)
+            finally
             {
-                Console.WriteLine($"Error deleting brand: {ex.Message}");
+                LoaderService.Hide();
             }
+
+            // ✅ Fix: reload after loader is hidden, not nested inside it
+            await LoadAllBrandsAsync();
         }
 
         protected async Task BulkDelete()
         {
             if (!SelectedBrands.Any()) return;
 
-            bool confirmed = await JSRuntime.InvokeAsync<bool>(
+            var confirmed = await JSRuntime.InvokeAsync<bool>(
                 "confirm", $"Delete {SelectedBrands.Count} selected brand(s)? This cannot be undone.");
+
             if (!confirmed) return;
 
             try
             {
+                LoaderService.Show($"Deleting {SelectedBrands.Count} brands...");
                 foreach (var brand in SelectedBrands.ToList())
                     if (brand?.Id is not null)
                         await BrandService.DeleteBrandAsync(brand.Id.Value);
 
                 SelectedBrands.Clear();
-                await LoadAllBrandsAsync();
             }
-            catch (Exception ex)
+            finally
             {
-                Console.WriteLine($"Error during bulk delete: {ex.Message}");
+                LoaderService.Hide();
             }
+
+            await LoadAllBrandsAsync();
+        }
+
+        public async Task TestLoader()
+        {
+            LoaderService.Show("Testing spinner...");
+            await Task.Delay(3000);
+            LoaderService.Hide();
         }
     }
 }

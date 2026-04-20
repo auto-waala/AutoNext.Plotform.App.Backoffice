@@ -1,4 +1,5 @@
 using AutoNext.Plotform.App.Backoffice.Components;
+using AutoNext.Plotform.App.Backoffice.Handlers;
 using AutoNext.Plotform.App.Backoffice.Integrations.Core;
 using AutoNext.Plotform.App.Backoffice.Models.Common;
 using BlazorBootstrap;
@@ -9,8 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+
 // Register BlazorBootstrap
 builder.Services.AddBlazorBootstrap();
+
+builder.Services.AddSingleton<LoaderService>();
 
 
 var apiGateway = builder.Configuration.GetSection("ApiGateway");

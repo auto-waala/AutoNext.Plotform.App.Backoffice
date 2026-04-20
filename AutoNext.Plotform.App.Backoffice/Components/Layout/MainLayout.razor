@@ -1,7 +1,11 @@
-﻿@inherits LayoutComponentBase
+﻿@using AutoNext.Plotform.App.Backoffice.Handlers
+@inherits LayoutComponentBase
 @inject NavigationManager Navigation
+@inject LoaderService LoaderService
 
 <div class="app-wrapper">
+        <PanelLoader />
+    
     <!-- Sidebar -->
     <div class="sidebar-responsive @(isSidebarOpen ? "open" : "")">
         <div class="sidebar-header">
@@ -382,40 +386,122 @@
         padding: 1.5rem;
         flex: 1;
     }
+
+    /* Global Spinner Styles */
+    .global-spinner-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    .global-spinner-container {
+        text-align: center;
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.2);
+        min-width: 280px;
+    }
+
+    .global-spinner {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1rem;
+    }
+
+    .spinner-ring {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 3px solid transparent;
+        border-radius: 50%;
+        animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    }
+
+    .spinner-ring:nth-child(1) {
+        border-top-color: #06b6d4;
+        animation-delay: -0.45s;
+    }
+
+    .spinner-ring:nth-child(2) {
+        border-right-color: #0891b2;
+        animation-delay: -0.3s;
+    }
+
+    .spinner-ring:nth-child(3) {
+        border-bottom-color: #22d3ee;
+        animation-delay: -0.15s;
+    }
+
+    .spinner-logo {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.5rem;
+        color: #06b6d4;
+        animation: pulse 1.5s ease infinite;
+    }
+
+    .spinner-text h6 {
+        color: #1e293b;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .spinner-text small {
+        color: #64748b;
+        font-size: 0.75rem;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @@keyframes pulse {
+        0%, 100% { transform: translate(-50%, -50%) scale(1); }
+        50% { transform: translate(-50%, -50%) scale(0.95); }
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
 </style>
 
 @code {
     private bool isSidebarOpen = false;
     private bool showProfileMenu = false;
-    
-    private void ToggleSidebar()
-    {
-        isSidebarOpen = !isSidebarOpen;
-    }
-    
-    private void CloseSidebar()
-    {
-        isSidebarOpen = false;
-    }
-    
-    private void ToggleProfileMenu()
-    {
-        showProfileMenu = !showProfileMenu;
-    }
-    
-    private void CloseProfileMenu()
-    {
-        showProfileMenu = false;
-    }
-    
+
+    private void ToggleSidebar() => isSidebarOpen = !isSidebarOpen;
+    private void CloseSidebar() => isSidebarOpen = false;
+    private void ToggleProfileMenu() => showProfileMenu = !showProfileMenu;
+
     protected override void OnInitialized()
     {
-        Navigation.LocationChanged += (sender, args) =>
-        {
-            // Close menus on navigation
-            isSidebarOpen = false;
-            showProfileMenu = false;
-            InvokeAsync(StateHasChanged);
-        };
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    {
+        isSidebarOpen = false;
+        showProfileMenu = false;
+
+        // ✅ REMOVED LoaderService.Show() — it showed the overlay and never hid it,
+        // blocking every button click on every page.
+        // Each page handles its own loader via LoadAllBrandsAsync() etc.
+
+        InvokeAsync(StateHasChanged);
     }
 }
