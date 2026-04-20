@@ -2,10 +2,8 @@
 @inherits BrandsBase
 @using BlazorBootstrap
 
-<div class="container-fluid" style="padding-left: 0px;
-    padding-right: 0px;">
-    <div class="row" style="padding-left: 0px;
-        padding-right: 0px;">
+<div class="container-fluid" style="padding-left: 0px; padding-right: 0px;">
+    <div class="row" style="padding-left: 0px; padding-right: 0px;">
         <div class="col">
             <div class="card brands-card">
 
@@ -35,7 +33,7 @@
                                 </button>
                             }
                             <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
-                                    @onclick="CreateNewBrand">
+                                    @onclick="OpenAddBrandSidebar">
                                 <i class="bi bi-plus-circle"></i>
                                 <span class="d-none d-sm-inline">New Brand</span>
                             </button>
@@ -59,7 +57,6 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width: 40px">
-                                            <!-- ✅ Fix: bound to AllPageSelected computed property -->
                                             <input type="checkbox"
                                                    checked="@AllPageSelected"
                                                    @onchange="_ => ToggleAllSelection()" />
@@ -79,10 +76,9 @@
                                     {
                                         @foreach (var brand in PaginatedBrands)
                                         {
-                                            var localBrand = brand; // ✅ Fix: capture loop variable
+                                            var localBrand = brand;
                                             <tr>
                                                 <td>
-                                                    <!-- ✅ Fix: use @onchange to call handler properly -->
                                                     <input type="checkbox"
                                                            checked="@localBrand.IsSelected"
                                                            @onchange="e => OnBrandSelectionChanged(localBrand, (bool)e.Value!)" />
@@ -123,7 +119,7 @@
                                                 <td>
                                                     <div class="btn-group btn-group-sm" role="group">
                                                         <button class="btn btn-outline-primary"
-                                                                @onclick="() => EditBrand(localBrand)">
+                                                                @onclick="() => OpenEditBrandSidebar(localBrand)">
                                                             <i class="bi bi-pencil"></i>
                                                         </button>
                                                         <button class="btn btn-outline-danger"
@@ -161,7 +157,7 @@
 
                                         @for (int i = 1; i <= TotalPages; i++)
                                         {
-                                            var pageNum = i; // ✅ Fix: capture loop variable for closure
+                                            var pageNum = i;
                                             if (pageNum == 1 || pageNum == TotalPages || (pageNum >= CurrentPage - 2 && pageNum <= CurrentPage + 2))
                                             {
                                                 <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
@@ -227,3 +223,6 @@
         </div>
     </div>
 </div>
+
+<!-- Sidebar Component -->
+<BrandSidebar @bind-IsVisible="@showSidebar" BrandToEdit="@selectedBrand" OnSave="@OnBrandSave" />

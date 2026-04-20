@@ -1,0 +1,375 @@
+﻿/* ===== AUTONEXT SIDEBAR STYLES - Reusable for any sidebar ===== */
+/* Use these classes for Brands, Categories, Users, or any other sidebar */
+
+/* Overlay */
+.autonext-sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+    .autonext-sidebar-overlay.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+
+/* Sidebar Container */
+.autonext-sidebar {
+    position: fixed;
+    top: 0;
+    right: -600px;
+    width: 600px;
+    height: 100%;
+    background-color: white;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.15);
+    z-index: 1050;
+    transition: right 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+    .autonext-sidebar.visible {
+        right: 0;
+    }
+
+/* Header */
+.autonext-sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    background: white;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.autonext-sidebar-title {
+    margin: 0;
+    font-weight: 600;
+    color: #343a40;
+    font-size: 1.25rem;
+}
+
+.autonext-sidebar-close {
+    background: transparent;
+    border: none;
+    font-size: 1.75rem;
+    line-height: 1;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+    .autonext-sidebar-close:hover {
+        color: #343a40;
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+/* Body */
+.autonext-sidebar-body {
+    padding: 25px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Form Sections */
+.autonext-form-section {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 1rem;
+}
+
+.autonext-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+    .autonext-section-title i {
+        font-size: 1.1rem;
+    }
+
+/* Form Groups */
+.autonext-form-group {
+    margin-bottom: 1.5rem;
+}
+
+    .autonext-form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #495057;
+        font-size: 0.95rem;
+    }
+
+/* Input Groups */
+.autonext-input-group {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #ced4da;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: stretch;
+}
+
+    .autonext-input-group:focus-within {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+
+.autonext-input-group-text {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: #e9ecef;
+    border: none;
+    border-right: 1px solid #ced4da;
+    color: #495057;
+}
+
+/* Form Controls */
+.autonext-form-control {
+    border: none;
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    color: #495057;
+    background-color: white;
+    width: 100%;
+}
+
+    .autonext-form-control:focus {
+        box-shadow: none;
+        outline: none;
+    }
+
+textarea.autonext-form-control {
+    resize: vertical;
+}
+
+select.autonext-form-control {
+    cursor: pointer;
+}
+
+/* Footer */
+.autonext-sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid #dee2e6;
+    text-align: right;
+    flex-shrink: 0;
+    background: white;
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+}
+
+/* Validation Messages */
+.autonext-validation-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+/* Checkbox & Switch */
+.autonext-form-check {
+    padding-left: 2.5rem;
+}
+
+.autonext-form-check-input {
+    width: 2em;
+    height: 1em;
+    margin-left: -2.5rem;
+}
+
+/* Categories Tags */
+.autonext-categories-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.autonext-category-tag {
+    display: inline-flex;
+    align-items: center;
+    background-color: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: #495057;
+}
+
+    .autonext-category-tag .autonext-btn-close-category {
+        background: none;
+        border: none;
+        padding: 0;
+        margin-left: 0.5rem;
+        color: #6c757d;
+        cursor: pointer;
+    }
+
+        .autonext-category-tag .autonext-btn-close-category:hover {
+            color: #dc3545;
+        }
+
+/* Metadata Editor */
+.autonext-metadata-editor {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.autonext-metadata-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+    .autonext-metadata-row .autonext-form-control {
+        flex: 1;
+    }
+
+/* Alerts */
+.autonext-alert-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+/* Helper Classes */
+.autonext-text-muted {
+    color: #6c757d;
+}
+
+.autonext-mt-1 {
+    margin-top: 0.25rem;
+}
+
+.autonext-mt-2 {
+    margin-top: 0.5rem;
+}
+
+.autonext-mb-1 {
+    margin-bottom: 0.25rem;
+}
+
+.autonext-mb-2 {
+    margin-bottom: 0.5rem;
+}
+
+.autonext-ml-1 {
+    margin-left: 0.25rem;
+}
+
+.autonext-ml-2 {
+    margin-left: 0.5rem;
+}
+
+.autonext-mr-1 {
+    margin-right: 0.25rem;
+}
+
+.autonext-mr-2 {
+    margin-right: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .autonext-sidebar {
+        width: 100%;
+        right: -100%;
+    }
+
+        .autonext-sidebar.visible {
+            right: 0;
+        }
+
+    .autonext-sidebar-header,
+    .autonext-sidebar-body,
+    .autonext-sidebar-footer {
+        padding: 15px;
+    }
+
+    .autonext-metadata-row {
+        flex-direction: column;
+    }
+
+    .autonext-sidebar-title {
+        font-size: 1.1rem;
+    }
+}
+
+/* Dark Mode Support (Optional) */
+@media (prefers-color-scheme: dark) {
+    .autonext-sidebar {
+        background-color: #1a1a1a;
+    }
+
+    .autonext-sidebar-header,
+    .autonext-sidebar-footer {
+        background-color: #1a1a1a;
+        border-color: #333;
+    }
+
+    .autonext-sidebar-title {
+        color: #e9ecef;
+    }
+
+    .autonext-section-title {
+        color: #ced4da;
+        border-color: #333;
+    }
+
+    .autonext-form-group label {
+        color: #ced4da;
+    }
+
+    .autonext-form-control {
+        background-color: #2d2d2d;
+        color: #e9ecef;
+    }
+
+    .autonext-input-group {
+        border-color: #444;
+    }
+
+    .autonext-input-group-text {
+        background-color: #333;
+        color: #e9ecef;
+        border-color: #444;
+    }
+
+    .autonext-category-tag {
+        background-color: #333;
+        color: #e9ecef;
+    }
+
+    .autonext-metadata-editor {
+        background-color: #2d2d2d;
+    }
+}
