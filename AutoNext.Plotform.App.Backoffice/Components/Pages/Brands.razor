@@ -57,7 +57,10 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width: 40px">
-                                            <input type="checkbox" @onchange="ToggleAllSelection" />
+                                            <!-- ✅ Fix: bound to AllPageSelected computed property -->
+                                            <input type="checkbox"
+                                                   checked="@AllPageSelected"
+                                                   @onchange="_ => ToggleAllSelection()" />
                                         </th>
                                         <th>Brand Name</th>
                                         <th>Code</th>
@@ -74,35 +77,38 @@
                                     {
                                         @foreach (var brand in PaginatedBrands)
                                         {
+                                            var localBrand = brand; // ✅ Fix: capture loop variable
                                             <tr>
                                                 <td>
+                                                    <!-- ✅ Fix: use @onchange to call handler properly -->
                                                     <input type="checkbox"
-                                                           @bind="brand.IsSelected" />
+                                                           checked="@localBrand.IsSelected"
+                                                           @onchange="e => OnBrandSelectionChanged(localBrand, (bool)e.Value!)" />
                                                 </td>
                                                 <td>
                                                     <div class="d-flex align-items-center gap-2">
                                                         <div class="brand-avatar">
-                                                            <span>@(brand.Name?.Length > 0 ? brand.Name[0].ToString() : "?")</span>
+                                                            <span>@(localBrand.Name?.Length > 0 ? localBrand.Name[0].ToString() : "?")</span>
                                                         </div>
                                                         <div>
-                                                            <strong>@brand.Name</strong>
-                                                            @if (!string.IsNullOrEmpty(brand.Description))
+                                                            <strong>@localBrand.Name</strong>
+                                                            @if (!string.IsNullOrEmpty(localBrand.Description))
                                                             {
-                                                                <div class="text-muted small">@brand.Description</div>
+                                                                <div class="text-muted small">@localBrand.Description</div>
                                                             }
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-secondary">@brand.Code</span>
+                                                    <span class="badge bg-secondary">@localBrand.Code</span>
                                                 </td>
                                                 <td>
-                                                    <code class="small">@brand.Slug</code>
+                                                    <code class="small">@localBrand.Slug</code>
                                                 </td>
-                                                <td>@(brand.FoundedYear?.ToString() ?? "-")</td>
-                                                <td class="text-center">@brand.DisplayOrder</td>
+                                                <td>@(localBrand.FoundedYear?.ToString() ?? "-")</td>
+                                                <td class="text-center">@localBrand.DisplayOrder</td>
                                                 <td>
-                                                    @if (brand.IsActive)
+                                                    @if (localBrand.IsActive)
                                                     {
                                                         <span class="badge bg-success">Active</span>
                                                     }
@@ -111,15 +117,15 @@
                                                         <span class="badge bg-danger">Inactive</span>
                                                     }
                                                 </td>
-                                                <td>@brand.CreatedAt.ToString("yyyy-MM-dd")</td>
+                                                <td>@localBrand.CreatedAt.ToString("yyyy-MM-dd")</td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm" role="group">
                                                         <button class="btn btn-outline-primary"
-                                                                @onclick="() => EditBrand(brand)">
+                                                                @onclick="() => EditBrand(localBrand)">
                                                             <i class="bi bi-pencil"></i>
                                                         </button>
                                                         <button class="btn btn-outline-danger"
-                                                                @onclick="() => DeleteBrand(brand)">
+                                                                @onclick="() => DeleteBrand(localBrand)">
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </div>
@@ -150,23 +156,24 @@
                                                 Previous
                                             </button>
                                         </li>
-                                        
+
                                         @for (int i = 1; i <= TotalPages; i++)
                                         {
-                                            if (i == 1 || i == TotalPages || (i >= CurrentPage - 2 && i <= CurrentPage + 2))
+                                            var pageNum = i; // ✅ Fix: capture loop variable for closure
+                                            if (pageNum == 1 || pageNum == TotalPages || (pageNum >= CurrentPage - 2 && pageNum <= CurrentPage + 2))
                                             {
-                                                <li class="page-item @(CurrentPage == i ? "active" : "")">
-                                                    <button class="page-link" @onclick="() => GoToPage(i)">@i</button>
+                                                <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                                    <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
                                                 </li>
                                             }
-                                            else if (i == CurrentPage - 3 || i == CurrentPage + 3)
+                                            else if (pageNum == CurrentPage - 3 || pageNum == CurrentPage + 3)
                                             {
                                                 <li class="page-item disabled">
                                                     <span class="page-link">...</span>
                                                 </li>
                                             }
                                         }
-                                        
+
                                         <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
                                             <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)">
                                                 Next
@@ -217,227 +224,8 @@
             </div>
         </div>
     </div>
+
+    <button class="btn btn-primary mb-3" @onclick="TestLoader">
+        Test Loader
+    </button>
 </div>
-
-<style>
-    .brands-card {
-        border: 1px solid #e3e6f0;
-        border-radius: 0.5rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
-        overflow: hidden;
-    }
-
-    .card-header {
-        padding: 0.75rem 1.25rem;
-        background-color: #f8f9fc !important;
-    }
-
-    h5 {
-        color: #2d3748;
-        font-weight: 600;
-        font-size: 1.1rem;
-        margin: 0;
-    }
-
-    .table-responsive {
-        overflow-x: auto;
-    }
-
-    .brands-table {
-        margin-bottom: 0;
-        font-size: 13px;
-    }
-
-        .brands-table thead th {
-            background-color: #f8f9fa;
-            color: #495057;
-            font-weight: 600;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            padding: 12px;
-            border-bottom: 2px solid #e9ecef;
-            vertical-align: middle;
-        }
-
-        .brands-table tbody tr {
-            border-bottom: 1px solid #f0f0f0;
-            transition: background-color 0.15s ease;
-        }
-
-            .brands-table tbody tr:hover {
-                background-color: #f9fafb;
-            }
-
-        .brands-table tbody td {
-            padding: 12px;
-            vertical-align: middle;
-        }
-
-    .brand-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        background: linear-gradient(135deg, #3b82f6, #6366f1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-        .brand-avatar span {
-            color: #fff;
-            font-weight: 700;
-            font-size: 0.9rem;
-        }
-
-    .pagination-container {
-        background-color: #fff;
-    }
-
-    .page-link {
-        color: #3b82f6;
-        cursor: pointer;
-    }
-
-    .page-item.active .page-link {
-        background-color: #3b82f6;
-        border-color: #3b82f6;
-    }
-
-    .card-footer {
-        padding: 0.75rem 1.25rem;
-        font-size: 0.875rem;
-        background-color: #f8f9fc !important;
-    }
-
-    .page-size-select {
-        width: auto;
-        min-width: 70px;
-        font-size: 0.8rem;
-        padding: 2px 6px;
-    }
-
-    .btn-primary {
-        background-color: #3b82f6;
-        border-color: #3b82f6;
-        font-weight: 500;
-    }
-
-        .btn-primary:hover {
-            background-color: #2563eb;
-            border-color: #2563eb;
-        }
-
-    .btn-sm {
-        font-size: 0.8rem;
-        padding: 0.25rem 0.5rem;
-    }
-
-    .spinner-border {
-        width: 2rem;
-        height: 2rem;
-        border-width: 0.2em;
-    }
-
-    .text-muted {
-        color: #6c757d !important;
-    }
-
-    .small {
-        font-size: 0.875rem;
-    }
-
-    .fw-medium {
-        font-weight: 500;
-    }
-
-    .gap-1 {
-        gap: 0.25rem;
-    }
-
-    .gap-2 {
-        gap: 0.5rem;
-    }
-
-    .gap-3 {
-        gap: 1rem;
-    }
-
-    .me-1 {
-        margin-right: 0.25rem;
-    }
-
-    .me-2 {
-        margin-right: 0.5rem;
-    }
-
-    .ms-1 {
-        margin-left: 0.25rem;
-    }
-
-    .ms-2 {
-        margin-left: 0.5rem;
-    }
-
-    .mt-3 {
-        margin-top: 1rem;
-    }
-
-    .py-1 {
-        padding-top: 0.25rem;
-        padding-bottom: 0.25rem;
-    }
-
-    .py-3 {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-    }
-
-    .py-5 {
-        padding-top: 3rem;
-        padding-bottom: 3rem;
-    }
-
-    .px-0 {
-        padding-left: 0;
-        padding-right: 0;
-    }
-
-    .table-hover tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    code {
-        background-color: #f1f3f5;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-    }
-
-    @@media (max-width: 768px) {
-        .card-header > div {
-            flex-direction: column;
-            align-items: flex-start !important;
-            gap: 0.75rem;
-        }
-
-        .card-header .d-flex.gap-2 {
-            width: 100%;
-            justify-content: flex-end;
-        }
-
-        h5 {
-            font-size: 1rem;
-        }
-        
-        .brands-table {
-            font-size: 12px;
-        }
-        
-            .brands-table td,
-            .brands-table th {
-                padding: 8px;
-            }
-    }
-</style>
