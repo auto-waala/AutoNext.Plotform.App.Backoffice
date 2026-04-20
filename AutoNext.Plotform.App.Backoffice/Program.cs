@@ -3,6 +3,8 @@ using AutoNext.Plotform.App.Backoffice.Handlers;
 using AutoNext.Plotform.App.Backoffice.Integrations.Core;
 using AutoNext.Plotform.App.Backoffice.Models.Common;
 using BlazorBootstrap;
+using Microsoft.AspNetCore.Components.Server.Circuits;
+using Radzen;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -32,6 +34,8 @@ try
 
     builder.Services.AddBlazorBootstrap();
 
+    builder.Services.AddRadzenComponents();
+
     builder.Services.AddSingleton<LoaderService>();
     builder.Services.AddSingleton<ToastService>();
 
@@ -49,7 +53,11 @@ try
             client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
     });
 
+    builder.Services.AddScoped<CircuitHandler, BlazorExceptionHandler>();
+
     var app = builder.Build();
+
+    app.UseMiddleware<ExceptionMiddleware>();
 
     if (!app.Environment.IsDevelopment())
     {
