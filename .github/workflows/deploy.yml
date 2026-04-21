@@ -8,7 +8,7 @@ on:
 jobs:
   deploy-gateway-dev:
     if: github.event.pull_request.merged == true
-    runs-on: windows-latest
+    runs-on: ubuntu-latest  # Change to Ubuntu (better DNS support)
     environment: Development
     
     steps:
@@ -27,55 +27,20 @@ jobs:
       run: |
         dotnet publish AutoNext.Plotform.App.Backoffice.Gateway/AutoNext.Plotform.App.Backoffice.Gateway.csproj --configuration Release --output ./publish/gateway/dev -p:EnvironmentName=Development
 
-    - name: Deploy Gateway to Dev via FTP with Retry
-      shell: powershell
+    - name: Install lftp
+      run: sudo apt-get update && sudo apt-get install -y lftp
+
+    - name: Deploy Gateway to Dev via LFTP
       run: |
-        $maxRetries = 5
-        $retryDelay = 10
-        $success = $false
-        
-        for ($i = 1; $i -le $maxRetries; $i++) {
-          try {
-            Write-Host "Attempt $i of $maxRetries"
-            
-            $ftpServer = "${{ secrets.FTP_SERVER }}"
-            $ftpUser = "${{ secrets.FTP_USERNAME }}"
-            $ftpPass = "${{ secrets.FTP_PASSWORD }}"
-            $localPath = ".\publish\gateway\dev\*"
-            $remotePath = "${{ secrets.FTP_GATEWAY_DEV_PATH }}/"
-            
-            $webclient = New-Object System.Net.WebClient
-            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
-            $webclient.BaseAddress = "ftp://$ftpServer$remotePath"
-            
-            # Upload each file
-            Get-ChildItem -Path $localPath -File | ForEach-Object {
-              $file = $_
-              $remoteFile = $webclient.BaseAddress + $file.Name
-              Write-Host "Uploading $($file.Name)..."
-              $webclient.UploadFile($remoteFile, $file.FullName)
-            }
-            
-            $success = $true
-            Write-Host "Deployment successful!"
-            break
-          }
-          catch {
-            Write-Host "Attempt $i failed: $_"
-            if ($i -lt $maxRetries) {
-              Write-Host "Waiting $retryDelay seconds before retry..."
-              Start-Sleep -Seconds $retryDelay
-            }
-          }
-        }
-        
-        if (-not $success) {
-          throw "FTP deployment failed after $maxRetries attempts"
-        }
+        lftp -c "
+        open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}
+        mirror -R --verbose --delete --parallel=4 ./publish/gateway/dev/ ${{ secrets.FTP_GATEWAY_DEV_PATH }}
+        quit
+        "
 
   deploy-gateway-prod:
     if: github.event.pull_request.merged == true
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     environment: Production
     needs: deploy-gateway-dev
     
@@ -95,55 +60,20 @@ jobs:
       run: |
         dotnet publish AutoNext.Plotform.App.Backoffice.Gateway/AutoNext.Plotform.App.Backoffice.Gateway.csproj --configuration Release --output ./publish/gateway/prod -p:EnvironmentName=Production
 
-    - name: Deploy Gateway to Prod via FTP with Retry
-      shell: powershell
-      run: |
-        $maxRetries = 5
-        $retryDelay = 10
-        $success = $false
-        
-        for ($i = 1; $i -le $maxRetries; $i++) {
-          try {
-            Write-Host "Attempt $i of $maxRetries"
-            
-            $ftpServer = "${{ secrets.FTP_SERVER }}"
-            $ftpUser = "${{ secrets.FTP_USERNAME }}"
-            $ftpPass = "${{ secrets.FTP_PASSWORD }}"
-            $localPath = ".\publish\gateway\prod\*"
-            $remotePath = "${{ secrets.FTP_GATEWAY_PROD_PATH }}/"
-            
-            $webclient = New-Object System.Net.WebClient
-            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
-            $webclient.BaseAddress = "ftp://$ftpServer$remotePath"
-            
-            Get-ChildItem -Path $localPath -File | ForEach-Object {
-              $file = $_
-              $remoteFile = $webclient.BaseAddress + $file.Name
-              Write-Host "Uploading $($file.Name)..."
-              $webclient.UploadFile($remoteFile, $file.FullName)
-            }
-            
-            $success = $true
-            Write-Host "Deployment successful!"
-            break
-          }
-          catch {
-            Write-Host "Attempt $i failed: $_"
-            if ($i -lt $maxRetries) {
-              Write-Host "Waiting $retryDelay seconds before retry..."
-              Start-Sleep -Seconds $retryDelay
-            }
-          }
-        }
-        
-        if (-not $success) {
-          throw "FTP deployment failed after $maxRetries attempts"
-        }
+    - name: Install lftp
+      run: sudo apt-get update && sudo apt-get install -y lftp
 
-  # ==================== BACKOFFICE DEPLOYMENT ====================
+    - name: Deploy Gateway to Prod via LFTP
+      run: |
+        lftp -c "
+        open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}
+        mirror -R --verbose --delete --parallel=4 ./publish/gateway/prod/ ${{ secrets.FTP_GATEWAY_PROD_PATH }}
+        quit
+        "
+
   deploy-backoffice-dev:
     if: github.event.pull_request.merged == true
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     environment: Development
     needs: deploy-gateway-dev
     
@@ -163,54 +93,20 @@ jobs:
       run: |
         dotnet publish AutoNext.Plotform.App.Backoffice/AutoNext.Plotform.App.Backoffice.csproj --configuration Release --output ./publish/backoffice/dev -p:EnvironmentName=Development
 
-    - name: Deploy Backoffice to Dev via FTP with Retry
-      shell: powershell
+    - name: Install lftp
+      run: sudo apt-get update && sudo apt-get install -y lftp
+
+    - name: Deploy Backoffice to Dev via LFTP
       run: |
-        $maxRetries = 5
-        $retryDelay = 10
-        $success = $false
-        
-        for ($i = 1; $i -le $maxRetries; $i++) {
-          try {
-            Write-Host "Attempt $i of $maxRetries"
-            
-            $ftpServer = "${{ secrets.FTP_SERVER }}"
-            $ftpUser = "${{ secrets.FTP_USERNAME }}"
-            $ftpPass = "${{ secrets.FTP_PASSWORD }}"
-            $localPath = ".\publish\backoffice\dev\*"
-            $remotePath = "${{ secrets.FTP_BACKOFFICE_DEV_PATH }}/"
-            
-            $webclient = New-Object System.Net.WebClient
-            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
-            $webclient.BaseAddress = "ftp://$ftpServer$remotePath"
-            
-            Get-ChildItem -Path $localPath -File | ForEach-Object {
-              $file = $_
-              $remoteFile = $webclient.BaseAddress + $file.Name
-              Write-Host "Uploading $($file.Name)..."
-              $webclient.UploadFile($remoteFile, $file.FullName)
-            }
-            
-            $success = $true
-            Write-Host "Deployment successful!"
-            break
-          }
-          catch {
-            Write-Host "Attempt $i failed: $_"
-            if ($i -lt $maxRetries) {
-              Write-Host "Waiting $retryDelay seconds before retry..."
-              Start-Sleep -Seconds $retryDelay
-            }
-          }
-        }
-        
-        if (-not $success) {
-          throw "FTP deployment failed after $maxRetries attempts"
-        }
+        lftp -c "
+        open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}
+        mirror -R --verbose --delete --parallel=4 ./publish/backoffice/dev/ ${{ secrets.FTP_BACKOFFICE_DEV_PATH }}
+        quit
+        "
 
   deploy-backoffice-prod:
     if: github.event.pull_request.merged == true
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     environment: Production
     needs: [deploy-gateway-prod, deploy-backoffice-dev]
     
@@ -230,47 +126,13 @@ jobs:
       run: |
         dotnet publish AutoNext.Plotform.App.Backoffice/AutoNext.Plotform.App.Backoffice.csproj --configuration Release --output ./publish/backoffice/prod -p:EnvironmentName=Production
 
-    - name: Deploy Backoffice to Prod via FTP with Retry
-      shell: powershell
+    - name: Install lftp
+      run: sudo apt-get update && sudo apt-get install -y lftp
+
+    - name: Deploy Backoffice to Prod via LFTP
       run: |
-        $maxRetries = 5
-        $retryDelay = 10
-        $success = $false
-        
-        for ($i = 1; $i -le $maxRetries; $i++) {
-          try {
-            Write-Host "Attempt $i of $maxRetries"
-            
-            $ftpServer = "${{ secrets.FTP_SERVER }}"
-            $ftpUser = "${{ secrets.FTP_USERNAME }}"
-            $ftpPass = "${{ secrets.FTP_PASSWORD }}"
-            $localPath = ".\publish\backoffice\prod\*"
-            $remotePath = "${{ secrets.FTP_BACKOFFICE_PROD_PATH }}/"
-            
-            $webclient = New-Object System.Net.WebClient
-            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
-            $webclient.BaseAddress = "ftp://$ftpServer$remotePath"
-            
-            Get-ChildItem -Path $localPath -File | ForEach-Object {
-              $file = $_
-              $remoteFile = $webclient.BaseAddress + $file.Name
-              Write-Host "Uploading $($file.Name)..."
-              $webclient.UploadFile($remoteFile, $file.FullName)
-            }
-            
-            $success = $true
-            Write-Host "Deployment successful!"
-            break
-          }
-          catch {
-            Write-Host "Attempt $i failed: $_"
-            if ($i -lt $maxRetries) {
-              Write-Host "Waiting $retryDelay seconds before retry..."
-              Start-Sleep -Seconds $retryDelay
-            }
-          }
-        }
-        
-        if (-not $success) {
-          throw "FTP deployment failed after $maxRetries attempts"
-        }
+        lftp -c "
+        open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }}
+        mirror -R --verbose --delete --parallel=4 ./publish/backoffice/prod/ ${{ secrets.FTP_BACKOFFICE_PROD_PATH }}
+        quit
+        "
