@@ -36,30 +36,31 @@ jobs:
         $success = $false
         
         Write-Host "========================================="
-        Write-Host "Deploying GATEWAY to DEVELOPMENT environment"
+        Write-Host "Deploying GATEWAY to DEVELOPMENT"
+        Write-Host "Target: autonext-gateway-dev.services.azurewebsites.betalen.in"
         Write-Host "========================================="
         
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
           try {
             Write-Host "`n📡 Attempt $attempt of $maxRetries"
             
-            $ftpServer = "${{ secrets.FTP_SERVER }}"
+            # FTP server is betalen.in, not the full subdomain
+            $ftpServer = "${{ secrets.FTP_SERVER }}"  # This should be "betalen.in"
             $ftpUser = "${{ secrets.FTP_USERNAME }}"
             $ftpPass = "${{ secrets.FTP_PASSWORD }}"
-            $localPath = ".\publish\gateway\dev"
-            $remotePath = "${{ secrets.FTP_GATEWAY_DEV_PATH }}"
             
-            # Create FTP URL
+            # For Gateway Dev - deploy to the subdomain's directory
+            $localPath = ".\publish\gateway\dev"
+            $remotePath = "${{ secrets.FTP_GATEWAY_DEV_PATH }}"  # Should be path for gateway-dev
+            
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
             Write-Host "📁 Remote Path: $remotePath"
-            Write-Host "📂 Local Path: $localPath"
+            Write-Host "🌐 Will be accessible at: autonext-gateway-dev.services.azurewebsites.betalen.in"
             
-            # Get all files to upload
             $files = Get-ChildItem -Path $localPath -File -Recurse
             Write-Host "📄 Found $($files.Count) files to upload"
             
-            # Create WebClient
             $webclient = New-Object System.Net.WebClient
             $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
             
@@ -74,7 +75,8 @@ jobs:
             
             $webclient.Dispose()
             $success = $true
-            Write-Host "`n✅ SUCCESS: Deployed $uploadCount files to GATEWAY DEV"
+            Write-Host "`n✅ SUCCESS: Deployed Gateway DEV"
+            Write-Host "📍 Available at: autonext-gateway-dev.services.azurewebsites.betalen.in"
             break
           }
           catch {
@@ -87,7 +89,6 @@ jobs:
         }
         
         if (-not $success) {
-          Write-Host "❌ DEPLOYMENT FAILED: Gateway Dev"
           throw "FTP deployment failed after $maxRetries attempts"
         }
 
@@ -122,7 +123,8 @@ jobs:
         $success = $false
         
         Write-Host "========================================="
-        Write-Host "Deploying GATEWAY to PRODUCTION environment"
+        Write-Host "Deploying GATEWAY to PRODUCTION"
+        Write-Host "Target: autonext-gateway-prod.services.azurewebsites.betalen.in"
         Write-Host "========================================="
         
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
@@ -138,7 +140,7 @@ jobs:
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
             Write-Host "📁 Remote Path: $remotePath"
-            Write-Host "📂 Local Path: $localPath"
+            Write-Host "🌐 Will be accessible at: autonext-gateway-prod.services.azurewebsites.betalen.in"
             
             $files = Get-ChildItem -Path $localPath -File -Recurse
             Write-Host "📄 Found $($files.Count) files to upload"
@@ -157,7 +159,8 @@ jobs:
             
             $webclient.Dispose()
             $success = $true
-            Write-Host "`n✅ SUCCESS: Deployed $uploadCount files to GATEWAY PROD"
+            Write-Host "`n✅ SUCCESS: Deployed Gateway PROD"
+            Write-Host "📍 Available at: autonext-gateway-prod.services.azurewebsites.betalen.in"
             break
           }
           catch {
@@ -170,7 +173,6 @@ jobs:
         }
         
         if (-not $success) {
-          Write-Host "❌ DEPLOYMENT FAILED: Gateway Prod"
           throw "FTP deployment failed after $maxRetries attempts"
         }
 
@@ -205,7 +207,8 @@ jobs:
         $success = $false
         
         Write-Host "========================================="
-        Write-Host "Deploying BACKOFFICE to DEVELOPMENT environment"
+        Write-Host "Deploying BACKOFFICE to DEVELOPMENT"
+        Write-Host "Target: autonext-backoffice-dev.services.azurewebsites.betalen.in"
         Write-Host "========================================="
         
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
@@ -221,7 +224,7 @@ jobs:
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
             Write-Host "📁 Remote Path: $remotePath"
-            Write-Host "📂 Local Path: $localPath"
+            Write-Host "🌐 Will be accessible at: autonext-backoffice-dev.services.azurewebsites.betalen.in"
             
             $files = Get-ChildItem -Path $localPath -File -Recurse
             Write-Host "📄 Found $($files.Count) files to upload"
@@ -240,7 +243,8 @@ jobs:
             
             $webclient.Dispose()
             $success = $true
-            Write-Host "`n✅ SUCCESS: Deployed $uploadCount files to BACKOFFICE DEV"
+            Write-Host "`n✅ SUCCESS: Deployed Backoffice DEV"
+            Write-Host "📍 Available at: autonext-backoffice-dev.services.azurewebsites.betalen.in"
             break
           }
           catch {
@@ -253,7 +257,6 @@ jobs:
         }
         
         if (-not $success) {
-          Write-Host "❌ DEPLOYMENT FAILED: Backoffice Dev"
           throw "FTP deployment failed after $maxRetries attempts"
         }
 
@@ -288,7 +291,8 @@ jobs:
         $success = $false
         
         Write-Host "========================================="
-        Write-Host "Deploying BACKOFFICE to PRODUCTION environment"
+        Write-Host "Deploying BACKOFFICE to PRODUCTION"
+        Write-Host "Target: autonext-backoffice-prod.services.azurewebsites.betalen.in"
         Write-Host "========================================="
         
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
@@ -304,7 +308,7 @@ jobs:
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
             Write-Host "📁 Remote Path: $remotePath"
-            Write-Host "📂 Local Path: $localPath"
+            Write-Host "🌐 Will be accessible at: autonext-backoffice-prod.services.azurewebsites.betalen.in"
             
             $files = Get-ChildItem -Path $localPath -File -Recurse
             Write-Host "📄 Found $($files.Count) files to upload"
@@ -323,7 +327,8 @@ jobs:
             
             $webclient.Dispose()
             $success = $true
-            Write-Host "`n✅ SUCCESS: Deployed $uploadCount files to BACKOFFICE PROD"
+            Write-Host "`n✅ SUCCESS: Deployed Backoffice PROD"
+            Write-Host "📍 Available at: autonext-backoffice-prod.services.azurewebsites.betalen.in"
             break
           }
           catch {
@@ -336,6 +341,5 @@ jobs:
         }
         
         if (-not $success) {
-          Write-Host "❌ DEPLOYMENT FAILED: Backoffice Prod"
           throw "FTP deployment failed after $maxRetries attempts"
         }
