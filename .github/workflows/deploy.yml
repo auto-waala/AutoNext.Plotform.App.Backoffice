@@ -29,62 +29,19 @@ jobs:
         dotnet publish AutoNext.Plotform.App.Backoffice.Gateway/AutoNext.Plotform.App.Backoffice.Gateway.csproj --configuration Release --output ./publish/gateway/dev -p:EnvironmentName=Development
 
     - name: Deploy Gateway to Dev via FTP
-      shell: powershell
-      run: |
-        $maxRetries = 3
-        $retryDelay = 10
-        $success = $false
-        
-        Write-Host "========================================="
-        Write-Host "Deploying GATEWAY to DEVELOPMENT"
-        Write-Host "========================================="
-        
-        # Decode the base64 encoded password
-        $ftpPassBase64 = "${{ secrets.FTP_PASSWORD_BASE64 }}"
-        $ftpPass = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($ftpPassBase64))
-        $ftpServer = "${{ secrets.FTP_SERVER }}"
-        $ftpUser = "${{ secrets.FTP_USERNAME }}"
-        $remotePath = "${{ secrets.FTP_GATEWAY_DEV_PATH }}"
-        $localPath = ".\publish\gateway\dev"
-        
-        for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
-          try {
-            Write-Host "`n📡 Attempt $attempt of $maxRetries"
-            
-            $ftpUrl = "ftp://${ftpServer}/${remotePath}"
-            Write-Host "📍 FTP Server: $ftpServer"
-            Write-Host "📁 Remote Path: $remotePath"
-            
-            $files = Get-ChildItem -Path $localPath -File -Recurse
-            Write-Host "📄 Found $($files.Count) files to upload"
-            
-            $webclient = New-Object System.Net.WebClient
-            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
-            
-            foreach ($file in $files) {
-              $relativePath = $file.FullName.Substring($localPath.Length + 1).Replace('\', '/')
-              $remoteFileUrl = "$ftpUrl/$relativePath"
-              Write-Host "  ⬆ Uploading: $relativePath"
-              $webclient.UploadFile($remoteFileUrl, $file.FullName)
-            }
-            
-            $webclient.Dispose()
-            $success = $true
-            Write-Host "`n✅ SUCCESS: Deployed Gateway DEV"
-            break
-          }
-          catch {
-            Write-Host "❌ Attempt $attempt failed: $_"
-            if ($attempt -lt $maxRetries) {
-              Write-Host "⏳ Waiting $retryDelay seconds before retry..."
-              Start-Sleep -Seconds $retryDelay
-            }
-          }
-        }
-        
-        if (-not $success) {
-          throw "FTP deployment failed after $maxRetries attempts"
-        }
+      uses: SamKirkland/FTP-Deploy-Action@4.3.0
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: ./publish/gateway/dev/
+        server-dir: ${{ secrets.FTP_GATEWAY_DEV_PATH }}/
+        port: 21
+        timeout: 120000
+        retry: 5
+        retry-delay: 5000
+        log: verbose
+        state-name: .ftp-deploy-sync-state-gateway-dev.json
 
   # ==================== GATEWAY PROD ====================
   deploy-gateway-prod:
@@ -110,61 +67,19 @@ jobs:
         dotnet publish AutoNext.Plotform.App.Backoffice.Gateway/AutoNext.Plotform.App.Backoffice.Gateway.csproj --configuration Release --output ./publish/gateway/prod -p:EnvironmentName=Production
 
     - name: Deploy Gateway to Prod via FTP
-      shell: powershell
-      run: |
-        $maxRetries = 3
-        $retryDelay = 10
-        $success = $false
-        
-        Write-Host "========================================="
-        Write-Host "Deploying GATEWAY to PRODUCTION"
-        Write-Host "========================================="
-        
-        $ftpPassBase64 = "${{ secrets.FTP_PASSWORD_BASE64 }}"
-        $ftpPass = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($ftpPassBase64))
-        $ftpServer = "${{ secrets.FTP_SERVER }}"
-        $ftpUser = "${{ secrets.FTP_USERNAME }}"
-        $remotePath = "${{ secrets.FTP_GATEWAY_PROD_PATH }}"
-        $localPath = ".\publish\gateway\prod"
-        
-        for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
-          try {
-            Write-Host "`n📡 Attempt $attempt of $maxRetries"
-            
-            $ftpUrl = "ftp://${ftpServer}/${remotePath}"
-            Write-Host "📍 FTP Server: $ftpServer"
-            Write-Host "📁 Remote Path: $remotePath"
-            
-            $files = Get-ChildItem -Path $localPath -File -Recurse
-            Write-Host "📄 Found $($files.Count) files to upload"
-            
-            $webclient = New-Object System.Net.WebClient
-            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
-            
-            foreach ($file in $files) {
-              $relativePath = $file.FullName.Substring($localPath.Length + 1).Replace('\', '/')
-              $remoteFileUrl = "$ftpUrl/$relativePath"
-              Write-Host "  ⬆ Uploading: $relativePath"
-              $webclient.UploadFile($remoteFileUrl, $file.FullName)
-            }
-            
-            $webclient.Dispose()
-            $success = $true
-            Write-Host "`n✅ SUCCESS: Deployed Gateway PROD"
-            break
-          }
-          catch {
-            Write-Host "❌ Attempt $attempt failed: $_"
-            if ($attempt -lt $maxRetries) {
-              Write-Host "⏳ Waiting $retryDelay seconds before retry..."
-              Start-Sleep -Seconds $retryDelay
-            }
-          }
-        }
-        
-        if (-not $success) {
-          throw "FTP deployment failed after $maxRetries attempts"
-        }
+      uses: SamKirkland/FTP-Deploy-Action@4.3.0
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: ./publish/gateway/prod/
+        server-dir: ${{ secrets.FTP_GATEWAY_PROD_PATH }}/
+        port: 21
+        timeout: 120000
+        retry: 5
+        retry-delay: 5000
+        log: verbose
+        state-name: .ftp-deploy-sync-state-gateway-prod.json
 
   # ==================== BACKOFFICE DEV ====================
   deploy-backoffice-dev:
@@ -190,61 +105,19 @@ jobs:
         dotnet publish AutoNext.Plotform.App.Backoffice/AutoNext.Plotform.App.Backoffice.csproj --configuration Release --output ./publish/backoffice/dev -p:EnvironmentName=Development
 
     - name: Deploy Backoffice to Dev via FTP
-      shell: powershell
-      run: |
-        $maxRetries = 3
-        $retryDelay = 10
-        $success = $false
-        
-        Write-Host "========================================="
-        Write-Host "Deploying BACKOFFICE to DEVELOPMENT"
-        Write-Host "========================================="
-        
-        $ftpPassBase64 = "${{ secrets.FTP_PASSWORD_BASE64 }}"
-        $ftpPass = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($ftpPassBase64))
-        $ftpServer = "${{ secrets.FTP_SERVER }}"
-        $ftpUser = "${{ secrets.FTP_USERNAME }}"
-        $remotePath = "${{ secrets.FTP_BACKOFFICE_DEV_PATH }}"
-        $localPath = ".\publish\backoffice\dev"
-        
-        for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
-          try {
-            Write-Host "`n📡 Attempt $attempt of $maxRetries"
-            
-            $ftpUrl = "ftp://${ftpServer}/${remotePath}"
-            Write-Host "📍 FTP Server: $ftpServer"
-            Write-Host "📁 Remote Path: $remotePath"
-            
-            $files = Get-ChildItem -Path $localPath -File -Recurse
-            Write-Host "📄 Found $($files.Count) files to upload"
-            
-            $webclient = New-Object System.Net.WebClient
-            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
-            
-            foreach ($file in $files) {
-              $relativePath = $file.FullName.Substring($localPath.Length + 1).Replace('\', '/')
-              $remoteFileUrl = "$ftpUrl/$relativePath"
-              Write-Host "  ⬆ Uploading: $relativePath"
-              $webclient.UploadFile($remoteFileUrl, $file.FullName)
-            }
-            
-            $webclient.Dispose()
-            $success = $true
-            Write-Host "`n✅ SUCCESS: Deployed Backoffice DEV"
-            break
-          }
-          catch {
-            Write-Host "❌ Attempt $attempt failed: $_"
-            if ($attempt -lt $maxRetries) {
-              Write-Host "⏳ Waiting $retryDelay seconds before retry..."
-              Start-Sleep -Seconds $retryDelay
-            }
-          }
-        }
-        
-        if (-not $success) {
-          throw "FTP deployment failed after $maxRetries attempts"
-        }
+      uses: SamKirkland/FTP-Deploy-Action@4.3.0
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: ./publish/backoffice/dev/
+        server-dir: ${{ secrets.FTP_BACKOFFICE_DEV_PATH }}/
+        port: 21
+        timeout: 120000
+        retry: 5
+        retry-delay: 5000
+        log: verbose
+        state-name: .ftp-deploy-sync-state-backoffice-dev.json
 
   # ==================== BACKOFFICE PROD ====================
   deploy-backoffice-prod:
@@ -270,58 +143,16 @@ jobs:
         dotnet publish AutoNext.Plotform.App.Backoffice/AutoNext.Plotform.App.Backoffice.csproj --configuration Release --output ./publish/backoffice/prod -p:EnvironmentName=Production
 
     - name: Deploy Backoffice to Prod via FTP
-      shell: powershell
-      run: |
-        $maxRetries = 3
-        $retryDelay = 10
-        $success = $false
-        
-        Write-Host "========================================="
-        Write-Host "Deploying BACKOFFICE to PRODUCTION"
-        Write-Host "========================================="
-        
-        $ftpPassBase64 = "${{ secrets.FTP_PASSWORD_BASE64 }}"
-        $ftpPass = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($ftpPassBase64))
-        $ftpServer = "${{ secrets.FTP_SERVER }}"
-        $ftpUser = "${{ secrets.FTP_USERNAME }}"
-        $remotePath = "${{ secrets.FTP_BACKOFFICE_PROD_PATH }}"
-        $localPath = ".\publish\backoffice\prod"
-        
-        for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
-          try {
-            Write-Host "`n📡 Attempt $attempt of $maxRetries"
-            
-            $ftpUrl = "ftp://${ftpServer}/${remotePath}"
-            Write-Host "📍 FTP Server: $ftpServer"
-            Write-Host "📁 Remote Path: $remotePath"
-            
-            $files = Get-ChildItem -Path $localPath -File -Recurse
-            Write-Host "📄 Found $($files.Count) files to upload"
-            
-            $webclient = New-Object System.Net.WebClient
-            $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
-            
-            foreach ($file in $files) {
-              $relativePath = $file.FullName.Substring($localPath.Length + 1).Replace('\', '/')
-              $remoteFileUrl = "$ftpUrl/$relativePath"
-              Write-Host "  ⬆ Uploading: $relativePath"
-              $webclient.UploadFile($remoteFileUrl, $file.FullName)
-            }
-            
-            $webclient.Dispose()
-            $success = $true
-            Write-Host "`n✅ SUCCESS: Deployed Backoffice PROD"
-            break
-          }
-          catch {
-            Write-Host "❌ Attempt $attempt failed: $_"
-            if ($attempt -lt $maxRetries) {
-              Write-Host "⏳ Waiting $retryDelay seconds before retry..."
-              Start-Sleep -Seconds $retryDelay
-            }
-          }
-        }
-        
-        if (-not $success) {
-          throw "FTP deployment failed after $maxRetries attempts"
-        }
+      uses: SamKirkland/FTP-Deploy-Action@4.3.0
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: ./publish/backoffice/prod/
+        server-dir: ${{ secrets.FTP_BACKOFFICE_PROD_PATH }}/
+        port: 21
+        timeout: 120000
+        retry: 5
+        retry-delay: 5000
+        log: verbose
+        state-name: .ftp-deploy-sync-state-backoffice-prod.json
