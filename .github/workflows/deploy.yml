@@ -42,7 +42,6 @@ jobs:
         
         Write-Host "========================================="
         Write-Host "Deploying GATEWAY to DEVELOPMENT"
-        Write-Host "Target: autonext-gateway-dev.services.azurewebsites.betalen.in"
         Write-Host "========================================="
         
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
@@ -52,13 +51,12 @@ jobs:
             $ftpServer = $env:FTP_SERVER
             $ftpUser = $env:FTP_USERNAME
             $ftpPass = $env:FTP_PASSWORD
-            $remotePath = $env:FTP_PATH
             $localPath = ".\publish\gateway\dev"
+            $remotePath = $env:FTP_PATH
             
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
             Write-Host "📁 Remote Path: $remotePath"
-            Write-Host "🌐 Will be accessible at: autonext-gateway-dev.services.azurewebsites.betalen.in"
             
             $files = Get-ChildItem -Path $localPath -File -Recurse
             Write-Host "📄 Found $($files.Count) files to upload"
@@ -66,19 +64,16 @@ jobs:
             $webclient = New-Object System.Net.WebClient
             $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
             
-            $uploadCount = 0
             foreach ($file in $files) {
               $relativePath = $file.FullName.Substring($localPath.Length + 1).Replace('\', '/')
               $remoteFileUrl = "$ftpUrl/$relativePath"
               Write-Host "  ⬆ Uploading: $relativePath"
               $webclient.UploadFile($remoteFileUrl, $file.FullName)
-              $uploadCount++
             }
             
             $webclient.Dispose()
             $success = $true
             Write-Host "`n✅ SUCCESS: Deployed Gateway DEV"
-            Write-Host "📍 Available at: autonext-gateway-dev.services.azurewebsites.betalen.in"
             break
           }
           catch {
@@ -131,7 +126,6 @@ jobs:
         
         Write-Host "========================================="
         Write-Host "Deploying GATEWAY to PRODUCTION"
-        Write-Host "Target: autonext-gateway-prod.services.azurewebsites.betalen.in"
         Write-Host "========================================="
         
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
@@ -141,13 +135,12 @@ jobs:
             $ftpServer = $env:FTP_SERVER
             $ftpUser = $env:FTP_USERNAME
             $ftpPass = $env:FTP_PASSWORD
-            $remotePath = $env:FTP_PATH
             $localPath = ".\publish\gateway\prod"
+            $remotePath = $env:FTP_PATH
             
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
             Write-Host "📁 Remote Path: $remotePath"
-            Write-Host "🌐 Will be accessible at: autonext-gateway-prod.services.azurewebsites.betalen.in"
             
             $files = Get-ChildItem -Path $localPath -File -Recurse
             Write-Host "📄 Found $($files.Count) files to upload"
@@ -155,19 +148,16 @@ jobs:
             $webclient = New-Object System.Net.WebClient
             $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
             
-            $uploadCount = 0
             foreach ($file in $files) {
               $relativePath = $file.FullName.Substring($localPath.Length + 1).Replace('\', '/')
               $remoteFileUrl = "$ftpUrl/$relativePath"
               Write-Host "  ⬆ Uploading: $relativePath"
               $webclient.UploadFile($remoteFileUrl, $file.FullName)
-              $uploadCount++
             }
             
             $webclient.Dispose()
             $success = $true
             Write-Host "`n✅ SUCCESS: Deployed Gateway PROD"
-            Write-Host "📍 Available at: autonext-gateway-prod.services.azurewebsites.betalen.in"
             break
           }
           catch {
@@ -220,7 +210,6 @@ jobs:
         
         Write-Host "========================================="
         Write-Host "Deploying BACKOFFICE to DEVELOPMENT"
-        Write-Host "Target: autonext-backoffice-dev.services.azurewebsites.betalen.in"
         Write-Host "========================================="
         
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
@@ -230,13 +219,12 @@ jobs:
             $ftpServer = $env:FTP_SERVER
             $ftpUser = $env:FTP_USERNAME
             $ftpPass = $env:FTP_PASSWORD
-            $remotePath = $env:FTP_PATH
             $localPath = ".\publish\backoffice\dev"
+            $remotePath = $env:FTP_PATH
             
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
             Write-Host "📁 Remote Path: $remotePath"
-            Write-Host "🌐 Will be accessible at: autonext-backoffice-dev.services.azurewebsites.betalen.in"
             
             $files = Get-ChildItem -Path $localPath -File -Recurse
             Write-Host "📄 Found $($files.Count) files to upload"
@@ -244,19 +232,16 @@ jobs:
             $webclient = New-Object System.Net.WebClient
             $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
             
-            $uploadCount = 0
             foreach ($file in $files) {
               $relativePath = $file.FullName.Substring($localPath.Length + 1).Replace('\', '/')
               $remoteFileUrl = "$ftpUrl/$relativePath"
               Write-Host "  ⬆ Uploading: $relativePath"
               $webclient.UploadFile($remoteFileUrl, $file.FullName)
-              $uploadCount++
             }
             
             $webclient.Dispose()
             $success = $true
             Write-Host "`n✅ SUCCESS: Deployed Backoffice DEV"
-            Write-Host "📍 Available at: autonext-backoffice-dev.services.azurewebsites.betalen.in"
             break
           }
           catch {
@@ -309,7 +294,6 @@ jobs:
         
         Write-Host "========================================="
         Write-Host "Deploying BACKOFFICE to PRODUCTION"
-        Write-Host "Target: autonext-backoffice-prod.services.azurewebsites.betalen.in"
         Write-Host "========================================="
         
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
@@ -319,13 +303,12 @@ jobs:
             $ftpServer = $env:FTP_SERVER
             $ftpUser = $env:FTP_USERNAME
             $ftpPass = $env:FTP_PASSWORD
-            $remotePath = $env:FTP_PATH
             $localPath = ".\publish\backoffice\prod"
+            $remotePath = $env:FTP_PATH
             
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
             Write-Host "📁 Remote Path: $remotePath"
-            Write-Host "🌐 Will be accessible at: autonext-backoffice-prod.services.azurewebsites.betalen.in"
             
             $files = Get-ChildItem -Path $localPath -File -Recurse
             Write-Host "📄 Found $($files.Count) files to upload"
@@ -333,19 +316,16 @@ jobs:
             $webclient = New-Object System.Net.WebClient
             $webclient.Credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
             
-            $uploadCount = 0
             foreach ($file in $files) {
               $relativePath = $file.FullName.Substring($localPath.Length + 1).Replace('\', '/')
               $remoteFileUrl = "$ftpUrl/$relativePath"
               Write-Host "  ⬆ Uploading: $relativePath"
               $webclient.UploadFile($remoteFileUrl, $file.FullName)
-              $uploadCount++
             }
             
             $webclient.Dispose()
             $success = $true
             Write-Host "`n✅ SUCCESS: Deployed Backoffice PROD"
-            Write-Host "📍 Available at: autonext-backoffice-prod.services.azurewebsites.betalen.in"
             break
           }
           catch {
