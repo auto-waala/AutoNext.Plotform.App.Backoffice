@@ -1,16 +1,16 @@
-﻿using AutoNext.Plotform.App.Backoffice.Models.Core;
+﻿using AutoNext.Plotform.App.Backoffice.Models.DTO;
 
 namespace AutoNext.Plotform.App.Backoffice.Integrations.Core
 {
     public interface IBrandService
     {
-        Task<Brand> GetBrandByIdAsync(Guid brandId);
-        Task<IEnumerable<Brand>> GetAllBrandsAsync();
-        Task<IEnumerable<Brand>> GetActiveBrandsAsync();
-        Task<IEnumerable<Brand>> GetBrandsByCategoryAsync(string categoryCode);
-        Task<IEnumerable<Brand>> GetBrandsByCountryAsync(string countryCode);
-        Task<Brand> CreateBrandAsync(Brand createDto);
-        Task<Brand?> UpdateBrandAsync(Guid brandId, Brand updateDto);
+        Task<BrandResponseDto?> GetBrandByIdAsync(Guid brandId);
+        Task<IEnumerable<BrandResponseDto>> GetAllBrandsAsync();
+        Task<IEnumerable<BrandResponseDto>> GetActiveBrandsAsync();
+        Task<IEnumerable<BrandResponseDto>> GetBrandsByCategoryAsync(string categoryCode);
+        Task<IEnumerable<BrandResponseDto>> GetBrandsByCountryAsync(string countryCode);
+        Task<BrandResponseDto> CreateBrandAsync(BrandCreateDto createDto);
+        Task<BrandResponseDto?> UpdateBrandAsync(Guid brandId, BrandUpdateDto updateDto);
         Task<bool> DeleteBrandAsync(Guid brandId);
         Task<bool> ToggleBrandStatusAsync(Guid brandId, bool isActive);
     }

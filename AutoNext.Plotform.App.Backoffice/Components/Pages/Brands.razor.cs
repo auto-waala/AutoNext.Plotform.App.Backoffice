@@ -1,283 +1,302 @@
-﻿using AutoNext.Plotform.App.Backoffice.Handlers;
+﻿using AutoMapper;
+using AutoNext.Plotform.App.Backoffice.Handlers;
 using AutoNext.Plotform.App.Backoffice.Integrations.Core;
 using AutoNext.Plotform.App.Backoffice.Models.Core;
+using AutoNext.Plotform.App.Backoffice.Models.DTO;
+using AutoNext.Plotform.App.Backoffice.Models.ViewModels;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Radzen;
 
-namespace AutoNext.Plotform.App.Backoffice.Components.Pages
+namespace AutoNext.Plotform.App.Backoffice.Components.Pages;
+
+public class BrandsBase : ComponentBase
 {
-    public class BrandsBase : ComponentBase
+    [Inject] protected IBrandService BrandService { get; set; } = default!;
+    [Inject] protected NavigationManager Navigation { get; set; } = default!;
+    [Inject] protected IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] protected LoaderService LoaderService { get; set; } = default!;
+    [Inject] protected ILogger<BrandsBase> Logger { get; set; } = default!;
+    [Inject] protected NotificationService NotificationService { get; set; } = default!;
+    [Inject] protected IMapper Mapper { get; set; } = default!;
+
+    protected List<BrandResponseDto> AllBrands { get; set; } = new();
+    protected List<BrandResponseDto> SelectedBrands { get; set; } = new();
+
+    protected int ItemsPerPage { get; set; } = 10;
+    protected int CurrentPage { get; set; } = 1;
+    protected int TotalCount { get; set; }
+    protected bool IsLoading { get; set; } = false;
+
+    protected bool showSidebar = false;
+
+    protected Brand? selectedBrand = null;
+
+    protected int ActiveCount => AllBrands.Count(b => b.IsActive);
+    protected int InactiveCount => AllBrands.Count(b => !b.IsActive);
+    protected int TotalPages => (int)Math.Ceiling((double)TotalCount / ItemsPerPage);
+
+    protected IEnumerable<int> PageSizeOptions = new[] { 10, 20, 50, 100 };
+
+    protected List<BrandResponseDto> PaginatedBrands => AllBrands
+        .Skip((CurrentPage - 1) * ItemsPerPage)
+        .Take(ItemsPerPage)
+        .ToList();
+
+    protected bool AllPageSelected => PaginatedBrands.Any() && PaginatedBrands.All(b => SelectedBrands.Contains(b));
+
+    protected override async Task OnInitializedAsync()
     {
-        [Inject] protected IBrandService BrandService { get; set; } = default!;
-        [Inject] protected NavigationManager Navigation { get; set; } = default!;
-        [Inject] protected IJSRuntime JSRuntime { get; set; } = default!;
-        [Inject] protected LoaderService LoaderService { get; set; } = default!;
-        [Inject] protected ILogger<BrandsBase> Logger { get; set; } = default!;
-        [Inject] protected NotificationService NotificationService { get; set; } = default!;
+        Logger.LogInformation("Brands page initialized");
+        await LoadAllBrandsAsync();
+    }
 
-        protected List<Brand> AllBrands { get; set; } = new();
-        protected int ItemsPerPage { get; set; } = 10;
-        protected int CurrentPage { get; set; } = 1;
-        protected int TotalCount { get; set; }
-        protected bool IsLoading { get; set; } = false;
-
-        // Sidebar properties
-        protected bool showSidebar = false;
-        protected Brand? selectedBrand = null;
-
-        protected int ActiveCount => AllBrands.Count(b => b.IsActive);
-        protected int InactiveCount => AllBrands.Count(b => !b.IsActive);
-        protected int TotalPages => (int)Math.Ceiling((double)TotalCount / ItemsPerPage);
-
-        protected List<Brand> PaginatedBrands => AllBrands
-            .Skip((CurrentPage - 1) * ItemsPerPage)
-            .Take(ItemsPerPage)
-            .ToList();
-
-        protected IEnumerable<int> PageSizeOptions = new[] { 10, 20, 50, 100 };
-        protected List<Brand> SelectedBrands { get; set; } = new();
-
-        protected bool AllPageSelected =>
-            PaginatedBrands.Any() && PaginatedBrands.All(b => b.IsSelected);
-
-        protected override async Task OnInitializedAsync()
+    protected async Task LoadAllBrandsAsync()
+    {
+        try
         {
-            Logger.LogInformation("Brands page initialized");
-            await LoadAllBrandsAsync();
+            LoaderService.Show("Loading brands...");
+            IsLoading = true;
+
+            var brands = await BrandService.GetAllBrandsAsync();
+
+            AllBrands = brands?.ToList() ?? new List<BrandResponseDto>();
+            TotalCount = AllBrands.Count;
+            CurrentPage = 1;
+            SelectedBrands.Clear();
+
+            Logger.LogInformation("Loaded {Count} brands", TotalCount);
         }
-
-        protected async Task LoadAllBrandsAsync()
+        catch (Exception ex)
         {
-            try
-            {
-                Logger.LogInformation("Loading all brands...");
-                LoaderService.Show("Loading brands...");
-                IsLoading = true;
-
-                var brands = await BrandService.GetAllBrandsAsync();
-                AllBrands = brands?.ToList() ?? new List<Brand>();
-                TotalCount = AllBrands.Count;
-                CurrentPage = 1;
-                SelectedBrands.Clear();
-
-                Logger.LogInformation("Loaded {Count} brands successfully", TotalCount);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error loading brands");
-                NotificationService.Notify(NotificationSeverity.Error, "Error", "Failed to load brands.");
-            }
-            finally
-            {
-                LoaderService.Hide();
-                IsLoading = false;
-                StateHasChanged();
-            }
+            Logger.LogError(ex, "Error loading brands");
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "Failed to load brands.");
         }
-
-        protected void OpenAddBrandSidebar()
+        finally
         {
-            selectedBrand = null;
-            showSidebar = true;
+            LoaderService.Hide();
+            IsLoading = false;
             StateHasChanged();
         }
+    }
 
-        protected void OpenEditBrandSidebar(Brand brand)
+    protected void OpenAddBrandSidebar()
+    {
+        selectedBrand = new Brand
         {
-            selectedBrand = brand;
-            showSidebar = true;
-            StateHasChanged();
-        }
+            Id = Guid.NewGuid(),
+            IsActive = true,
+            DisplayOrder = 0,
+            ApplicableCategories = new List<string>(),
+            Metadata = new Dictionary<string, object>(),
+            CreatedAt = DateTime.UtcNow
+        };
+        showSidebar = true;
+    }
 
-        protected async Task OnBrandSave(Brand brand)
+    protected void OpenEditBrandSidebar(BrandResponseDto brand)
+    {
+        selectedBrand = Mapper.Map<Brand>(brand);
+        showSidebar = true;
+    }
+
+    protected async Task OnBrandSave(Brand brand)
+    {
+        try
         {
-            try
+            LoaderService.Show(brand.Id != Guid.Empty ? "Updating brand..." : "Creating brand...");
+
+            // Clean data
+            brand.ApplicableCategories = brand.ApplicableCategories?
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct()
+                .ToList();
+
+            brand.Metadata = brand.Metadata?
+                .Where(kvp => !string.IsNullOrWhiteSpace(kvp.Key))
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            // Generate slug if needed
+            if (string.IsNullOrWhiteSpace(brand.Slug) && !string.IsNullOrWhiteSpace(brand.Name))
             {
-                LoaderService.Show(brand.Id.HasValue && brand.Id.Value != Guid.Empty ? "Updating brand..." : "Creating brand...");
+                brand.Slug = GenerateSlug(brand.Name);
+            }
 
-                // Clean up empty categories
-                if (brand.ApplicableCategories != null)
-                {
-                    brand.ApplicableCategories = brand.ApplicableCategories
-                        .Where(c => !string.IsNullOrWhiteSpace(c))
-                        .Distinct()
-                        .ToList();
-                }
+            if (brand.Id != Guid.Empty && brand.Id != Guid.Empty)
+            {
+                var updateDto = Mapper.Map<BrandUpdateDto>(brand);
+                var updated = await BrandService.UpdateBrandAsync(brand.Id.Value, updateDto);
 
-                // Clean up metadata
-                if (brand.Metadata != null)
+                if (updated != null)
                 {
-                    brand.Metadata = brand.Metadata
-                        .Where(kvp => !string.IsNullOrWhiteSpace(kvp.Key))
-                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                }
-
-                if (brand.Id.HasValue && brand.Id.Value != Guid.Empty)
-                {
-                    await BrandService.UpdateBrandAsync(brand.Id.Value, brand);
                     NotificationService.Notify(NotificationSeverity.Success, "Success",
                         $"Brand '{brand.Name}' updated successfully");
                 }
-                else
-                {
-                    brand.Id = Guid.NewGuid();
-                    brand.CreatedAt = DateTime.UtcNow;
-                    await BrandService.CreateBrandAsync(brand);
-                    NotificationService.Notify(NotificationSeverity.Success, "Success",
-                        $"Brand '{brand.Name}' created successfully");
-                }
-
-                // Close sidebar
-                showSidebar = false;
-                selectedBrand = null;
-
-                // Reload data
-                await LoadAllBrandsAsync();
             }
-            catch (Exception ex)
+            else
             {
-                Logger.LogError(ex, "Error saving brand");
-                NotificationService.Notify(NotificationSeverity.Error, "Error",
-                    $"Failed to save brand: {ex.Message}");
+                var createDto = Mapper.Map<BrandCreateDto>(brand);
+                await BrandService.CreateBrandAsync(createDto);
+
+                NotificationService.Notify(NotificationSeverity.Success, "Success",
+                    $"Brand '{brand.Name}' created successfully");
             }
-            finally
-            {
-                LoaderService.Hide();
-                StateHasChanged();
-            }
+
+            showSidebar = false;
+            selectedBrand = null;
+
+            await LoadAllBrandsAsync();
         }
-
-        protected void GoToPage(int page)
+        catch (Exception ex)
         {
-            if (page < 1 || page > TotalPages) return;
-            CurrentPage = page;
-            StateHasChanged();
+            Logger.LogError(ex, "Error saving brand");
+            NotificationService.Notify(NotificationSeverity.Error, "Error",
+                $"Failed to save brand: {ex.Message}");
         }
-
-        protected async Task OnPageSizeChanged(ChangeEventArgs e)
+        finally
         {
-            if (int.TryParse(e.Value?.ToString(), out var size))
-            {
-                ItemsPerPage = size;
-                CurrentPage = 1;
-                StateHasChanged();
-            }
+            LoaderService.Hide();
         }
+    }
 
-        protected void OnBrandSelectionChanged(Brand brand, bool isChecked)
+    private string GenerateSlug(string name)
+    {
+        return name.ToLower()
+                   .Replace(" ", "-")
+                   .Replace("&", "and")
+                   .Replace("'", "")
+                   .Replace("\"", "")
+                   .Replace(".", "")
+                   .Replace(",", "")
+                   .Replace("?", "")
+                   .Replace("!", "")
+                   .Replace("/", "-")
+                   .Replace("\\", "-");
+    }
+
+    protected void GoToPage(int page)
+    {
+        if (page < 1 || page > TotalPages) return;
+        CurrentPage = page;
+    }
+
+    protected void OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var size))
         {
-            brand.IsSelected = isChecked;
+            ItemsPerPage = size;
+            CurrentPage = 1;
+        }
+    }
 
-            if (isChecked)
+    protected void OnBrandSelectionChanged(BrandResponseDto brand, bool isChecked)
+    {
+        if (isChecked)
+        {
+            if (!SelectedBrands.Contains(brand))
+                SelectedBrands.Add(brand);
+        }
+        else
+        {
+            SelectedBrands.Remove(brand);
+        }
+    }
+
+    protected void ToggleAllSelection()
+    {
+        bool selectAll = SelectedBrands.Count != PaginatedBrands.Count;
+
+        if (selectAll)
+        {
+            foreach (var brand in PaginatedBrands)
             {
                 if (!SelectedBrands.Contains(brand))
                     SelectedBrands.Add(brand);
             }
-            else
+        }
+        else
+        {
+            foreach (var brand in PaginatedBrands)
             {
                 SelectedBrands.Remove(brand);
             }
-
-            StateHasChanged();
         }
+    }
 
-        protected void ToggleAllSelection()
+    protected async Task DeleteBrand(BrandResponseDto brand)
+    {
+        if (brand.Id == Guid.Empty) return;
+
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Delete '{brand.Name}'?");
+        if (!confirmed) return;
+
+        try
         {
-            bool selectAll = !AllPageSelected;
+            LoaderService.Show($"Deleting {brand.Name}...");
+            await BrandService.DeleteBrandAsync(brand.Id);
 
-            foreach (var brand in PaginatedBrands)
-            {
-                brand.IsSelected = selectAll;
-
-                if (selectAll)
-                {
-                    if (!SelectedBrands.Contains(brand))
-                        SelectedBrands.Add(brand);
-                }
-                else
-                {
-                    SelectedBrands.Remove(brand);
-                }
-            }
-
-            StateHasChanged();
+            NotificationService.Notify(NotificationSeverity.Success, "Deleted", $"{brand.Name} deleted");
+            await LoadAllBrandsAsync();
         }
-
-        protected async Task DeleteBrand(Brand brand)
+        catch (Exception ex)
         {
-            if (brand?.Id is null) return;
-
-            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Delete '{brand.Name}'?");
-            if (!confirmed) return;
-
-            try
-            {
-                LoaderService.Show($"Deleting {brand.Name}...");
-                await BrandService.DeleteBrandAsync(brand.Id.Value);
-
-                NotificationService.Notify(NotificationSeverity.Success, "Deleted", $"{brand.Name} deleted");
-                await LoadAllBrandsAsync();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Delete failed");
-                NotificationService.Notify(NotificationSeverity.Error, "Delete Failed", $"Failed to delete {brand.Name}");
-            }
-            finally
-            {
-                LoaderService.Hide();
-            }
+            Logger.LogError(ex, "Delete failed");
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to delete {brand.Name}");
         }
-
-        protected async Task BulkDelete()
+        finally
         {
-            if (!SelectedBrands.Any()) return;
+            LoaderService.Hide();
+        }
+    }
 
-            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Delete {SelectedBrands.Count} brands?");
-            if (!confirmed) return;
+    protected async Task BulkDelete()
+    {
+        if (!SelectedBrands.Any()) return;
 
-            var failed = new List<string>();
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Delete {SelectedBrands.Count} brands?");
+        if (!confirmed) return;
 
-            try
+        var failed = new List<string>();
+
+        try
+        {
+            LoaderService.Show("Bulk deleting...");
+
+            foreach (var brand in SelectedBrands.ToList())
             {
-                LoaderService.Show("Bulk deleting...");
-
-                foreach (var brand in SelectedBrands.ToList())
+                try
                 {
-                    try
-                    {
-                        if (brand?.Id is null) continue;
-                        await BrandService.DeleteBrandAsync(brand.Id.Value);
-                    }
-                    catch
-                    {
-                        failed.Add(brand.Name ?? "Unknown");
-                    }
+                    await BrandService.DeleteBrandAsync(brand.Id);
                 }
-
-                SelectedBrands.Clear();
-
-                if (failed.Any())
+                catch
                 {
-                    NotificationService.Notify(NotificationSeverity.Warning, "Partial Success", $"Failed: {string.Join(", ", failed)}");
+                    failed.Add(brand.Name);
                 }
-                else
-                {
-                    NotificationService.Notify(NotificationSeverity.Success, "Success", "All selected brands deleted");
-                }
-
-                await LoadAllBrandsAsync();
             }
-            catch (Exception ex)
+
+            SelectedBrands.Clear();
+
+            if (failed.Any())
             {
-                Logger.LogError(ex, "Bulk delete error");
-                NotificationService.Notify(NotificationSeverity.Error, "Error", "Bulk delete failed");
+                NotificationService.Notify(NotificationSeverity.Warning, "Partial Success",
+                    $"Failed: {string.Join(", ", failed)}");
             }
-            finally
+            else
             {
-                LoaderService.Hide();
+                NotificationService.Notify(NotificationSeverity.Success, "Success",
+                    "All selected brands deleted");
             }
+
+            await LoadAllBrandsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Bulk delete error");
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "Bulk delete failed");
+        }
+        finally
+        {
+            LoaderService.Hide();
         }
     }
 }

@@ -1,9 +1,14 @@
-﻿
-namespace AutoNext.Plotform.App.Backoffice.Models.Core
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace AutoNext.Plotform.App.Backoffice.Models.DTO
 {
-    public class Category
+    public class CategoryResponseDto
     {
-        public Guid? Id { get; set; }
+        public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public string Slug { get; set; } = string.Empty;
@@ -17,7 +22,6 @@ namespace AutoNext.Plotform.App.Backoffice.Models.Core
         public Dictionary<string, object>? Metadata { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        public List<Category> SubCategories { get; set; } = new List<Category>();
+        public List<CategoryResponseDto> SubCategories { get; set; } = new List<CategoryResponseDto>();
     }
-
 }
