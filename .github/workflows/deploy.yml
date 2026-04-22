@@ -30,11 +30,6 @@ jobs:
 
     - name: Deploy Gateway to Dev via FTP
       shell: powershell
-      env:
-        FTP_SERVER: ${{ secrets.FTP_SERVER }}
-        FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-        FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        FTP_PATH: ${{ secrets.FTP_GATEWAY_DEV_PATH }}
       run: |
         $maxRetries = 3
         $retryDelay = 10
@@ -44,15 +39,17 @@ jobs:
         Write-Host "Deploying GATEWAY to DEVELOPMENT"
         Write-Host "========================================="
         
+        # Decode the base64 encoded password
+        $ftpPassBase64 = "${{ secrets.FTP_PASSWORD_BASE64 }}"
+        $ftpPass = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($ftpPassBase64))
+        $ftpServer = "${{ secrets.FTP_SERVER }}"
+        $ftpUser = "${{ secrets.FTP_USERNAME }}"
+        $remotePath = "${{ secrets.FTP_GATEWAY_DEV_PATH }}"
+        $localPath = ".\publish\gateway\dev"
+        
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
           try {
             Write-Host "`n📡 Attempt $attempt of $maxRetries"
-            
-            $ftpServer = $env:FTP_SERVER
-            $ftpUser = $env:FTP_USERNAME
-            $ftpPass = $env:FTP_PASSWORD
-            $localPath = ".\publish\gateway\dev"
-            $remotePath = $env:FTP_PATH
             
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
@@ -114,11 +111,6 @@ jobs:
 
     - name: Deploy Gateway to Prod via FTP
       shell: powershell
-      env:
-        FTP_SERVER: ${{ secrets.FTP_SERVER }}
-        FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-        FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        FTP_PATH: ${{ secrets.FTP_GATEWAY_PROD_PATH }}
       run: |
         $maxRetries = 3
         $retryDelay = 10
@@ -128,15 +120,16 @@ jobs:
         Write-Host "Deploying GATEWAY to PRODUCTION"
         Write-Host "========================================="
         
+        $ftpPassBase64 = "${{ secrets.FTP_PASSWORD_BASE64 }}"
+        $ftpPass = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($ftpPassBase64))
+        $ftpServer = "${{ secrets.FTP_SERVER }}"
+        $ftpUser = "${{ secrets.FTP_USERNAME }}"
+        $remotePath = "${{ secrets.FTP_GATEWAY_PROD_PATH }}"
+        $localPath = ".\publish\gateway\prod"
+        
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
           try {
             Write-Host "`n📡 Attempt $attempt of $maxRetries"
-            
-            $ftpServer = $env:FTP_SERVER
-            $ftpUser = $env:FTP_USERNAME
-            $ftpPass = $env:FTP_PASSWORD
-            $localPath = ".\publish\gateway\prod"
-            $remotePath = $env:FTP_PATH
             
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
@@ -198,11 +191,6 @@ jobs:
 
     - name: Deploy Backoffice to Dev via FTP
       shell: powershell
-      env:
-        FTP_SERVER: ${{ secrets.FTP_SERVER }}
-        FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-        FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        FTP_PATH: ${{ secrets.FTP_BACKOFFICE_DEV_PATH }}
       run: |
         $maxRetries = 3
         $retryDelay = 10
@@ -212,15 +200,16 @@ jobs:
         Write-Host "Deploying BACKOFFICE to DEVELOPMENT"
         Write-Host "========================================="
         
+        $ftpPassBase64 = "${{ secrets.FTP_PASSWORD_BASE64 }}"
+        $ftpPass = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($ftpPassBase64))
+        $ftpServer = "${{ secrets.FTP_SERVER }}"
+        $ftpUser = "${{ secrets.FTP_USERNAME }}"
+        $remotePath = "${{ secrets.FTP_BACKOFFICE_DEV_PATH }}"
+        $localPath = ".\publish\backoffice\dev"
+        
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
           try {
             Write-Host "`n📡 Attempt $attempt of $maxRetries"
-            
-            $ftpServer = $env:FTP_SERVER
-            $ftpUser = $env:FTP_USERNAME
-            $ftpPass = $env:FTP_PASSWORD
-            $localPath = ".\publish\backoffice\dev"
-            $remotePath = $env:FTP_PATH
             
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
@@ -282,11 +271,6 @@ jobs:
 
     - name: Deploy Backoffice to Prod via FTP
       shell: powershell
-      env:
-        FTP_SERVER: ${{ secrets.FTP_SERVER }}
-        FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-        FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        FTP_PATH: ${{ secrets.FTP_BACKOFFICE_PROD_PATH }}
       run: |
         $maxRetries = 3
         $retryDelay = 10
@@ -296,15 +280,16 @@ jobs:
         Write-Host "Deploying BACKOFFICE to PRODUCTION"
         Write-Host "========================================="
         
+        $ftpPassBase64 = "${{ secrets.FTP_PASSWORD_BASE64 }}"
+        $ftpPass = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($ftpPassBase64))
+        $ftpServer = "${{ secrets.FTP_SERVER }}"
+        $ftpUser = "${{ secrets.FTP_USERNAME }}"
+        $remotePath = "${{ secrets.FTP_BACKOFFICE_PROD_PATH }}"
+        $localPath = ".\publish\backoffice\prod"
+        
         for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
           try {
             Write-Host "`n📡 Attempt $attempt of $maxRetries"
-            
-            $ftpServer = $env:FTP_SERVER
-            $ftpUser = $env:FTP_USERNAME
-            $ftpPass = $env:FTP_PASSWORD
-            $localPath = ".\publish\backoffice\prod"
-            $remotePath = $env:FTP_PATH
             
             $ftpUrl = "ftp://${ftpServer}/${remotePath}"
             Write-Host "📍 FTP Server: $ftpServer"
