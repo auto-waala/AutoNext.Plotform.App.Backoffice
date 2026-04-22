@@ -80,7 +80,7 @@
                                             <tr>
                                                 <td>
                                                     <input type="checkbox"
-                                                           checked="@localBrand.IsSelected"
+                                                           checked="@SelectedBrands.Contains(localBrand)"
                                                            @onchange="e => OnBrandSelectionChanged(localBrand, (bool)e.Value!)" />
                                                 </td>
                                                 <td>

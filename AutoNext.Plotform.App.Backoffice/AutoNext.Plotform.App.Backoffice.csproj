@@ -10,6 +10,7 @@
     <ProjectReference Include="..\AutoNext.Plotform.App.Backoffice.Client\AutoNext.Plotform.App.Backoffice.Client.csproj" />
     <ProjectReference Include="..\AutoNext.Plotform.App.Backoffice.Integrations\AutoNext.Plotform.App.Backoffice.Integrations.csproj" />
     <ProjectReference Include="..\AutoNext.Plotform.App.Backoffice.Models\AutoNext.Plotform.App.Backoffice.Models.csproj" />
+    <PackageReference Include="AutoMapper" Version="16.1.1" />
     <PackageReference Include="Blazor.Bootstrap" Version="3.4.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.14" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />

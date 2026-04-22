@@ -1,5 +1,4 @@
-﻿@* BrandSidebar.razor *@
-@using Microsoft.AspNetCore.Components.Forms
+﻿@using Microsoft.AspNetCore.Components.Forms
 @using System.Text.Json
 @implements IDisposable
 
@@ -10,7 +9,7 @@
         <!-- Header -->
         <div class="autonext-sidebar-header">
             <h5 class="autonext-sidebar-title">
-                @(BrandModel.Id.HasValue && BrandModel.Id.Value != Guid.Empty ? "Edit Brand" : "Add Brand")
+                @(IsEditMode ? "Edit Brand" : "Add Brand")
             </h5>
             <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
@@ -311,8 +310,8 @@
                 Cancel
             </button>
             <button type="submit" class="btn btn-primary">
-                <i class="bi @(BrandModel.Id.HasValue && BrandModel.Id.Value != Guid.Empty ? "bi-pencil" : "bi-save") me-1"></i>
-                @(BrandModel.Id.HasValue && BrandModel.Id.Value != Guid.Empty ? "Update" : "Save")
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update" : "Save")
             </button>
         </div>
     </EditForm>
@@ -329,6 +328,7 @@
     private string newCategory = string.Empty;
     private bool showMetadata = false;
     private List<MetadataEntry> metadataEntries = new();
+    private bool IsEditMode => BrandModel.Id != null && BrandModel.Id != Guid.Empty;
 
     private class MetadataEntry
     {
@@ -353,7 +353,7 @@
 
     private void InitializeModel()
     {
-        if (BrandToEdit != null && BrandToEdit.Id.HasValue && BrandToEdit.Id.Value != Guid.Empty)
+        if (BrandToEdit != null)
         {
             // Clone the brand for editing
             BrandModel = new Brand
@@ -382,7 +382,7 @@
             // Load metadata into entries for editing
             LoadMetadataEntries();
         }
-        else if (BrandToEdit == null && (BrandModel.Id == null || BrandModel.Id == Guid.Empty))
+        else if (BrandModel.Id == null || BrandModel.Id == Guid.Empty)
         {
             // Reset form for new brand
             BrandModel = new Brand
@@ -487,6 +487,7 @@
         }
         
         await OnSave.InvokeAsync(BrandModel);
+        await Close();
     }
 
     private string GenerateSlug(string name)
@@ -500,7 +501,9 @@
                    .Replace(".", "")
                    .Replace(",", "")
                    .Replace("?", "")
-                   .Replace("!", "");
+                   .Replace("!", "")
+                   .Replace("/", "-")
+                   .Replace("\\", "-");
     }
 
     private async Task Close()
@@ -512,8 +515,6 @@
 
     public void Dispose()
     {
-        // EditContext doesn't need disposal in .NET Core 3.1+
-        // Just null out the reference
         editContext = null;
     }
 }

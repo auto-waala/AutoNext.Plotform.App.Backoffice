@@ -2,6 +2,7 @@ using AutoNext.Plotform.App.Backoffice.Components;
 using AutoNext.Plotform.App.Backoffice.Handlers;
 using AutoNext.Plotform.App.Backoffice.Integrations.Core;
 using AutoNext.Plotform.App.Backoffice.Models.Common;
+using AutoNext.Plotform.App.Backoffice.Models.Mapers.Core;
 using BlazorBootstrap;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Radzen;
@@ -29,21 +30,24 @@ try
 
     builder.Host.UseSerilog();
 
-    builder.Services.AddRazorComponents()
-        .AddInteractiveServerComponents();
+    builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
     builder.Services.AddBlazorBootstrap();
 
     builder.Services.AddRadzenComponents();
 
     builder.Services.AddSingleton<LoaderService>();
+
     builder.Services.AddSingleton<ToastService>();
 
     var apiGateway = builder.Configuration.GetSection("ApiGateway");
+
     builder.Services.Configure<ApiGateway>(apiGateway);
 
-    var gatewayBaseUrl = apiGateway.Get<ApiGateway>()?.BaseUrl
-        ?? throw new InvalidOperationException("ApiGateway:BaseUrl is required");
+    var gatewayBaseUrl = apiGateway.Get<ApiGateway>()?.BaseUrl ?? throw new InvalidOperationException("ApiGateway:BaseUrl is required");
+
+
+    var apiGatewayConfig = apiGateway.Get<ApiGateway>();
 
     builder.Services.AddHttpClient<IBrandService, BrandService>(client =>
     {
@@ -53,7 +57,32 @@ try
             client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
     });
 
+    builder.Services.AddHttpClient<ICategoryService, CategoryService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        var apiGatewayConfig = apiGateway.Get<ApiGateway>();
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+    });
+
+    builder.Services.AddHttpClient<IColorService, ColorService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        var apiGatewayConfig = apiGateway.Get<ApiGateway>();
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+    });
+
     builder.Services.AddScoped<CircuitHandler, BlazorExceptionHandler>();
+
+    // Add AutoMapper
+    builder.Services.AddAutoMapper(cfg =>
+    {
+        // Brands
+        cfg.AddProfile<BrandMappingProfile>();
+
+
+    });
 
     var app = builder.Build();
 
