@@ -1,0 +1,456 @@
+﻿@using AutoNext.Plotform.App.Backoffice.Models.DTO
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@CategoryModel" OnValidSubmit="@HandleValidSubmit" FormName="categoryForm">
+        <!-- Header -->
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(IsEditMode ? "Edit Category" : "Add Category")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+                
+                <!-- Category Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Category Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-tag"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter category name"
+                                   @bind-Value="CategoryModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => CategoryModel.Name)" />
+                    <small class="autonext-text-muted">Maximum 100 characters</small>
+                </div>
+
+                <!-- Category Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Category Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter category code"
+                                   @bind-Value="CategoryModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => CategoryModel.Code)" />
+                    <small class="autonext-text-muted">Unique identifier (e.g., ELECTRONICS, CLOTHING)</small>
+                </div>
+
+                <!-- Slug -->
+                <div class="autonext-form-group">
+                    <label for="Slug">Slug</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-link-45deg"></i>
+                            </span>
+                        </div>
+                        <InputText id="Slug" class="autonext-form-control"
+                                   placeholder="URL-friendly slug"
+                                   @bind-Value="CategoryModel.Slug" />
+                    </div>
+                    <ValidationMessage For="@(() => CategoryModel.Slug)" />
+                    <small class="autonext-text-muted">Auto-generated from name if left empty</small>
+                </div>
+
+                <!-- Description -->
+                <div class="autonext-form-group">
+                    <label for="Description">Description</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-file-text"></i>
+                            </span>
+                        </div>
+                        <InputTextArea id="Description" class="autonext-form-control"
+                                       rows="3"
+                                       placeholder="Enter category description"
+                                       @bind-Value="CategoryModel.Description" />
+                    </div>
+                    <ValidationMessage For="@(() => CategoryModel.Description)" />
+                </div>
+            </div>
+
+            <!-- Media Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-images me-2"></i>Media
+                </h6>
+
+                <!-- Icon URL -->
+                <div class="autonext-form-group">
+                    <label for="IconUrl">Icon URL</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-star"></i>
+                            </span>
+                        </div>
+                        <InputText id="IconUrl" class="autonext-form-control"
+                                   placeholder="https://example.com/icon.svg"
+                                   @bind-Value="CategoryModel.IconUrl" />
+                    </div>
+                    <ValidationMessage For="@(() => CategoryModel.IconUrl)" />
+                    @if (!string.IsNullOrEmpty(CategoryModel.IconUrl))
+                    {
+                        <div class="autonext-mt-2">
+                            <img src="@CategoryModel.IconUrl" alt="Icon preview"
+                                 style="max-width: 48px; max-height: 48px;"
+                                 onerror="this.style.display='none'" />
+                        </div>
+                    }
+                </div>
+
+                <!-- Image URL -->
+                <div class="autonext-form-group">
+                    <label for="ImageUrl">Image URL</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-image"></i>
+                            </span>
+                        </div>
+                        <InputText id="ImageUrl" class="autonext-form-control"
+                                   placeholder="https://example.com/category-image.jpg"
+                                   @bind-Value="CategoryModel.ImageUrl" />
+                    </div>
+                    <ValidationMessage For="@(() => CategoryModel.ImageUrl)" />
+                    @if (!string.IsNullOrEmpty(CategoryModel.ImageUrl))
+                    {
+                        <div class="autonext-mt-2">
+                            <img src="@CategoryModel.ImageUrl" alt="Image preview"
+                                 style="max-width: 200px; max-height: 100px;"
+                                 onerror="this.style.display='none'" />
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Hierarchy Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-diagram-3 me-2"></i>Category Hierarchy
+                </h6>
+
+                <!-- Parent Category -->
+                <div class="autonext-form-group">
+                    <label for="ParentCategoryId">Parent Category</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-folder"></i>
+                            </span>
+                        </div>
+                        <InputSelect id="ParentCategoryId" class="autonext-form-control"
+                                     @bind-Value="CategoryModel.ParentCategoryId">
+                            <option value="">No parent (Top-level)</option>
+                            @foreach (var parentCat in AvailableParentCategories)
+                            {
+                                <option value="@parentCat.Id">@parentCat.Name</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <ValidationMessage For="@(() => CategoryModel.ParentCategoryId)" />
+                    <small class="autonext-text-muted">Select parent category for hierarchy</small>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Settings
+                </h6>
+
+                <!-- Display Order -->
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     placeholder="Display order"
+                                     @bind-Value="CategoryModel.DisplayOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => CategoryModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first</small>
+                </div>
+
+                <!-- Is Active -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="CategoryModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(CategoryModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive categories won't be displayed publicly</small>
+                </div>
+            </div>
+
+            <!-- Metadata Section (Advanced) -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title" @onclick="toggleMetadata">
+                    <i class="bi bi-database me-2"></i>
+                    Metadata (Advanced)
+                    <i class="bi @(showMetadata ? "bi-chevron-up" : "bi-chevron-down") ms-2"></i>
+                </h6>
+                
+                @if (showMetadata)
+                {
+                    <div class="autonext-metadata-editor">
+                        <div class="alert alert-info autonext-alert-sm">
+                            <i class="bi bi-info-circle"></i>
+                            Key-value pairs for additional category data
+                        </div>
+                        
+                        @if (metadataEntries.Any())
+                        {
+                            @foreach (var entry in metadataEntries)
+                            {
+                                <div class="autonext-metadata-row">
+                                    <input type="text" class="autonext-form-control autonext-form-control-sm"
+                                           placeholder="Key" @bind="entry.Key" />
+                                    <input type="text" class="autonext-form-control autonext-form-control-sm"
+                                           placeholder="Value" @bind="entry.Value" />
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            @onclick="() => RemoveMetadataEntry(entry)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="autonext-text-muted autonext-mb-2">No metadata entries</div>
+                        }
+                        
+                        <button type="button" class="btn btn-sm btn-outline-secondary autonext-mt-2"
+                                @onclick="AddMetadataEntry">
+                            <i class="bi bi-plus-circle"></i> Add Metadata
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update" : "Save")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public Category? CategoryToEdit { get; set; }
+    [Parameter] public EventCallback<Category> OnSave { get; set; }
+
+    private Category CategoryModel { get; set; } = new();
+    private EditContext? editContext;
+    private bool showMetadata = false;
+    private List<MetadataEntry> metadataEntries = new();
+    private List<CategoryResponseDto> AvailableParentCategories { get; set; } = new();
+    private bool IsEditMode => CategoryModel.Id != Guid.Empty;
+
+    private class MetadataEntry
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+    }
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(CategoryModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(CategoryModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (CategoryToEdit != null)
+        {
+            // Clone the category for editing
+            CategoryModel = new Category
+            {
+                Id = CategoryToEdit.Id,
+                Name = CategoryToEdit.Name,
+                Code = CategoryToEdit.Code,
+                Slug = CategoryToEdit.Slug,
+                Description = CategoryToEdit.Description,
+                IconUrl = CategoryToEdit.IconUrl,
+                ImageUrl = CategoryToEdit.ImageUrl,
+                ParentCategoryId = CategoryToEdit.ParentCategoryId,
+                DisplayOrder = CategoryToEdit.DisplayOrder,
+                IsActive = CategoryToEdit.IsActive,
+                Metadata = CategoryToEdit.Metadata != null
+                    ? new Dictionary<string, object>(CategoryToEdit.Metadata)
+                    : new Dictionary<string, object>(),
+                CreatedAt = CategoryToEdit.CreatedAt,
+                UpdatedAt = CategoryToEdit.UpdatedAt
+            };
+            
+            // Load metadata into entries for editing
+            LoadMetadataEntries();
+        }
+        else if (CategoryModel.Id == Guid.Empty)
+        {
+            // Reset form for new category
+            CategoryModel = new Category
+            {
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                DisplayOrder = 0,
+                Metadata = new Dictionary<string, object>(),
+                CreatedAt = DateTime.UtcNow
+            };
+            metadataEntries.Clear();
+        }
+        
+        // Load available parent categories (you'll need to inject your service here)
+        LoadAvailableParentCategories();
+    }
+
+    private void LoadAvailableParentCategories()
+    {
+        // TODO: Load from CategoryService.GetAllCategoriesAsync()
+        // Filter out current category and its descendants to prevent circular references
+        // For now, using empty list - implement this based on your service
+        AvailableParentCategories = new List<CategoryResponseDto>();
+    }
+
+    private void LoadMetadataEntries()
+    {
+        metadataEntries.Clear();
+        if (CategoryModel.Metadata != null)
+        {
+            foreach (var kvp in CategoryModel.Metadata)
+            {
+                metadataEntries.Add(new MetadataEntry
+                {
+                    Key = kvp.Key,
+                    Value = kvp.Value?.ToString() ?? string.Empty
+                });
+            }
+        }
+    }
+
+    private void SaveMetadataFromEntries()
+    {
+        CategoryModel.Metadata = new Dictionary<string, object>();
+        foreach (var entry in metadataEntries)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.Key))
+            {
+                CategoryModel.Metadata[entry.Key] = entry.Value;
+            }
+        }
+    }
+
+    private void AddMetadataEntry()
+    {
+        metadataEntries.Add(new MetadataEntry());
+    }
+
+    private void RemoveMetadataEntry(MetadataEntry entry)
+    {
+        metadataEntries.Remove(entry);
+    }
+
+    private void toggleMetadata()
+    {
+        showMetadata = !showMetadata;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Save metadata from entries
+        SaveMetadataFromEntries();
+        
+        // Generate slug from name if not provided
+        if (string.IsNullOrWhiteSpace(CategoryModel.Slug) && !string.IsNullOrWhiteSpace(CategoryModel.Name))
+        {
+            CategoryModel.Slug = GenerateSlug(CategoryModel.Name);
+        }
+        
+        // Set audit fields
+        CategoryModel.UpdatedAt = DateTime.UtcNow;
+        if (CategoryModel.Id == Guid.Empty)
+        {
+            CategoryModel.Id = Guid.NewGuid();
+            CategoryModel.CreatedAt = DateTime.UtcNow;
+        }
+        
+        await OnSave.InvokeAsync(CategoryModel);
+        await Close();
+    }
+
+    private string GenerateSlug(string name)
+    {
+        return name.ToLower()
+                   .Replace(" ", "-")
+                   .Replace("&", "and")
+                   .Replace("'", "")
+                   .Replace("\"", "")
+                   .Replace(".", "")
+                   .Replace(",", "")
+                   .Replace("?", "")
+                   .Replace("!", "")
+                   .Replace("/", "-")
+                   .Replace("\\", "-");
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}

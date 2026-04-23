@@ -3,7 +3,6 @@ using AutoNext.Plotform.App.Backoffice.Handlers;
 using AutoNext.Plotform.App.Backoffice.Integrations.Core;
 using AutoNext.Plotform.App.Backoffice.Models.Core;
 using AutoNext.Plotform.App.Backoffice.Models.DTO;
-using AutoNext.Plotform.App.Backoffice.Models.ViewModels;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Radzen;
