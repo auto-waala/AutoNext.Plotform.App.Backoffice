@@ -1,0 +1,212 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@ColorModel" OnValidSubmit="@HandleValidSubmit" FormName="colorForm">
+
+        <!-- Header -->
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(IsEditMode ? "Edit Color" : "Add Color")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close">
+                <span>&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+
+            <!-- Basic Info -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-palette me-2"></i>Basic Information
+                </h6>
+
+                <!-- Name -->
+                <div class="autonext-form-group">
+                    <label>Color Name *</label>
+                    <InputText class="autonext-form-control"
+                               placeholder="Enter color name"
+                               @bind-Value="ColorModel.Name" />
+                    <ValidationMessage For="@(() => ColorModel.Name)" />
+                </div>
+
+                <!-- Code -->
+                <div class="autonext-form-group">
+                    <label>Color Code *</label>
+                    <InputText class="autonext-form-control"
+                               placeholder="Enter unique code"
+                               @bind-Value="ColorModel.Code" />
+                    <ValidationMessage For="@(() => ColorModel.Code)" />
+                </div>
+
+                <!-- Description -->
+                <div class="autonext-form-group">
+                    <label>Description</label>
+                    <InputTextArea class="autonext-form-control"
+                                   rows="3"
+                                   @bind-Value="ColorModel.Description" />
+                </div>
+            </div>
+
+            <!-- Color Details -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-droplet me-2"></i>Color Details
+                </h6>
+
+                <!-- Hex -->
+                <div class="autonext-form-group">
+                    <label>Hex Code</label>
+                    <div class="d-flex gap-2">
+                        <InputText class="autonext-form-control"
+                                   placeholder="#FFFFFF"
+                                   @bind-Value="ColorModel.HexCode" />
+                        <input type="color"
+                               value="@ColorModel.HexCode"
+                               @onchange="OnHexChanged"
+                               style="width:50px;height:38px;" />
+                    </div>
+                </div>
+
+                <!-- RGB -->
+                <div class="autonext-form-group">
+                    <label>RGB Value</label>
+                    <InputText class="autonext-form-control"
+                               placeholder="rgb(255,255,255)"
+                               @bind-Value="ColorModel.RgbValue" />
+                </div>
+
+                <!-- Preview -->
+                @if (!string.IsNullOrWhiteSpace(ColorModel.HexCode))
+                {
+                    <div class="mt-2">
+                        <div style="width:100%;height:40px;border-radius:6px;border:1px solid #ccc;
+                            background:@ColorModel.HexCode;">
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Settings -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Settings
+                </h6>
+
+                <!-- Display Order -->
+                <div class="autonext-form-group">
+                    <label>Display Order</label>
+                    <InputNumber class="autonext-form-control"
+                                 @bind-Value="ColorModel.DisplayOrder" />
+                </div>
+
+                <!-- Active -->
+                <div class="autonext-form-group">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input"
+                                       @bind-Value="ColorModel.IsActive" />
+                        <label class="form-check-label">
+                            Active
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary" @onclick="Close">
+                Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                @(IsEditMode ? "Update" : "Save")
+            </button>
+        </div>
+
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public Color? ColorToEdit { get; set; }
+    [Parameter] public EventCallback<Color> OnSave { get; set; }
+
+    private Color ColorModel { get; set; } = new();
+    private EditContext? editContext;
+
+    private bool IsEditMode => ColorModel.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitModel();
+        editContext = new EditContext(ColorModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitModel();
+        editContext = new EditContext(ColorModel);
+    }
+
+    private void InitModel()
+    {
+        if (ColorToEdit != null)
+        {
+            ColorModel = new Color
+            {
+                Id = ColorToEdit.Id,
+                Name = ColorToEdit.Name,
+                Code = ColorToEdit.Code,
+                HexCode = ColorToEdit.HexCode,
+                RgbValue = ColorToEdit.RgbValue,
+                Description = ColorToEdit.Description,
+                DisplayOrder = ColorToEdit.DisplayOrder,
+                IsActive = ColorToEdit.IsActive,
+                CreatedAt = ColorToEdit.CreatedAt,
+                UpdatedAt = ColorToEdit.UpdatedAt
+            };
+        }
+        else
+        {
+            ColorModel = new Color
+            {
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private void OnHexChanged(ChangeEventArgs e)
+    {
+        ColorModel.HexCode = e.Value?.ToString();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        ColorModel.UpdatedAt = DateTime.UtcNow;
+
+        if (ColorModel.CreatedAt == default)
+            ColorModel.CreatedAt = DateTime.UtcNow;
+
+        await OnSave.InvokeAsync(ColorModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}
