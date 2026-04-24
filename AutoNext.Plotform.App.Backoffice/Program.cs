@@ -12,6 +12,7 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
     .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
+    .MinimumLevel.Override("System.Net.Http", Serilog.Events.LogEventLevel.Error)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .WriteTo.File(
@@ -36,8 +37,9 @@ try
 
     builder.Services.AddRadzenComponents();
 
-    builder.Services.AddSingleton<LoaderService>();
+    builder.Services.AddMemoryCache();
 
+    builder.Services.AddSingleton<LoaderService>();
     builder.Services.AddSingleton<ToastService>();
 
     var apiGateway = builder.Configuration.GetSection("ApiGateway");
@@ -46,42 +48,57 @@ try
 
     var gatewayBaseUrl = apiGateway.Get<ApiGateway>()?.BaseUrl ?? throw new InvalidOperationException("ApiGateway:BaseUrl is required");
 
-
     var apiGatewayConfig = apiGateway.Get<ApiGateway>();
 
+    // Register PollyRetryHandler as a transient service
+    builder.Services.AddTransient<PollyRetryHandler>();
+
+    // Configure Brand Service with PollyRetryHandler
     builder.Services.AddHttpClient<IBrandService, BrandService>(client =>
     {
         client.BaseAddress = new Uri(gatewayBaseUrl);
-        var apiGatewayConfig = apiGateway.Get<ApiGateway>();
         if (apiGatewayConfig?.TimeoutSeconds > 0)
             client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
-    });
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5)); // Optional: Set handler lifetime
 
+    // Configure Category Service with PollyRetryHandler
     builder.Services.AddHttpClient<ICategoryService, CategoryService>(client =>
     {
         client.BaseAddress = new Uri(gatewayBaseUrl);
-        var apiGatewayConfig = apiGateway.Get<ApiGateway>();
         if (apiGatewayConfig?.TimeoutSeconds > 0)
             client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
-    });
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
+    // Configure Color Service with PollyRetryHandler
     builder.Services.AddHttpClient<IColorService, ColorService>(client =>
     {
         client.BaseAddress = new Uri(gatewayBaseUrl);
-        var apiGatewayConfig = apiGateway.Get<ApiGateway>();
         if (apiGatewayConfig?.TimeoutSeconds > 0)
             client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
-    });
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
+    // Register services
     builder.Services.AddScoped<CircuitHandler, BlazorExceptionHandler>();
 
     // Add AutoMapper
     builder.Services.AddAutoMapper(cfg =>
     {
-        // Brands
         cfg.AddProfile<BrandMappingProfile>();
-
-
+        // Add other profiles as needed
+        // cfg.AddProfile<CategoryMappingProfile>();
+        // cfg.AddProfile<ColorMappingProfile>();
     });
 
     var app = builder.Build();
@@ -93,6 +110,10 @@ try
         app.UseExceptionHandler("/Error", createScopeForErrors: true);
         app.UseHsts();
     }
+    else
+    {
+        app.UseDeveloperExceptionPage();
+    }
 
     app.UseSerilogRequestLogging();
 
@@ -102,6 +123,8 @@ try
 
     app.MapRazorComponents<App>()
         .AddInteractiveServerRenderMode();
+
+    Log.Information("Application configured successfully, starting...");
 
     app.Run();
 }
