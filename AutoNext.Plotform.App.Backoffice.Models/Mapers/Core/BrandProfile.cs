@@ -5,9 +5,9 @@ using AutoNext.Plotform.App.Backoffice.Models.ViewModels;
 
 namespace AutoNext.Plotform.App.Backoffice.Models.Mapers.Core;
 
-public class BrandMappingProfile : Profile
+public class BrandProfile : Profile
 {
-    public BrandMappingProfile()
+    public BrandProfile()
     {
         // Domain ↔ Response DTO
         CreateMap<Brand, BrandResponseDto>()

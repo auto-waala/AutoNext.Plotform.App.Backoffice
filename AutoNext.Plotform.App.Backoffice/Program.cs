@@ -53,7 +53,6 @@ try
     // Register PollyRetryHandler as a transient service
     builder.Services.AddTransient<PollyRetryHandler>();
 
-    // Configure Brand Service with PollyRetryHandler
     builder.Services.AddHttpClient<IBrandService, BrandService>(client =>
     {
         client.BaseAddress = new Uri(gatewayBaseUrl);
@@ -63,9 +62,8 @@ try
         client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
     })
     .AddHttpMessageHandler<PollyRetryHandler>()
-    .SetHandlerLifetime(TimeSpan.FromMinutes(5)); // Optional: Set handler lifetime
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
-    // Configure Category Service with PollyRetryHandler
     builder.Services.AddHttpClient<ICategoryService, CategoryService>(client =>
     {
         client.BaseAddress = new Uri(gatewayBaseUrl);
@@ -77,8 +75,183 @@ try
     .AddHttpMessageHandler<PollyRetryHandler>()
     .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
-    // Configure Color Service with PollyRetryHandler
     builder.Services.AddHttpClient<IColorService, ColorService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IDocumentTypeService, DocumentTypeService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IFeatureService, FeatureService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IFuelTypeService, FuelTypeService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IInspectionChecklistService, InspectionChecklistService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<ILocationService, LocationService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IPaymentMethodService, PaymentMethodService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IServiceTypeService, ServiceTypeService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IShippingOptionService, ShippingOptionService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<ITaxRateService, TaxRateService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<ITitleTypeService, TitleTypeService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<ITransmissionService, TransmissionService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IVehicleConditionService, VehicleConditionService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IVehicleModelService, VehicleModelService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IVehicleTypeService, VehicleTypeService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IVehicleVariantService, VehicleVariantService>(client =>
+    {
+        client.BaseAddress = new Uri(gatewayBaseUrl);
+        if (apiGatewayConfig?.TimeoutSeconds > 0)
+            client.Timeout = TimeSpan.FromSeconds(apiGatewayConfig.TimeoutSeconds);
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+        client.DefaultRequestHeaders.Add("User-Agent", "AutoNext-Backoffice");
+    })
+    .AddHttpMessageHandler<PollyRetryHandler>()
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+    builder.Services.AddHttpClient<IWarrantyTypeService, WarrantyTypeService>(client =>
     {
         client.BaseAddress = new Uri(gatewayBaseUrl);
         if (apiGatewayConfig?.TimeoutSeconds > 0)
@@ -92,13 +265,24 @@ try
     // Register services
     builder.Services.AddScoped<CircuitHandler, BlazorExceptionHandler>();
 
-    // Add AutoMapper
     builder.Services.AddAutoMapper(cfg =>
     {
-        cfg.AddProfile<BrandMappingProfile>();
-        // Add other profiles as needed
-        // cfg.AddProfile<CategoryMappingProfile>();
-        // cfg.AddProfile<ColorMappingProfile>();
+        cfg.AddProfile<MappingProfile>();
+        cfg.AddProfile<BrandProfile>();
+        cfg.AddProfile<CategoryProfile>();
+        cfg.AddProfile<ColorProfile>();
+        cfg.AddProfile<DocumentTypeProfile>();
+        cfg.AddProfile<FeatureProfile>();
+        cfg.AddProfile<InspectionChecklistProfile>();
+        cfg.AddProfile<PaymentMethodProfile>();
+        cfg.AddProfile<VehicleModelProfile>();
+        cfg.AddProfile<ServiceTypeProfile>();
+        cfg.AddProfile<ShippingOptionProfile>();
+        cfg.AddProfile<TaxRateProfile>();
+        cfg.AddProfile<TitleTypeProfile>();
+        cfg.AddProfile<VehicleVariantProfile>();
+        cfg.AddProfile<VehicleConditionProfile>();
+        cfg.AddProfile<WarrantyTypeProfile>();
     });
 
     var app = builder.Build();
