@@ -1,0 +1,380 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@ServiceTypeModel" OnValidSubmit="@HandleValidSubmit" FormName="serviceTypeForm">
+
+        <!-- Header -->
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                <i class="bi bi-tools me-2"></i>
+                @(IsEditMode ? "Edit Service Type" : "Add Service Type")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+
+            <!-- Basic Information -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="Name">Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-file-text"></i></span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="e.g., Oil Change, Brake Service"
+                                   @bind-Value="ServiceTypeModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => ServiceTypeModel.Name)" />
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="Code">Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-upc-scan"></i></span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="e.g., OIL_CHANGE, BRAKE_SERVICE"
+                                   @bind-Value="ServiceTypeModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => ServiceTypeModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code with underscores only</small>
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="Category">Category</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-tag"></i></span>
+                        </div>
+                        <InputText id="Category" class="autonext-form-control"
+                                   placeholder="e.g., Maintenance, Repair, Inspection"
+                                   @bind-Value="ServiceTypeModel.Category" />
+                    </div>
+                    <ValidationMessage For="@(() => ServiceTypeModel.Category)" />
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="Description">Description</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-text-paragraph"></i></span>
+                        </div>
+                        <InputText id="Description" class="autonext-form-control"
+                                   placeholder="Brief description of this service type"
+                                   @bind-Value="ServiceTypeModel.Description" />
+                    </div>
+                    <ValidationMessage For="@(() => ServiceTypeModel.Description)" />
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="IconUrl">Icon URL</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-image"></i></span>
+                        </div>
+                        <InputText id="IconUrl" class="autonext-form-control"
+                                   placeholder="https://example.com/icon.png"
+                                   @bind-Value="ServiceTypeModel.IconUrl" />
+                    </div>
+                    <ValidationMessage For="@(() => ServiceTypeModel.IconUrl)" />
+                    @if (!string.IsNullOrEmpty(ServiceTypeModel.IconUrl))
+                    {
+                        <div class="mt-2">
+                            <img src="@ServiceTypeModel.IconUrl" alt="Icon Preview"
+                                 style="height:32px;object-fit:contain;" />
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Service Intervals -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-arrow-repeat me-2"></i>Service Intervals
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="IntervalMonths">Interval (Months)</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-calendar3"></i></span>
+                        </div>
+                        <InputNumber id="IntervalMonths" class="autonext-form-control"
+                                     min="0" max="1200"
+                                     placeholder="e.g., 6, 12, 24"
+                                     @bind-Value="ServiceTypeModel.IntervalMonths" />
+                    </div>
+                    <ValidationMessage For="@(() => ServiceTypeModel.IntervalMonths)" />
+                    <small class="autonext-text-muted">How often this service is needed in months (0–1200)</small>
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="IntervalKm">Interval (KM)</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-speedometer2"></i></span>
+                        </div>
+                        <InputNumber id="IntervalKm" class="autonext-form-control"
+                                     min="0" max="1000000"
+                                     placeholder="e.g., 5000, 10000"
+                                     @bind-Value="ServiceTypeModel.IntervalKm" />
+                    </div>
+                    <ValidationMessage For="@(() => ServiceTypeModel.IntervalKm)" />
+                    <small class="autonext-text-muted">Kilometer interval for this service (0–1,000,000)</small>
+                </div>
+            </div>
+
+            <!-- Configuration -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-sort-numeric-down"></i></span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     min="0" max="9999"
+                                     placeholder="Display order"
+                                     @bind-Value="ServiceTypeModel.DisplayOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => ServiceTypeModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in lists</small>
+                </div>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="ServiceTypeModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(ServiceTypeModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive service types won't be available for bookings</small>
+                </div>
+            </div>
+
+            <!-- Usage Information -->
+            @if (IsEditMode && ServiceTypeModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Usage Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@ServiceTypeModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (ServiceTypeModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@ServiceTypeModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Service Type" : "Save Service Type")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+<style>
+    .autonext-sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+    }
+    .autonext-sidebar-overlay.visible { display: block; }
+
+    .autonext-sidebar {
+        position: fixed;
+        top: 0;
+        right: -500px;
+        width: 500px;
+        max-width: 90vw;
+        height: 100vh;
+        background-color: white;
+        box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+        z-index: 1050;
+        display: flex;
+        flex-direction: column;
+        transition: right 0.3s ease-in-out;
+    }
+    .autonext-sidebar.visible { right: 0; }
+
+    .autonext-sidebar-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .autonext-sidebar-title { margin: 0; font-size: 1.1rem; font-weight: 600; }
+    .autonext-sidebar-close {
+        background: none; border: none;
+        font-size: 1.5rem; line-height: 1;
+        cursor: pointer; padding: 0; color: #6c757d;
+    }
+    .autonext-sidebar-body { flex: 1; overflow-y: auto; padding: 1.5rem; }
+    .autonext-sidebar-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #dee2e6;
+        display: flex;
+        justify-content: flex-end;
+    }
+    .autonext-form-section { margin-bottom: 1.5rem; }
+    .autonext-section-title {
+        font-size: 0.9rem; font-weight: 600;
+        margin-bottom: 1rem; padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e9ecef;
+    }
+    .autonext-form-group { margin-bottom: 1rem; }
+    .autonext-form-group label {
+        display: block; margin-bottom: 0.5rem;
+        font-size: 0.85rem; font-weight: 500; color: #495057;
+    }
+    .autonext-input-group { display: flex; }
+    .autonext-input-group-prepend { display: flex; }
+    .autonext-input-group-text {
+        display: flex; align-items: center;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.9rem; color: #495057;
+        background-color: #e9ecef;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem 0 0 0.25rem;
+    }
+    .autonext-form-control {
+        display: block; width: 100%;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.9rem; line-height: 1.5;
+        color: #212529; background-color: #fff;
+        border: 1px solid #ced4da;
+        border-radius: 0 0.25rem 0.25rem 0;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    .autonext-form-check { display: flex; align-items: center; gap: 0.5rem; }
+    .autonext-form-check-input { width: 1rem; height: 1rem; margin-top: 0; }
+    .autonext-form-check-label { margin-bottom: 0; font-weight: normal; cursor: pointer; }
+    .autonext-text-muted { display: block; margin-top: 0.25rem; font-size: 0.75rem; color: #6c757d; }
+    .autonext-info-grid {
+        display: grid; grid-template-columns: auto 1fr;
+        gap: 0.5rem 1rem; font-size: 0.85rem;
+    }
+    .autonext-info-label { font-weight: 600; color: #495057; }
+    .autonext-info-value { color: #212529; }
+    .validation-message { font-size: 0.75rem; color: #dc3545; margin-top: 0.25rem; }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public AutoNext.Plotform.App.Backoffice.Models.Core.ServiceType? ServiceTypeToEdit { get; set; }
+    [Parameter] public EventCallback<AutoNext.Plotform.App.Backoffice.Models.Core.ServiceType> OnSave { get; set; }
+
+    private AutoNext.Plotform.App.Backoffice.Models.Core.ServiceType ServiceTypeModel { get; set; } = new();
+    private EditContext? editContext;
+
+    private bool IsEditMode => ServiceTypeModel.Id != null && ServiceTypeModel.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(ServiceTypeModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+            editContext = new EditContext(ServiceTypeModel);
+    }
+
+    private void InitializeModel()
+    {
+        if (ServiceTypeToEdit != null)
+        {
+            ServiceTypeModel = new AutoNext.Plotform.App.Backoffice.Models.Core.ServiceType
+            {
+                Id = ServiceTypeToEdit.Id,
+                Name = ServiceTypeToEdit.Name,
+                Code = ServiceTypeToEdit.Code,
+                Category = ServiceTypeToEdit.Category,
+                IntervalMonths = ServiceTypeToEdit.IntervalMonths,
+                IntervalKm = ServiceTypeToEdit.IntervalKm,
+                Description = ServiceTypeToEdit.Description,
+                IconUrl = ServiceTypeToEdit.IconUrl,
+                DisplayOrder = ServiceTypeToEdit.DisplayOrder,
+                IsActive = ServiceTypeToEdit.IsActive,
+                CreatedAt = ServiceTypeToEdit.CreatedAt,
+                UpdatedAt = ServiceTypeToEdit.UpdatedAt
+            };
+        }
+        else if (ServiceTypeModel.Id == null || ServiceTypeModel.Id == Guid.Empty)
+        {
+            ServiceTypeModel = new AutoNext.Plotform.App.Backoffice.Models.Core.ServiceType
+            {
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                DisplayOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        ServiceTypeModel.UpdatedAt = DateTime.UtcNow;
+        if (ServiceTypeModel.Id == null || ServiceTypeModel.Id == Guid.Empty)
+        {
+            ServiceTypeModel.Id = Guid.NewGuid();
+            ServiceTypeModel.CreatedAt = DateTime.UtcNow;
+        }
+
+        await OnSave.InvokeAsync(ServiceTypeModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}

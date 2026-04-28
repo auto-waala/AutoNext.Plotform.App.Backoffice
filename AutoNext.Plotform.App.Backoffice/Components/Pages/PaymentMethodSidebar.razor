@@ -1,0 +1,433 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div> 
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@PaymentMethodModel" OnValidSubmit="@HandleValidSubmit" FormName="paymentMethodForm">
+
+        <!-- Header -->
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                <i class="bi bi-credit-card me-2"></i>
+                @(IsEditMode ? "Edit Payment Method" : "Add Payment Method")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+
+            <!-- Basic Information -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="Name">Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-file-text"></i></span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="e.g., Credit Card, UPI, Bank Transfer"
+                                   @bind-Value="PaymentMethodModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => PaymentMethodModel.Name)" />
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="Code">Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-upc-scan"></i></span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="e.g., CREDIT_CARD, UPI, BANK_TRANSFER"
+                                   @bind-Value="PaymentMethodModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => PaymentMethodModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code with underscores only</small>
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="Type">Type</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-tag"></i></span>
+                        </div>
+                        <InputText id="Type" class="autonext-form-control"
+                                   placeholder="e.g., Card, Wallet, NetBanking, UPI"
+                                   @bind-Value="PaymentMethodModel.Type" />
+                    </div>
+                    <ValidationMessage For="@(() => PaymentMethodModel.Type)" />
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="IconUrl">Icon URL</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-image"></i></span>
+                        </div>
+                        <InputText id="IconUrl" class="autonext-form-control"
+                                   placeholder="https://example.com/icon.png"
+                                   @bind-Value="PaymentMethodModel.IconUrl" />
+                    </div>
+                    <ValidationMessage For="@(() => PaymentMethodModel.IconUrl)" />
+                    @if (!string.IsNullOrEmpty(PaymentMethodModel.IconUrl))
+                    {
+                        <div class="mt-2">
+                            <img src="@PaymentMethodModel.IconUrl" alt="Icon Preview"
+                                 style="height:32px;object-fit:contain;" />
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Fee Configuration -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-percent me-2"></i>Fee Configuration
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="ProcessingFeePercentage">Processing Fee % <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-percent"></i></span>
+                        </div>
+                        <InputNumber id="ProcessingFeePercentage" class="autonext-form-control"
+                                     min="0" max="100" step="0.01"
+                                     placeholder="0.00"
+                                     @bind-Value="PaymentMethodModel.ProcessingFeePercentage" />
+                    </div>
+                    <ValidationMessage For="@(() => PaymentMethodModel.ProcessingFeePercentage)" />
+                    <small class="autonext-text-muted">Percentage fee applied on each transaction (0–100)</small>
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="ProcessingFeeFixed">Fixed Fee <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-currency-rupee"></i></span>
+                        </div>
+                        <InputNumber id="ProcessingFeeFixed" class="autonext-form-control"
+                                     min="0" max="10000" step="0.01"
+                                     placeholder="0.00"
+                                     @bind-Value="PaymentMethodModel.ProcessingFeeFixed" />
+                    </div>
+                    <ValidationMessage For="@(() => PaymentMethodModel.ProcessingFeeFixed)" />
+                    <small class="autonext-text-muted">Flat fee charged per transaction (0–10000)</small>
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="SettlementDays">Settlement Days</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-calendar-check"></i></span>
+                        </div>
+                        <InputNumber id="SettlementDays" class="autonext-form-control"
+                                     min="0" max="365"
+                                     placeholder="e.g., 1, 3, 7"
+                                     @bind-Value="PaymentMethodModel.SettlementDays" />
+                    </div>
+                    <ValidationMessage For="@(() => PaymentMethodModel.SettlementDays)" />
+                    <small class="autonext-text-muted">Number of days to settle funds (leave empty for instant)</small>
+                </div>
+            </div>
+
+            <!-- Configuration -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text"><i class="bi bi-sort-numeric-down"></i></span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     placeholder="Display order"
+                                     @bind-Value="PaymentMethodModel.DisplayOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => PaymentMethodModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in lists</small>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-stars me-2"></i>Features
+                </h6>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsInstant" class="autonext-form-check-input"
+                                       @bind-Value="PaymentMethodModel.IsInstant" />
+                        <label class="autonext-form-check-label" for="IsInstant">
+                            <i class="bi @(PaymentMethodModel.IsInstant ? "bi-lightning-fill text-warning" : "bi-lightning text-secondary") me-1"></i>
+                            Instant Payment
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Funds are credited immediately without settlement delay</small>
+                </div>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsAvailableForSellers" class="autonext-form-check-input"
+                                       @bind-Value="PaymentMethodModel.IsAvailableForSellers" />
+                        <label class="autonext-form-check-label" for="IsAvailableForSellers">
+                            <i class="bi @(PaymentMethodModel.IsAvailableForSellers ? "bi-shop text-success" : "bi-shop text-secondary") me-1"></i>
+                            Available for Sellers
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Sellers can use this method to receive payments</small>
+                </div>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsAvailableForBuyers" class="autonext-form-check-input"
+                                       @bind-Value="PaymentMethodModel.IsAvailableForBuyers" />
+                        <label class="autonext-form-check-label" for="IsAvailableForBuyers">
+                            <i class="bi @(PaymentMethodModel.IsAvailableForBuyers ? "bi-person-check text-success" : "bi-person text-secondary") me-1"></i>
+                            Available for Buyers
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Buyers can use this method to make payments</small>
+                </div>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="PaymentMethodModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(PaymentMethodModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive methods won't be available at checkout</small>
+                </div>
+            </div>
+
+            <!-- Usage Information -->
+            @if (IsEditMode && PaymentMethodModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Usage Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@PaymentMethodModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (PaymentMethodModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@PaymentMethodModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Payment Method" : "Save Payment Method")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+<style>
+    .autonext-sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+    }
+    .autonext-sidebar-overlay.visible { display: block; }
+
+    .autonext-sidebar {
+        position: fixed;
+        top: 0;
+        right: -500px;
+        width: 500px;
+        max-width: 90vw;
+        height: 100vh;
+        background-color: white;
+        box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+        z-index: 1050;
+        display: flex;
+        flex-direction: column;
+        transition: right 0.3s ease-in-out;
+    }
+    .autonext-sidebar.visible { right: 0; }
+
+    .autonext-sidebar-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .autonext-sidebar-title { margin: 0; font-size: 1.1rem; font-weight: 600; }
+    .autonext-sidebar-close {
+        background: none; border: none;
+        font-size: 1.5rem; line-height: 1;
+        cursor: pointer; padding: 0; color: #6c757d;
+    }
+    .autonext-sidebar-body { flex: 1; overflow-y: auto; padding: 1.5rem; }
+    .autonext-sidebar-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #dee2e6;
+        display: flex;
+        justify-content: flex-end;
+    }
+    .autonext-form-section { margin-bottom: 1.5rem; }
+    .autonext-section-title {
+        font-size: 0.9rem; font-weight: 600;
+        margin-bottom: 1rem; padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e9ecef;
+    }
+    .autonext-form-group { margin-bottom: 1rem; }
+    .autonext-form-group label {
+        display: block; margin-bottom: 0.5rem;
+        font-size: 0.85rem; font-weight: 500; color: #495057;
+    }
+    .autonext-input-group { display: flex; }
+    .autonext-input-group-prepend { display: flex; }
+    .autonext-input-group-text {
+        display: flex; align-items: center;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.9rem; color: #495057;
+        background-color: #e9ecef;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem 0 0 0.25rem;
+    }
+    .autonext-form-control {
+        display: block; width: 100%;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.9rem; line-height: 1.5;
+        color: #212529; background-color: #fff;
+        border: 1px solid #ced4da;
+        border-radius: 0 0.25rem 0.25rem 0;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    .autonext-form-check { display: flex; align-items: center; gap: 0.5rem; }
+    .autonext-form-check-input { width: 1rem; height: 1rem; margin-top: 0; }
+    .autonext-form-check-label { margin-bottom: 0; font-weight: normal; cursor: pointer; }
+    .autonext-text-muted { display: block; margin-top: 0.25rem; font-size: 0.75rem; color: #6c757d; }
+    .autonext-info-grid {
+        display: grid; grid-template-columns: auto 1fr;
+        gap: 0.5rem 1rem; font-size: 0.85rem;
+    }
+    .autonext-info-label { font-weight: 600; color: #495057; }
+    .autonext-info-value { color: #212529; }
+    .validation-message { font-size: 0.75rem; color: #dc3545; margin-top: 0.25rem; }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public AutoNext.Plotform.App.Backoffice.Models.Core.PaymentMethod? PaymentMethodToEdit { get; set; }
+    [Parameter] public EventCallback<AutoNext.Plotform.App.Backoffice.Models.Core.PaymentMethod> OnSave { get; set; }
+
+    private AutoNext.Plotform.App.Backoffice.Models.Core.PaymentMethod PaymentMethodModel { get; set; } = new();
+    private EditContext? editContext;
+
+    private bool IsEditMode => PaymentMethodModel.Id != null && PaymentMethodModel.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(PaymentMethodModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+            editContext = new EditContext(PaymentMethodModel);
+    }
+
+    private void InitializeModel()
+    {
+        if (PaymentMethodToEdit != null)
+        {
+            PaymentMethodModel = new AutoNext.Plotform.App.Backoffice.Models.Core.PaymentMethod
+            {
+                Id = PaymentMethodToEdit.Id,
+                Name = PaymentMethodToEdit.Name,
+                Code = PaymentMethodToEdit.Code,
+                Type = PaymentMethodToEdit.Type,
+                IconUrl = PaymentMethodToEdit.IconUrl,
+                ProcessingFeePercentage = PaymentMethodToEdit.ProcessingFeePercentage,
+                ProcessingFeeFixed = PaymentMethodToEdit.ProcessingFeeFixed,
+                SettlementDays = PaymentMethodToEdit.SettlementDays,
+                IsInstant = PaymentMethodToEdit.IsInstant,
+                IsAvailableForSellers = PaymentMethodToEdit.IsAvailableForSellers,
+                IsAvailableForBuyers = PaymentMethodToEdit.IsAvailableForBuyers,
+                DisplayOrder = PaymentMethodToEdit.DisplayOrder,
+                IsActive = PaymentMethodToEdit.IsActive,
+                Metadata = PaymentMethodToEdit.Metadata,
+                CreatedAt = PaymentMethodToEdit.CreatedAt,
+                UpdatedAt = PaymentMethodToEdit.UpdatedAt
+            };
+        }
+        else if (PaymentMethodModel.Id == null || PaymentMethodModel.Id == Guid.Empty)
+        {
+            PaymentMethodModel = new AutoNext.Plotform.App.Backoffice.Models.Core.PaymentMethod
+            {
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                IsInstant = false,
+                IsAvailableForSellers = true,
+                IsAvailableForBuyers = true,
+                ProcessingFeePercentage = 0,
+                ProcessingFeeFixed = 0,
+                DisplayOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        PaymentMethodModel.UpdatedAt = DateTime.UtcNow;
+        if (PaymentMethodModel.Id == null || PaymentMethodModel.Id == Guid.Empty)
+        {
+            PaymentMethodModel.Id = Guid.NewGuid();
+            PaymentMethodModel.CreatedAt = DateTime.UtcNow;
+        }
+
+        await OnSave.InvokeAsync(PaymentMethodModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}

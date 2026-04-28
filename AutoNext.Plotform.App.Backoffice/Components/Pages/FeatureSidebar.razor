@@ -1,0 +1,436 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@FeatureModel" OnValidSubmit="@HandleValidSubmit" FormName="featureForm">
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(IsEditMode ? "Edit Feature" : "Add Feature")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <!-- Feature Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Feature Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-trophy"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter feature name"
+                                   @bind-Value="FeatureModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => FeatureModel.Name)" />
+                    <small class="autonext-text-muted">e.g., AI Document Verification, Biometric Authentication</small>
+                </div>
+
+                <!-- Feature Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Feature Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter feature code"
+                                   @bind-Value="FeatureModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => FeatureModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code (e.g., AI_DOC_VERIFY, BIO_AUTH)</small>
+                </div>
+
+                <!-- Category & SubCategory -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="Category">Category</label>
+                            <div class="autonext-input-group">
+                                <div class="autonext-input-group-prepend">
+                                    <span class="autonext-input-group-text">
+                                        <i class="bi bi-folder"></i>
+                                    </span>
+                                </div>
+                                <InputText id="Category" class="autonext-form-control"
+                                           placeholder="e.g., Authentication, Verification"
+                                           @bind-Value="FeatureModel.Category" />
+                            </div>
+                            <ValidationMessage For="@(() => FeatureModel.Category)" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="SubCategory">Sub-Category</label>
+                            <div class="autonext-input-group">
+                                <div class="autonext-input-group-prepend">
+                                    <span class="autonext-input-group-text">
+                                        <i class="bi bi-folder2"></i>
+                                    </span>
+                                </div>
+                                <InputText id="SubCategory" class="autonext-form-control"
+                                           placeholder="e.g., Biometric, Liveness Check"
+                                           @bind-Value="FeatureModel.SubCategory" />
+                            </div>
+                            <ValidationMessage For="@(() => FeatureModel.SubCategory)" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Icon URL -->
+                <div class="autonext-form-group">
+                    <label for="IconUrl">Icon URL</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-image"></i>
+                            </span>
+                        </div>
+                        <InputText id="IconUrl" class="autonext-form-control"
+                                   placeholder="https://example.com/icon.png"
+                                   @bind-Value="FeatureModel.IconUrl" />
+                    </div>
+                    <ValidationMessage For="@(() => FeatureModel.IconUrl)" />
+                    @if (!string.IsNullOrEmpty(FeatureModel.IconUrl))
+                    {
+                        <div class="autonext-mt-2">
+                            <img src="@FeatureModel.IconUrl" alt="Icon preview"
+                                 style="max-width: 50px; max-height: 50px;"
+                                 onerror="this.style.display='none'" />
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Applicable Categories Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-tags me-2"></i>Applicable Categories
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label>Categories</label>
+                    <div class="autonext-categories-input">
+                        <div class="autonext-input-group autonext-mb-2">
+                            <input type="text" class="autonext-form-control"
+                                   placeholder="Enter category (e.g., Enterprise, Premium)"
+                                   @bind="newCategory"
+                                   @onkeypress="HandleCategoryKeyPress" />
+                            <button class="btn btn-outline-primary" type="button"
+                                    @onclick="AddCategory">
+                                <i class="bi bi-plus"></i> Add
+                            </button>
+                        </div>
+                     
+                        <small class="autonext-text-muted">Specify which customer categories this feature applies to</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <!-- Display Order -->
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     placeholder="Display order"
+                                     @bind-Value="FeatureModel.DisplayOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => FeatureModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in lists</small>
+                </div>
+            </div>
+
+            <!-- Feature Type Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-star me-2"></i>Feature Type
+                </h6>
+
+                <!-- Is Standard -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsStandard" class="autonext-form-check-input"
+                                       @bind-Value="FeatureModel.IsStandard" />
+                        <label class="autonext-form-check-label" for="IsStandard">
+                            <i class="bi @(FeatureModel.IsStandard ? "bi-star-fill text-primary" : "bi-gem text-warning") me-1"></i>
+                            @(FeatureModel.IsStandard ? "Standard Feature" : "Premium Feature")
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">
+                        @(FeatureModel.IsStandard ? "Available to all customers by default" : "Requires premium subscription")
+                    </small>
+                </div>
+
+                <!-- Is Active -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="FeatureModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(FeatureModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive features won't be available to customers</small>
+                </div>
+            </div>
+
+            <!-- Metadata Section (Advanced) -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title" @onclick="toggleMetadata">
+                    <i class="bi bi-database me-2"></i>
+                    Metadata (Advanced)
+                    <i class="bi @(showMetadata ? "bi-chevron-up" : "bi-chevron-down") ms-2"></i>
+                </h6>
+                
+                @if (showMetadata)
+                {
+                    <div class="autonext-metadata-editor">
+                        <div class="alert alert-info autonext-alert-sm">
+                            <i class="bi bi-info-circle"></i>
+                            Key-value pairs for additional feature data (e.g., limits, quotas, configurations)
+                        </div>
+                        
+                        @if (metadataEntries.Any())
+                        {
+                            @foreach (var entry in metadataEntries)
+                            {
+                                <div class="autonext-metadata-row">
+                                    <input type="text" class="autonext-form-control autonext-form-control-sm"
+                                           placeholder="Key" @bind="entry.Key" />
+                                    <input type="text" class="autonext-form-control autonext-form-control-sm"
+                                           placeholder="Value" @bind="entry.Value" />
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            @onclick="() => RemoveMetadataEntry(entry)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="autonext-text-muted autonext-mb-2">No metadata entries</div>
+                        }
+                        
+                        <button type="button" class="btn btn-sm btn-outline-secondary autonext-mt-2"
+                                @onclick="AddMetadataEntry">
+                            <i class="bi bi-plus-circle"></i> Add Metadata
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <!-- Audit Information -->
+            @if (IsEditMode && FeatureModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Audit Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@FeatureModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (FeatureModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@FeatureModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Feature" : "Save Feature")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public Feature? FeatureToEdit { get; set; }
+    [Parameter] public EventCallback<Feature> OnSave { get; set; }
+
+    private Feature FeatureModel { get; set; } = new();
+    private EditContext? editContext;
+    private string newCategory = string.Empty;
+    private bool showMetadata = false;
+    private List<MetadataEntry> metadataEntries = new();
+    private bool IsEditMode => FeatureModel.Id != null && FeatureModel.Id != Guid.Empty;
+
+    private class MetadataEntry
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+    }
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(FeatureModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(FeatureModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (FeatureToEdit != null)
+        {
+            // Clone the feature for editing
+            FeatureModel = new Feature
+            {
+                Id = FeatureToEdit.Id,
+                Name = FeatureToEdit.Name,
+                Code = FeatureToEdit.Code,
+                Category = FeatureToEdit.Category,
+                SubCategory = FeatureToEdit.SubCategory,
+                IconUrl = FeatureToEdit.IconUrl,
+                IsStandard = FeatureToEdit.IsStandard,
+                DisplayOrder = FeatureToEdit.DisplayOrder,
+                IsActive = FeatureToEdit.IsActive,
+                CreatedAt = FeatureToEdit.CreatedAt,
+                UpdatedAt = FeatureToEdit.UpdatedAt
+            };
+            
+            // Load metadata into entries for editing
+            LoadMetadataEntries();
+        }
+        else if (FeatureModel.Id == null || FeatureModel.Id == Guid.Empty)
+        {
+            // Reset form for new feature
+            FeatureModel = new Feature
+            {
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                IsStandard = false,
+                DisplayOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+            metadataEntries.Clear();
+        }
+    }
+
+    private void LoadMetadataEntries()
+    {
+        metadataEntries.Clear();
+        if (FeatureModel.Metadata != null)
+        {
+           
+        }
+    }
+
+    private void SaveMetadataFromEntries()
+    {
+      
+    }
+
+    private void AddMetadataEntry()
+    {
+        metadataEntries.Add(new MetadataEntry());
+    }
+
+    private void RemoveMetadataEntry(MetadataEntry entry)
+    {
+        metadataEntries.Remove(entry);
+    }
+
+    private void AddCategory()
+    {
+        if (!string.IsNullOrWhiteSpace(newCategory))
+        {
+            newCategory = string.Empty;
+        }
+    }
+
+    private void RemoveCategory(string category)
+    {
+        
+    }
+
+    private void HandleCategoryKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddCategory();
+        }
+    }
+
+    private void toggleMetadata()
+    {
+        showMetadata = !showMetadata;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Save metadata from entries
+        SaveMetadataFromEntries();
+        
+        // Set audit fields
+        FeatureModel.UpdatedAt = DateTime.UtcNow;
+        if (FeatureModel.Id == null || FeatureModel.Id == Guid.Empty)
+        {
+            FeatureModel.Id = Guid.NewGuid();
+            FeatureModel.CreatedAt = DateTime.UtcNow;
+        }
+        
+        await OnSave.InvokeAsync(FeatureModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}
