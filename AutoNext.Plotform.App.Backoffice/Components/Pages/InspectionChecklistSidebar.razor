@@ -1,0 +1,323 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@ChecklistModel" OnValidSubmit="@HandleValidSubmit" FormName="checklistForm">
+        <!-- Header -->
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                <i class="bi bi-clipboard-check me-2"></i>
+                @(IsEditMode ? "Edit Inspection Checklist" : "Add Inspection Checklist")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <!-- Checklist Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Checklist Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-file-text"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter checklist name"
+                                   @bind-Value="ChecklistModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => ChecklistModel.Name)" />
+                    <small class="autonext-text-muted">e.g., Safety Inspection, Emissions Test, Brake Check</small>
+                </div>
+
+                <!-- Checklist Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Checklist Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter checklist code"
+                                   @bind-Value="ChecklistModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => ChecklistModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code (e.g., SAFETY001, EMISSION01)</small>
+                </div>
+
+                <!-- Category -->
+                <div class="autonext-form-group">
+                    <label for="Category">Category</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-tag"></i>
+                            </span>
+                        </div>
+                        <InputText id="Category" class="autonext-form-control"
+                                   placeholder="Enter category"
+                                   @bind-Value="ChecklistModel.Category" />
+                    </div>
+                    <ValidationMessage For="@(() => ChecklistModel.Category)" />
+                    <small class="autonext-text-muted">e.g., Safety, Emissions, Mechanical, Electrical</small>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <!-- Weightage -->
+                <div class="autonext-form-group">
+                    <label for="Weightage">Weightage <span class="text-danger">*</span> (1-10)</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-bar-chart-steps"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="Weightage" class="autonext-form-control"
+                                     min="1" max="10"
+                                     placeholder="Weightage (1-10)"
+                                     @bind-Value="ChecklistModel.Weightage" />
+                    </div>
+                    <ValidationMessage For="@(() => ChecklistModel.Weightage)" />
+                    <small class="autonext-text-muted">
+                        @GetWeightageDescription(ChecklistModel.Weightage)
+                    </small>
+                </div>
+
+                <!-- Display Order -->
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     placeholder="Display order"
+                                     @bind-Value="ChecklistModel.DisplayOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => ChecklistModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in lists</small>
+                </div>
+
+                <!-- Applicable Vehicle Types -->
+                <div class="autonext-form-group">
+                    <label for="ApplicableVehicleTypes">Applicable Vehicle Types</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-truck"></i>
+                            </span>
+                        </div>
+                        <!-- ✅ Bind directly to model string? property -->
+                        <InputText id="ApplicableVehicleTypes" class="autonext-form-control"
+                                   placeholder="e.g., Car, Motorcycle, Truck, Bus"
+                                   @bind-Value="ChecklistModel.ApplicableVehicleTypes" />
+                    </div>
+                    <ValidationMessage For="@(() => ChecklistModel.ApplicableVehicleTypes)" />
+                    <small class="autonext-text-muted">Comma-separated list of vehicle types (leave empty for all)</small>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-stars me-2"></i>Features
+                </h6>
+
+                <!-- Is Critical -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsCritical" class="autonext-form-check-input"
+                                       @bind-Value="ChecklistModel.IsCritical" />
+                        <label class="autonext-form-check-label" for="IsCritical">
+                            <i class="bi @(ChecklistModel.IsCritical ? "bi-exclamation-triangle-fill text-danger" : "bi-info-circle text-secondary") me-1"></i>
+                            Critical Checklist
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">
+                        Critical checklists may require immediate attention for failures
+                    </small>
+                </div>
+
+                <!-- Is Active -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="ChecklistModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(ChecklistModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive checklists won't be available for inspections</small>
+                </div>
+            </div>
+
+            <!-- Usage Information -->
+            @if (IsEditMode && ChecklistModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Usage Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@ChecklistModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (ChecklistModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@ChecklistModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Checklist" : "Save Checklist")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+<!-- styles unchanged -->
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public AutoNext.Plotform.App.Backoffice.Models.Core.InspectionChecklist? ChecklistToEdit { get; set; }
+    [Parameter] public EventCallback<AutoNext.Plotform.App.Backoffice.Models.Core.InspectionChecklist> OnSave { get; set; }
+
+    private AutoNext.Plotform.App.Backoffice.Models.Core.InspectionChecklist ChecklistModel { get; set; } = new();
+    private EditContext? editContext;
+
+    // ✅ Removed: ApplicableVehicleTypesString — no longer needed since model is string?
+    
+    private bool IsEditMode => ChecklistModel.Id != null && ChecklistModel.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(ChecklistModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(ChecklistModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (ChecklistToEdit != null)
+        {
+            // Clone the checklist for editing
+            ChecklistModel = new AutoNext.Plotform.App.Backoffice.Models.Core.InspectionChecklist
+            {
+                Id = ChecklistToEdit.Id,
+                Name = ChecklistToEdit.Name,
+                Code = ChecklistToEdit.Code,
+                Category = ChecklistToEdit.Category,
+                // ✅ Direct string assignment — no list conversion needed
+                ApplicableVehicleTypes = ChecklistToEdit.ApplicableVehicleTypes,
+                IsCritical = ChecklistToEdit.IsCritical,
+                Weightage = ChecklistToEdit.Weightage,
+                DisplayOrder = ChecklistToEdit.DisplayOrder,
+                IsActive = ChecklistToEdit.IsActive,
+                CreatedAt = ChecklistToEdit.CreatedAt,
+                UpdatedAt = ChecklistToEdit.UpdatedAt
+            };
+        }
+        else if (ChecklistModel.Id == null || ChecklistModel.Id == Guid.Empty)
+        {
+            // Reset form for new checklist
+            ChecklistModel = new AutoNext.Plotform.App.Backoffice.Models.Core.InspectionChecklist
+            {
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                IsCritical = false,
+                Weightage = 1,
+                DisplayOrder = 0,
+                // ✅ null is fine for string? — no empty List needed
+                ApplicableVehicleTypes = null,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        ChecklistModel.UpdatedAt = DateTime.UtcNow;
+        if (ChecklistModel.Id == null || ChecklistModel.Id == Guid.Empty)
+        {
+            ChecklistModel.Id = Guid.NewGuid();
+            ChecklistModel.CreatedAt = DateTime.UtcNow;
+        }
+
+        await OnSave.InvokeAsync(ChecklistModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    private string GetWeightageDescription(int weightage)
+    {
+        return weightage switch
+        {
+            1 => "Very Low - Minimal impact on inspection result",
+            2 => "Low - Minor impact on inspection result",
+            3 => "Low-Medium - Some impact on inspection result",
+            4 => "Medium-Low - Moderate impact on inspection result",
+            5 => "Medium - Balanced impact on inspection result",
+            6 => "Medium-High - Significant impact on inspection result",
+            7 => "High - Major impact on inspection result",
+            8 => "Very High - Critical impact on inspection result",
+            9 => "Extreme - Severe impact on inspection result",
+            10 => "Maximum - Most critical items for safety/compliance",
+            _ => "Unknown weightage level"
+        };
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}

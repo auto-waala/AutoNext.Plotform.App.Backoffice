@@ -1,0 +1,355 @@
+﻿@page "/documenttypes"
+@inherits DocumentTypesBase
+@using BlazorBootstrap
+
+<div class="container-fluid" style="padding-left: 0px; padding-right: 0px;">
+    <div class="row" style="padding-left: 0px; padding-right: 0px;">
+        <div class="col">
+            <div class="card document-types-card">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0">
+                                <i class="bi bi-file-text text-primary me-2"></i>Document Types
+                            </h5>
+                            <span class="badge bg-light text-dark ms-2">
+                                <span class="text-primary fw-bold">@TotalCount</span> types
+                            </span>
+                            @if (SelectedDocumentTypes.Any())
+                            {
+                                <span class="badge bg-primary ms-1">@SelectedDocumentTypes.Count selected</span>
+                            }
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            @if (SelectedDocumentTypes.Any())
+                            {
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                                        @onclick="BulkDelete">
+                                    <i class="bi bi-trash"></i>
+                                    <span class="d-none d-sm-inline">Delete (@SelectedDocumentTypes.Count)</span>
+                                </button>
+                            }
+                            <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                                    @onclick="OpenAddDocumentTypeSidebar">
+                                <i class="bi bi-plus-circle"></i>
+                                <span class="d-none d-sm-inline">New Document Type</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card-body border-bottom bg-light">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Search</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Name or code..."
+                                       @bind="SearchTerm" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Category</label>
+                            <select class="form-select form-select-sm" @bind="CategoryFilter">
+                                <option value="">All Categories</option>
+                                @foreach (var category in AvailableCategories)
+                                {
+                                    <option value="@category">@category</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Required</label>
+                            <select class="form-select form-select-sm" @bind="RequiredFilter">
+                                <option value="">All</option>
+                                <option value="true">Required</option>
+                                <option value="false">Not Required</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Verifiable</label>
+                            <select class="form-select form-select-sm" @bind="VerifiableFilter">
+                                <option value="">All</option>
+                                <option value="true">Verifiable</option>
+                                <option value="false">Not Verifiable</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Status</label>
+                            <select class="form-select form-select-sm" @bind="ActiveFilter">
+                                <option value="">All</option>
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-sm btn-outline-secondary w-100" @onclick="ClearFilters">
+                                <i class="bi bi-eraser"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body p-0">
+                    @if (IsLoading)
+                    {
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-3 small">Loading document types...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover document-types-table mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40px">
+                                            <input type="checkbox"
+                                                   checked="@AllPageSelected"
+                                                   @onchange="_ => ToggleAllSelection()" />
+                                        </th>
+                                        <th>Name</th>
+                                        <th>Code</th>
+                                        <th>Category</th>
+                                        <th class="text-center">Required</th>
+                                        <th class="text-center">Verifiable</th>
+                                        <th>Expiry (Months)</th>
+                                        <th class="text-center">Order</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th style="width: 140px">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (PaginatedDocumentTypes.Any())
+                                    {
+                                        @foreach (var docType in PaginatedDocumentTypes)
+                                        {
+                                            var localDocType = docType;
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox"
+                                                           checked="@SelectedDocumentTypes.Contains(localDocType)"
+                                                           @onchange="e => OnDocumentTypeSelectionChanged(localDocType, (bool)e.Value!)" />
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <div class="doc-type-avatar">
+                                                            <span>@(localDocType.Name?.Length > 0 ? localDocType.Name[0].ToString() : "?")</span>
+                                                        </div>
+                                                        <div>
+                                                            <strong>@localDocType.Name</strong>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <code class="small">@localDocType.Code</code>
+                                                </td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(localDocType.Category))
+                                                    {
+                                                        <span class="badge bg-secondary">@localDocType.Category</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    @if (localDocType.IsRequired)
+                                                    {
+                                                        <i class="bi bi-check-circle-fill text-warning" title="Required"></i>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-x-circle-fill text-secondary" title="Not Required"></i>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    @if (localDocType.IsVerifiable)
+                                                    {
+                                                        <i class="bi bi-shield-check text-info" title="Verifiable"></i>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-shield-x text-secondary" title="Not Verifiable"></i>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @(localDocType.ExpiryMonths?.ToString() ?? "-")
+                                                </td>
+                                                <td class="text-center">@localDocType.DisplayOrder</td>
+                                                <td>
+                                                    <span class="badge @GetStatusBadgeClass(localDocType.IsActive)">
+                                                        @GetStatusText(localDocType.IsActive)
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    @localDocType.CreatedAt.ToString("yyyy-MM-dd")
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-outline-primary"
+                                                                @onclick="() => OpenEditDocumentTypeSidebar(localDocType)">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning"
+                                                                @onclick="() => ToggleStatus(localDocType)">
+                                                            <i class="bi @(localDocType.IsActive ? "bi-pause-circle" : "bi-play-circle")"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger"
+                                                                @onclick="() => DeleteDocumentType(localDocType)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="11" class="text-center py-5 text-muted">
+                                                @if (!string.IsNullOrEmpty(SearchTerm) || CategoryFilter != null || RequiredFilter != null || VerifiableFilter != null || ActiveFilter != null)
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-filter-circle fs-1"></i>
+                                                        <p class="mt-2">No document types match your filters</p>
+                                                        <button class="btn btn-sm btn-outline-primary mt-2" @onclick="ClearFilters">
+                                                            Clear Filters
+                                                        </button>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-file-earmark-text fs-1"></i>
+                                                        <p class="mt-2">No document types found</p>
+                                                        <button class="btn btn-sm btn-primary mt-2" @onclick="OpenAddDocumentTypeSidebar">
+                                                            <i class="bi bi-plus-circle"></i> Add First Document Type
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (TotalPages > 1)
+                        {
+                            <div class="pagination-container p-3 border-top">
+                                <nav>
+                                    <ul class="pagination justify-content-center mb-0">
+                                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage - 1)">
+                                                Previous
+                                            </button>
+                                        </li>
+
+                                        @for (int i = 1; i <= TotalPages; i++)
+                                        {
+                                            var pageNum = i;
+                                            if (pageNum == 1 || pageNum == TotalPages || (pageNum >= CurrentPage - 2 && pageNum <= CurrentPage + 2))
+                                            {
+                                                <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                                    <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                                                </li>
+                                            }
+                                            else if (pageNum == CurrentPage - 3 || pageNum == CurrentPage + 3)
+                                            {
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                            }
+                                        }
+
+                                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)">
+                                                Next
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
+                    }
+                </div>
+
+                @if (!IsLoading && AllDocumentTypes.Any())
+                {
+                    <div class="card-footer bg-white border-top">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <small class="text-muted">
+                                    <span class="fw-medium">@TotalCount</span> total
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                    <span class="fw-medium">@ActiveCount</span> active
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-x-circle-fill text-danger me-1"></i>
+                                    <span class="fw-medium">@InactiveCount</span> inactive
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-star-fill text-warning me-1"></i>
+                                    <span class="fw-medium">@RequiredCount</span> required
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-shield-check text-info me-1"></i>
+                                    <span class="fw-medium">@VerifiableCount</span> verifiable
+                                </small>
+                                <small class="text-muted">
+                                    Showing @(((CurrentPage - 1) * ItemsPerPage) + 1) to
+                                    @(Math.Min(CurrentPage * ItemsPerPage, TotalCount)) of @TotalCount entries
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Show:</small>
+                                <select class="form-select form-select-sm page-size-select" @onchange="OnPageSizeChanged">
+                                    @foreach (var size in PageSizeOptions)
+                                    {
+                                        <option value="@size" selected="@(size == ItemsPerPage)">@size</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sidebar Component -->
+<DocumentTypeSidebar @bind-IsVisible="@showSidebar" DocumentTypeToEdit="@selectedDocumentType" OnSave="@OnDocumentTypeSave" />
+
+<style>
+    .doc-type-avatar {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .document-types-table tbody tr:hover {
+        background-color: rgba(102, 126, 234, 0.05);
+        cursor: pointer;
+    }
+    
+    .page-size-select {
+        width: auto;
+        min-width: 70px;
+    }
+</style>

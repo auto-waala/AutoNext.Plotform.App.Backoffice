@@ -1,0 +1,349 @@
+﻿@page "/features"
+@inherits FeaturesBase
+@using BlazorBootstrap
+
+<div class="container-fluid" style="padding-left: 0px; padding-right: 0px;">
+    <div class="row" style="padding-left: 0px; padding-right: 0px;">
+        <div class="col">
+            <div class="card features-card">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0">
+                                <i class="bi bi-stars text-primary me-2"></i>Features
+                            </h5>
+                            <span class="badge bg-light text-dark ms-2">
+                                <span class="text-primary fw-bold">@TotalCount</span> features
+                            </span>
+                            @if (SelectedFeatures.Any())
+                            {
+                                <span class="badge bg-primary ms-1">@SelectedFeatures.Count selected</span>
+                            }
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            @if (SelectedFeatures.Any())
+                            {
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                                        @onclick="BulkDelete">
+                                    <i class="bi bi-trash"></i>
+                                    <span class="d-none d-sm-inline">Delete (@SelectedFeatures.Count)</span>
+                                </button>
+                            }
+                            <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                                    @onclick="OpenAddFeatureSidebar">
+                                <i class="bi bi-plus-circle"></i>
+                                <span class="d-none d-sm-inline">New Feature</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card-body border-bottom bg-light">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Search</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Name or code..."
+                                       @bind="SearchTerm" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Category</label>
+                            <select class="form-select form-select-sm" @bind="CategoryFilter" @bind:event="onchange">
+                                <option value="">All Categories</option>
+                                @foreach (var category in AvailableCategories)
+                                {
+                                    <option value="@category">@category</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Sub-Category</label>
+                            <select class="form-select form-select-sm" @bind="SubCategoryFilter" @bind:event="onchange">
+                                <option value="">All Sub-Categories</option>
+                                @foreach (var subCategory in AvailableSubCategories)
+                                {
+                                    <option value="@subCategory">@subCategory</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Type</label>
+                            <select class="form-select form-select-sm" @bind="StandardFilter" @bind:event="onchange">
+                                <option value="">All</option>
+                                <option value="true">Standard</option>
+                                <option value="false">Premium</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Status</label>
+                            <select class="form-select form-select-sm" @bind="ActiveFilter" @bind:event="onchange">
+                                <option value="">All</option>
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-sm btn-outline-secondary w-100" @onclick="ClearFilters">
+                                <i class="bi bi-eraser"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body p-0">
+                    @if (IsLoading)
+                    {
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-3 small">Loading features...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover features-table mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40px">
+                                            <input type="checkbox"
+                                                   checked="@AllPageSelected"
+                                                   @onchange="_ => ToggleAllSelection()" />
+                                        </th>
+                                        <th>Feature Name</th>
+                                        <th>Code</th>
+                                        <th>Category</th>
+                                        <th>Sub-Category</th>
+                                        <th>Type</th>
+                                        <th class="text-center">Order</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th style="width: 140px">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (PaginatedFeatures.Any())
+                                    {
+                                        @foreach (var feature in PaginatedFeatures)
+                                        {
+                                            var localFeature = feature;
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox"
+                                                           checked="@SelectedFeatures.Contains(localFeature)"
+                                                           @onchange="e => OnFeatureSelectionChanged(localFeature, (bool)e.Value!)" />
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        @if (!string.IsNullOrEmpty(localFeature.IconUrl))
+                                                        {
+                                                            <img src="@localFeature.IconUrl" alt="@localFeature.Name"
+                                                                 style="width: 32px; height: 32px; object-fit: contain;"
+                                                                 onerror="this.style.display='none'" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="feature-avatar">
+                                                                <i class="bi bi-star"></i>
+                                                            </div>
+                                                        }
+                                                        <div>
+                                                            <strong>@localFeature.Name</strong>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <code class="small">@localFeature.Code</code>
+                                                </td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(localFeature.Category))
+                                                    {
+                                                        <span class="badge bg-secondary">@localFeature.Category</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @(!string.IsNullOrEmpty(localFeature.SubCategory) ? localFeature.SubCategory : "-")
+                                                </td>
+                                                <td>
+                                                    <span class="badge @GetFeatureTypeBadgeClass(localFeature.IsStandard)">
+                                                        @GetFeatureTypeText(localFeature.IsStandard)
+                                                    </span>
+                                                </td>
+                                                <td class="text-center">@localFeature.DisplayOrder</td>
+                                                <td>
+                                                    <span class="badge @GetStatusBadgeClass(localFeature.IsActive)">
+                                                        @GetStatusText(localFeature.IsActive)
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    @localFeature.CreatedAt.ToString("yyyy-MM-dd")
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-outline-primary"
+                                                                @onclick="() => OpenEditFeatureSidebar(localFeature)">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning"
+                                                                @onclick="() => ToggleStatus(localFeature)">
+                                                            <i class="bi @(localFeature.IsActive ? "bi-pause-circle" : "bi-play-circle")"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger"
+                                                                @onclick="() => DeleteFeature(localFeature)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="10" class="text-center py-5 text-muted">
+                                                @if (!string.IsNullOrEmpty(SearchTerm) || !string.IsNullOrEmpty(CategoryFilter) || !string.IsNullOrEmpty(SubCategoryFilter) || StandardFilter != null || ActiveFilter != null)
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-filter-circle fs-1"></i>
+                                                        <p class="mt-2">No features match your filters</p>
+                                                        <button class="btn btn-sm btn-outline-primary mt-2" @onclick="ClearFilters">
+                                                            Clear Filters
+                                                        </button>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-stars fs-1"></i>
+                                                        <p class="mt-2">No features found</p>
+                                                        <button class="btn btn-sm btn-primary mt-2" @onclick="OpenAddFeatureSidebar">
+                                                            <i class="bi bi-plus-circle"></i> Add First Feature
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (TotalPages > 1)
+                        {
+                            <div class="pagination-container p-3 border-top">
+                                <nav>
+                                    <ul class="pagination justify-content-center mb-0">
+                                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage - 1)">
+                                                Previous
+                                            </button>
+                                        </li>
+
+                                        @for (int i = 1; i <= TotalPages; i++)
+                                        {
+                                            var pageNum = i;
+                                            if (pageNum == 1 || pageNum == TotalPages || (pageNum >= CurrentPage - 2 && pageNum <= CurrentPage + 2))
+                                            {
+                                                <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                                    <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                                                </li>
+                                            }
+                                            else if (pageNum == CurrentPage - 3 || pageNum == CurrentPage + 3)
+                                            {
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                            }
+                                        }
+
+                                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)">
+                                                Next
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
+                    }
+                </div>
+
+                @if (!IsLoading && AllFeatures.Any())
+                {
+                    <div class="card-footer bg-white border-top">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <small class="text-muted">
+                                    <span class="fw-medium">@TotalCount</span> total
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                    <span class="fw-medium">@ActiveCount</span> active
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-x-circle-fill text-danger me-1"></i>
+                                    <span class="fw-medium">@InactiveCount</span> inactive
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-star-fill text-primary me-1"></i>
+                                    <span class="fw-medium">@StandardCount</span> standard
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-gem text-warning me-1"></i>
+                                    <span class="fw-medium">@PremiumCount</span> premium
+                                </small>
+                                <small class="text-muted">
+                                    Showing @(((CurrentPage - 1) * ItemsPerPage) + 1) to
+                                    @(Math.Min(CurrentPage * ItemsPerPage, TotalCount)) of @TotalCount entries
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Show:</small>
+                                <select class="form-select form-select-sm page-size-select" @onchange="OnPageSizeChanged">
+                                    @foreach (var size in PageSizeOptions)
+                                    {
+                                        <option value="@size" selected="@(size == ItemsPerPage)">@size</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sidebar Component -->
+<FeatureSidebar @bind-IsVisible="@showSidebar" FeatureToEdit="@selectedFeature" OnSave="@OnFeatureSave" />
+
+<style>
+    .feature-avatar {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 16px;
+    }
+    
+    .features-table tbody tr:hover {
+        background-color: rgba(240, 147, 251, 0.05);
+        cursor: pointer;
+    }
+    
+    .page-size-select {
+        width: auto;
+        min-width: 70px;
+    }
+</style>

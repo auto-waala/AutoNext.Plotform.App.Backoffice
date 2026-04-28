@@ -1,0 +1,267 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@FuelTypeModel" OnValidSubmit="@HandleValidSubmit" FormName="fuelTypeForm">
+        <!-- Header -->
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                <i class="bi bi-fuel-pump me-2"></i>
+                @(IsEditMode ? "Edit Fuel Type" : "Add Fuel Type")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <!-- Fuel Type Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Fuel Type Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-fuel-pump"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter fuel type name"
+                                   @bind-Value="FuelTypeModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => FuelTypeModel.Name)" />
+                    <small class="autonext-text-muted">e.g., Petrol, Diesel, Electric, Hybrid, LPG, CNG</small>
+                </div>
+
+                <!-- Fuel Type Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Fuel Type Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter fuel type code"
+                                   @bind-Value="FuelTypeModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => FuelTypeModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code (e.g., PETROL, DIESEL, ELECTRIC)</small>
+                </div>
+
+                <!-- Description -->
+                <div class="autonext-form-group">
+                    <label for="Description">Description</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-file-text"></i>
+                            </span>
+                        </div>
+                        <InputTextArea id="Description" class="autonext-form-control"
+                                       rows="3"
+                                       placeholder="Enter fuel type description"
+                                       @bind-Value="FuelTypeModel.Description" />
+                    </div>
+                    <ValidationMessage For="@(() => FuelTypeModel.Description)" />
+                    <small class="autonext-text-muted">Additional information about this fuel type</small>
+                </div>
+            </div>
+
+            <!-- Media & Display Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-image me-2"></i>Media & Display
+                </h6>
+
+                <!-- Icon URL -->
+                <div class="autonext-form-group">
+                    <label for="IconUrl">Icon URL</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-image"></i>
+                            </span>
+                        </div>
+                        <InputText id="IconUrl" class="autonext-form-control"
+                                   placeholder="https://example.com/fuel-icon.png"
+                                   @bind-Value="FuelTypeModel.IconUrl" />
+                    </div>
+                    <ValidationMessage For="@(() => FuelTypeModel.IconUrl)" />
+                    @if (!string.IsNullOrEmpty(FuelTypeModel.IconUrl))
+                    {
+                        <div class="autonext-mt-2">
+                            <img src="@FuelTypeModel.IconUrl" alt="Icon preview"
+                                 style="max-width: 64px; max-height: 64px; object-fit: contain;"
+                                 onerror="this.style.display='none'" />
+                        </div>
+                    }
+                    <small class="autonext-text-muted">Optional icon for visual representation</small>
+                </div>
+
+                <!-- Sort Order -->
+                <div class="autonext-form-group">
+                    <label for="SortOrder">Sort Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="SortOrder" class="autonext-form-control"
+                                     placeholder="Sort order"
+                                     @bind-Value="FuelTypeModel.SortOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => FuelTypeModel.SortOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in dropdown lists</small>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-toggle-on me-2"></i>Status
+                </h6>
+
+                <!-- Is Active -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="FuelTypeModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(FuelTypeModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive fuel types won't be available for selection</small>
+                </div>
+            </div>
+
+            <!-- Audit Information -->
+            @if (IsEditMode && FuelTypeModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Audit Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@FuelTypeModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (FuelTypeModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@FuelTypeModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Fuel Type" : "Save Fuel Type")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public FuelType? FuelTypeToEdit { get; set; }
+    [Parameter] public EventCallback<FuelType> OnSave { get; set; }
+
+    private FuelType FuelTypeModel { get; set; } = new();
+    private EditContext? editContext;
+    private bool IsEditMode => FuelTypeModel.Id != null && FuelTypeModel.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(FuelTypeModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(FuelTypeModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (FuelTypeToEdit != null)
+        {
+            // Clone the fuel type for editing
+            FuelTypeModel = new FuelType
+            {
+                Id = FuelTypeToEdit.Id,
+                Name = FuelTypeToEdit.Name,
+                Code = FuelTypeToEdit.Code,
+                Description = FuelTypeToEdit.Description,
+                IconUrl = FuelTypeToEdit.IconUrl,
+                SortOrder = FuelTypeToEdit.SortOrder,
+                IsActive = FuelTypeToEdit.IsActive,
+                CreatedAt = FuelTypeToEdit.CreatedAt,
+                UpdatedAt = FuelTypeToEdit.UpdatedAt
+            };
+        }
+        else if (FuelTypeModel.Id == null || FuelTypeModel.Id == Guid.Empty)
+        {
+            // Reset form for new fuel type
+            FuelTypeModel = new FuelType
+            {
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                SortOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Set audit fields
+        FuelTypeModel.UpdatedAt = DateTime.UtcNow;
+        if (FuelTypeModel.Id == null || FuelTypeModel.Id == Guid.Empty)
+        {
+            FuelTypeModel.Id = Guid.NewGuid();
+            FuelTypeModel.CreatedAt = DateTime.UtcNow;
+        }
+
+        await OnSave.InvokeAsync(FuelTypeModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}

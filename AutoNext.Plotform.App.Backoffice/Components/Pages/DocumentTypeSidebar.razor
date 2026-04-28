@@ -1,0 +1,307 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@DocumentTypeModel" OnValidSubmit="@HandleValidSubmit" FormName="documentTypeForm">
+        <!-- Header -->
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                <i class="bi bi-file-text me-2"></i>
+                @(IsEditMode ? "Edit Document Type" : "Add Document Type")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <!-- Document Type Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Document Type Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter document type name"
+                                   @bind-Value="DocumentTypeModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => DocumentTypeModel.Name)" />
+                    <small class="autonext-text-muted">e.g., Passport, Driver's License, Vehicle Registration</small>
+                </div>
+
+                <!-- Document Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Document Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter document code"
+                                   @bind-Value="DocumentTypeModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => DocumentTypeModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code (e.g., PASSPORT, DL, VREG)</small>
+                </div>
+
+                <!-- Category -->
+                <div class="autonext-form-group">
+                    <label for="Category">Category</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-tag"></i>
+                            </span>
+                        </div>
+                        <InputText id="Category" class="autonext-form-control"
+                                   placeholder="Enter category"
+                                   @bind-Value="DocumentTypeModel.Category" />
+                    </div>
+                    <ValidationMessage For="@(() => DocumentTypeModel.Category)" />
+                    <small class="autonext-text-muted">e.g., Identity, Vehicle, Financial, Legal</small>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <!-- Display Order -->
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     placeholder="Display order"
+                                     @bind-Value="DocumentTypeModel.DisplayOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => DocumentTypeModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in lists</small>
+                </div>
+
+                <!-- Expiry Months -->
+                <div class="autonext-form-group">
+                    <label for="ExpiryMonths">Expiry Period (Months)</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-calendar"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="ExpiryMonths" class="autonext-form-control"
+                                     placeholder="Expiry in months"
+                                     @bind-Value="DocumentTypeModel.ExpiryMonths" />
+                    </div>
+                    <ValidationMessage For="@(() => DocumentTypeModel.ExpiryMonths)" />
+                    <small class="autonext-text-muted">Leave empty if document doesn't expire</small>
+                </div>
+
+                <!-- Applicable Vehicle Types -->
+                <div class="autonext-form-group">
+                    <label for="ApplicableVehicleTypes">Applicable Vehicle Types</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-truck"></i>
+                            </span>
+                        </div>
+                        <InputText id="ApplicableVehicleTypes" class="autonext-form-control"
+                                   placeholder="e.g., Car, Motorcycle, Truck"
+                                   @bind-Value="DocumentTypeModel.ApplicableVehicleTypes" />
+                    </div>
+                    <ValidationMessage For="@(() => DocumentTypeModel.ApplicableVehicleTypes)" />
+                    <small class="autonext-text-muted">Comma-separated list of vehicle types</small>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-stars me-2"></i>Features
+                </h6>
+
+                <!-- Is Required -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsRequired" class="autonext-form-check-input"
+                                       @bind-Value="DocumentTypeModel.IsRequired" />
+                        <label class="autonext-form-check-label" for="IsRequired">
+                            <i class="bi @(DocumentTypeModel.IsRequired ? "bi-star-fill text-warning" : "bi-star text-secondary") me-1"></i>
+                            Required Document
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Mark as mandatory for all clients</small>
+                </div>
+
+                <!-- Is Verifiable -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsVerifiable" class="autonext-form-check-input"
+                                       @bind-Value="DocumentTypeModel.IsVerifiable" />
+                        <label class="autonext-form-check-label" for="IsVerifiable">
+                            <i class="bi @(DocumentTypeModel.IsVerifiable ? "bi-shield-check text-info" : "bi-shield-x text-secondary") me-1"></i>
+                            Verifiable Document
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Document can be verified through external sources</small>
+                </div>
+
+                <!-- Is Active -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="DocumentTypeModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(DocumentTypeModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive document types won't be available for selection</small>
+                </div>
+            </div>
+
+            <!-- Usage Information -->
+            @if (IsEditMode && DocumentTypeModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Usage Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@DocumentTypeModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (DocumentTypeModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@DocumentTypeModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Document Type" : "Save Document Type")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public DocumentType? DocumentTypeToEdit { get; set; }
+    [Parameter] public EventCallback<DocumentType> OnSave { get; set; }
+
+    private DocumentType DocumentTypeModel { get; set; } = new();
+    private EditContext? editContext;
+    private bool IsEditMode => DocumentTypeModel.Id != null && DocumentTypeModel.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(DocumentTypeModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(DocumentTypeModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (DocumentTypeToEdit != null)
+        {
+            // Clone the document type for editing
+            DocumentTypeModel = new DocumentType
+            {
+                Id = DocumentTypeToEdit.Id,
+                Name = DocumentTypeToEdit.Name,
+                Code = DocumentTypeToEdit.Code,
+                Category = DocumentTypeToEdit.Category,
+                IsRequired = DocumentTypeToEdit.IsRequired,
+                IsVerifiable = DocumentTypeToEdit.IsVerifiable,
+                ExpiryMonths = DocumentTypeToEdit.ExpiryMonths,
+                ApplicableVehicleTypes = DocumentTypeToEdit.ApplicableVehicleTypes,
+                DisplayOrder = DocumentTypeToEdit.DisplayOrder,
+                IsActive = DocumentTypeToEdit.IsActive,
+                CreatedAt = DocumentTypeToEdit.CreatedAt,
+                UpdatedAt = DocumentTypeToEdit.UpdatedAt
+            };
+        }
+        else if (DocumentTypeModel.Id == null || DocumentTypeModel.Id == Guid.Empty)
+        {
+            // Reset form for new document type
+            DocumentTypeModel = new DocumentType
+            {
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                IsRequired = false,
+                IsVerifiable = false,
+                DisplayOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Set audit fields
+        DocumentTypeModel.UpdatedAt = DateTime.UtcNow;
+        if (DocumentTypeModel.Id == null || DocumentTypeModel.Id == Guid.Empty)
+        {
+            DocumentTypeModel.Id = Guid.NewGuid();
+            DocumentTypeModel.CreatedAt = DateTime.UtcNow;
+        }
+
+        await OnSave.InvokeAsync(DocumentTypeModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}
