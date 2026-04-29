@@ -1,0 +1,300 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@TypeModel" OnValidSubmit="@HandleValidSubmit" FormName="vehicleTypeForm">
+        <DataAnnotationsValidator />
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(IsEditMode ? "Edit Vehicle Type" : "Add Vehicle Type")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <!-- Type Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Type Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-car-front"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="e.g., Sedan, SUV, Truck, Coupe"
+                                   @bind-Value="TypeModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => TypeModel.Name)" />
+                    <small class="autonext-text-muted">e.g., Sedan, SUV, Truck, Coupe, Hatchback</small>
+                </div>
+
+                <!-- Type Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Type Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="e.g., SEDAN, SUV, TRUCK"
+                                   @bind-Value="TypeModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => TypeModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code</small>
+                </div>
+
+                <!-- Description -->
+                <div class="autonext-form-group">
+                    <label for="Description">Description</label>
+                    <InputTextArea id="Description" class="autonext-form-control" rows="2"
+                                   placeholder="Description of this vehicle type..."
+                                   @bind-Value="TypeModel.Description" />
+                    <ValidationMessage For="@(() => TypeModel.Description)" />
+                    <small class="autonext-text-muted">Helps users understand vehicle classification</small>
+                </div>
+            </div>
+
+            <!-- Visual Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-image me-2"></i>Visual Identity
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="IconUrl">Icon URL</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-image"></i>
+                            </span>
+                        </div>
+                        <InputText id="IconUrl" class="autonext-form-control"
+                                   placeholder="https://example.com/sedan.svg"
+                                   @bind-Value="TypeModel.IconUrl" />
+                    </div>
+                    <ValidationMessage For="@(() => TypeModel.IconUrl)" />
+                    @if (!string.IsNullOrEmpty(TypeModel.IconUrl))
+                    {
+                        <div class="mt-2 p-3 bg-light rounded d-flex align-items-center gap-3">
+                            <img src="@TypeModel.IconUrl" alt="Icon Preview"
+                                 style="width: 48px; height: 48px; object-fit: contain;"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                            <div class="type-icon-placeholder-preview d-none" style="width: 48px; height: 48px;">
+                                <i class="bi bi-car-front"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted">Preview (48x48px recommended)</small>
+                            </div>
+                        </div>
+                    }
+                    <small class="autonext-text-muted">SVG/PNG icon for listings (48x48px recommended)</small>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="SortOrder">Sort Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="SortOrder" class="autonext-form-control"
+                                     @bind-Value="TypeModel.SortOrder" min="0" max="9999" />
+                    </div>
+                    <ValidationMessage For="@(() => TypeModel.SortOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in filters</small>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-toggle me-2"></i>Status
+                </h6>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="TypeModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(TypeModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive types won't appear in vehicle filters</small>
+                </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-eye me-2"></i>Preview
+                </h6>
+                <div class="p-3 bg-light rounded">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            @if (!string.IsNullOrEmpty(TypeModel.IconUrl))
+                            {
+                                <img src="@TypeModel.IconUrl" alt="Preview"
+                                     style="width: 64px; height: 64px; object-fit: contain; border-radius: 8px;"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                            }
+                            <div class="type-icon-placeholder-preview" style="width: 64px; height: 64px; background: linear-gradient(135deg, #198754 0%, #20c997 100%); border-radius: 8px; display: @(string.IsNullOrEmpty(TypeModel.IconUrl) ? "flex" : "none"); align-items: center; justify-content: center; color: white;">
+                                <i class="bi bi-car-front" style="font-size: 24px;"></i>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <strong class="text-primary">@TypeModel.Name</strong>
+                                <code class="small bg-secondary bg-opacity-10 px-2 py-1 rounded">@TypeModel.Code</code>
+                                <span class="badge @(TypeModel.IsActive ? "bg-success" : "bg-secondary")">
+                                    @(TypeModel.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(TypeModel.Description))
+                            {
+                                <div class="small text-muted">@TypeModel.Description</div>
+                            }
+                            <div class="small text-muted mt-1">Sort: @TypeModel.SortOrder</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Information -->
+            @if (IsEditMode && TypeModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Audit Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@TypeModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (TypeModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@TypeModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Type" : "Save Type")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public VehicleType? TypeToEdit { get; set; }
+    [Parameter] public EventCallback<VehicleType> OnSave { get; set; }
+
+    private VehicleType TypeModel { get; set; } = new();
+    private EditContext? editContext;
+    private bool IsEditMode => TypeModel.Id.HasValue && TypeModel.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(TypeModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(TypeModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (TypeToEdit != null)
+        {
+            // Clone the type for editing
+            TypeModel = new VehicleType
+            {
+                Id = TypeToEdit.Id,
+                Name = TypeToEdit.Name,
+                Code = TypeToEdit.Code,
+                Description = TypeToEdit.Description,
+                IconUrl = TypeToEdit.IconUrl,
+                SortOrder = TypeToEdit.SortOrder,
+                IsActive = TypeToEdit.IsActive,
+                CreatedAt = TypeToEdit.CreatedAt,
+                UpdatedAt = TypeToEdit.UpdatedAt
+            };
+        }
+        else
+        {
+            // Reset form for new type
+            TypeModel = new VehicleType
+            {
+                Id = Guid.NewGuid(),
+                Name = string.Empty,
+                Code = string.Empty,
+                IsActive = true,
+                SortOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Set audit fields
+        TypeModel.UpdatedAt = DateTime.UtcNow;
+        
+        await OnSave.InvokeAsync(TypeModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}

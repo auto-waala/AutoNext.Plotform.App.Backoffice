@@ -1,0 +1,361 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")" style="width: 600px;">
+    <EditForm Model="@Model" OnValidSubmit="@HandleValidSubmit" FormName="vehicleModelForm">
+        <DataAnnotationsValidator />
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(IsEditMode ? "Edit Vehicle Model" : "Add Vehicle Model")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="BrandId">Brand <span class="text-danger">*</span></label>
+                            <select id="BrandId" class="form-select autonext-form-control"
+                                    @bind="Model.BrandId">
+                                <option value="">Select Brand</option>
+                                @foreach (var brand in Brands)
+                                {
+                                    <option value="@brand.Key">@brand.Value</option>
+                                }
+                            </select>
+                            <ValidationMessage For="@(() => Model.BrandId)" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="VehicleTypeId">Vehicle Type <span class="text-danger">*</span></label>
+                            <select id="VehicleTypeId" class="form-select autonext-form-control"
+                                    @bind="Model.VehicleTypeId">
+                                <option value="">Select Type</option>
+                                @foreach (var type in VehicleTypes)
+                                {
+                                    <option value="@type.Key">@type.Value</option>
+                                }
+                            </select>
+                            <ValidationMessage For="@(() => Model.VehicleTypeId)" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Model Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-car-front"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="e.g., Camry, F-150, Civic"
+                                   @bind-Value="Model.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => Model.Name)" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="Code">Model Code <span class="text-danger">*</span></label>
+                            <InputText id="Code" class="autonext-form-control"
+                                       placeholder="e.g., CAMRY, F150, CIVIC"
+                                       @bind-Value="Model.Code" />
+                            <ValidationMessage For="@(() => Model.Code)" />
+                            <small class="autonext-text-muted">Uppercase internal code</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="Slug">URL Slug <span class="text-danger">*</span></label>
+                            <InputText id="Slug" class="autonext-form-control"
+                                       placeholder="e.g., toyota-camry, ford-f150"
+                                       @bind-Value="Model.Slug" />
+                            <ValidationMessage For="@(() => Model.Slug)" />
+                            <small class="autonext-text-muted">URL-friendly (lowercase, hyphens)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Details Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-calendar-check me-2"></i>Model Details
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="autonext-form-group">
+                            <label for="StartYear">Start Year</label>
+                            <InputNumber id="StartYear" class="autonext-form-control"
+                                         @bind-Value="Model.StartYear" min="1900" max="2030" />
+                            <ValidationMessage For="@(() => Model.StartYear)" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="autonext-form-group">
+                            <label for="EndYear">End Year</label>
+                            <InputNumber id="EndYear" class="autonext-form-control"
+                                         @bind-Value="Model.EndYear" min="1900" max="2030" />
+                            <ValidationMessage For="@(() => Model.EndYear)" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="autonext-form-group">
+                            <label for="DisplayOrder">Display Order</label>
+                            <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                         @bind-Value="Model.DisplayOrder" min="0" max="9999" />
+                            <ValidationMessage For="@(() => Model.DisplayOrder)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="autonext-form-check">
+                            <InputCheckbox id="IsCurrentModel" class="autonext-form-check-input"
+                                           @bind-Value="Model.IsCurrentModel" />
+                            <label class="autonext-form-check-label" for="IsCurrentModel">
+                                <i class="bi bi-star-fill text-warning me-1"></i>
+                                Current Model
+                            </label>
+                        </div>
+                        <small class="autonext-text-muted">Featured in listings and search</small>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="ImageUrl">Model Image URL</label>
+                            <InputText id="ImageUrl" class="autonext-form-control"
+                                       placeholder="https://example.com/model.jpg"
+                                       @bind-Value="Model.ImageUrl" />
+                            <ValidationMessage For="@(() => Model.ImageUrl)" />
+                            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                            {
+                                <div class="mt-2">
+                                    <img src="@Model.ImageUrl" alt="Model Image" style="max-width: 100px; max-height: 60px; border-radius: 4px;" />
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description & Metadata -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-card-text me-2"></i>Description & Metadata
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="Description">Description</label>
+                    <InputTextArea id="Description" class="autonext-form-control" rows="3"
+                                   placeholder="Model description for listings..."
+                                   @bind-Value="Model.Description" />
+                    <ValidationMessage For="@(() => Model.Description)" />
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="Metadata">Metadata (JSON)</label>
+                    <InputTextArea id="Metadata" class="autonext-form-control" rows="3"
+                                   placeholder='{"engine": "V6", "drive": "AWD"}'
+                                   @bind-Value="metadataJson" />
+                    <ValidationMessage For="@(() => Model.Metadata)" />
+                    <small class="autonext-text-muted">Optional JSON metadata for advanced features</small>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-toggle me-2"></i>Status
+                </h6>
+
+                <div class="autonext-form-check">
+                    <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                   @bind-Value="Model.IsActive" />
+                    <label class="autonext-form-check-label" for="IsActive">
+                        <i class="bi @(Model.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                        Active Status
+                    </label>
+                </div>
+                <small class="autonext-text-muted">Inactive models won't appear in listings</small>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-eye me-2"></i>Preview
+                </h6>
+                <div class="p-3 bg-light rounded">
+                    <div class="row align-items-center">
+                        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                        {
+                            <div class="col-auto">
+                                <img src="@Model.ImageUrl" alt="Preview" style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px;" />
+                            </div>
+                        }
+                        <div class="col">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <strong class="text-primary">@Model.Name</strong>
+                                <span class="badge bg-primary">@(Brands.GetValueOrDefault(Model.BrandId ?? Guid.Empty, "Unknown"))</span>
+                                <span class="badge bg-info">@(VehicleTypes.GetValueOrDefault(Model.VehicleTypeId ?? Guid.Empty, "Unknown"))</span>
+                                @if (Model.IsCurrentModel)
+                                {
+                                    <span class="badge bg-warning text-dark">Current</span>
+                                }
+                            </div>
+                            <div class="small text-muted">
+                                @Model.StartYear-@Model.EndYear • <code>@Model.Slug</code>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Model.Description))
+                            {
+                                <div class="small text-muted mt-1">@((Model.Description ?? "").Substring(0, Math.Min(100, Model.Description.Length)))...</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Information -->
+            @if (IsEditMode && Model.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Audit Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@Model.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (Model.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Updated:</span>
+                                <span class="autonext-info-value">@Model.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Model" : "Create Model")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public VehicleModel? ModelToEdit { get; set; }
+    [Parameter] public Dictionary<Guid, string> Brands { get; set; } = new();
+    [Parameter] public Dictionary<Guid, string> VehicleTypes { get; set; } = new();
+    [Parameter] public EventCallback<VehicleModel> OnSave { get; set; }
+    
+    private VehicleModel Model { get; set; } = new();
+    private string metadataJson { get; set; } = string.Empty;
+    private EditContext? editContext;
+    private bool IsEditMode => Model.Id.HasValue && Model.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(Model);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        StateHasChanged();
+    }
+
+    private void InitializeModel()
+    {
+        if (ModelToEdit != null)
+        {
+            Model = new VehicleModel
+            {
+                Id = ModelToEdit.Id,
+                BrandId = ModelToEdit.BrandId,
+                VehicleTypeId = ModelToEdit.VehicleTypeId,
+                Name = ModelToEdit.Name,
+                Code = ModelToEdit.Code,
+                Slug = ModelToEdit.Slug,
+                Description = ModelToEdit.Description,
+                StartYear = ModelToEdit.StartYear,
+                EndYear = ModelToEdit.EndYear,
+                IsCurrentModel = ModelToEdit.IsCurrentModel,
+                ImageUrl = ModelToEdit.ImageUrl,
+                DisplayOrder = ModelToEdit.DisplayOrder,
+                IsActive = ModelToEdit.IsActive,
+                Metadata = ModelToEdit.Metadata,
+                CreatedAt = ModelToEdit.CreatedAt,
+                UpdatedAt = ModelToEdit.UpdatedAt
+            };
+            metadataJson = Model.Metadata != null ? JsonSerializer.Serialize(Model.Metadata, new JsonSerializerOptions { WriteIndented = true }) : "";
+        }
+        else
+        {
+            Model = new VehicleModel
+            {
+                Id = Guid.NewGuid(),
+                BrandId = Brands.Keys.FirstOrDefault(),
+                VehicleTypeId = VehicleTypes.Keys.FirstOrDefault(),
+                Name = string.Empty,
+                Code = string.Empty,
+                Slug = string.Empty,
+                IsActive = true,
+                IsCurrentModel = true,
+                DisplayOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+            metadataJson = "";
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        Model.UpdatedAt = DateTime.UtcNow;
+        await OnSave.InvokeAsync(Model);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}

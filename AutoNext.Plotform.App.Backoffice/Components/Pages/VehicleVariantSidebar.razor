@@ -1,0 +1,453 @@
+﻿@using AutoNext.Plotform.App.Backoffice.Models.DTO
+@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@VariantModel" OnValidSubmit="@HandleValidSubmit" FormName="variantForm">
+        <DataAnnotationsValidator />
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(IsEditMode ? "Edit Vehicle Variant" : "Add Vehicle Variant")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <!-- Model Selection -->
+                <div class="autonext-form-group">
+                    <label for="ModelId">Vehicle Model <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-car-front"></i>
+                            </span>
+                        </div>
+                        <select id="ModelId" class="autonext-form-control" @bind="VariantModel.ModelId">
+                            <option value="">Select Model</option>
+                            @foreach (var model in AvailableModels)
+                            {
+                                <option value="@model.Id">@model.Name (@model.Code)</option>
+                            }
+                        </select>
+                    </div>
+                    <ValidationMessage For="@(() => VariantModel.ModelId)" />
+                    <small class="autonext-text-muted">The vehicle model this variant belongs to</small>
+                </div>
+
+                <!-- Variant Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Variant Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-diagram-3"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter variant name"
+                                   @bind-Value="VariantModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => VariantModel.Name)" />
+                    <small class="autonext-text-muted">e.g., 2.0 TDI Premium, GT Sport, LX</small>
+                </div>
+
+                <!-- Variant Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Variant Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter variant code"
+                                   @bind-Value="VariantModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => VariantModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code (e.g., 2_0_TDI_PREMIUM, GT_SPORT)</small>
+                </div>
+
+                <!-- Description -->
+                <div class="autonext-form-group">
+                    <label for="Description">Description</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-card-text"></i>
+                            </span>
+                        </div>
+                        <InputTextArea id="Description" class="autonext-form-control" rows="2"
+                                       placeholder="Enter description (optional)"
+                                       @bind-Value="VariantModel.Description" />
+                    </div>
+                    <ValidationMessage For="@(() => VariantModel.Description)" />
+                </div>
+            </div>
+
+            <!-- Powertrain Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-engine me-2"></i>Powertrain
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="FuelTypeId">Fuel Type</label>
+                            <select id="FuelTypeId" class="autonext-form-control" @bind="VariantModel.FuelTypeId">
+                                <option value="">Select Fuel Type</option>
+                                @foreach (var fuelType in AvailableFuelTypes)
+                                {
+                                    <option value="@fuelType.Id">@fuelType.Name</option>
+                                }
+                            </select>
+                            <ValidationMessage For="@(() => VariantModel.FuelTypeId)" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="TransmissionId">Transmission</label>
+                            <select id="TransmissionId" class="autonext-form-control" @bind="VariantModel.TransmissionId">
+                                <option value="">Select Transmission</option>
+                                @foreach (var transmission in AvailableTransmissions)
+                                {
+                                    <option value="@transmission.Id">@transmission.Name</option>
+                                }
+                            </select>
+                            <ValidationMessage For="@(() => VariantModel.TransmissionId)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="autonext-form-group">
+                            <label for="EngineSize">Engine Size (L)</label>
+                            <div class="autonext-input-group">
+                                <InputNumber id="EngineSize" class="autonext-form-control"
+                                             @bind-Value="VariantModel.EngineSize" step="0.1" min="0.5" max="20" />
+                                <div class="autonext-input-group-append">
+                                    <span class="autonext-input-group-text">L</span>
+                                </div>
+                            </div>
+                            <ValidationMessage For="@(() => VariantModel.EngineSize)" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="autonext-form-group">
+                            <label for="Horsepower">Horsepower</label>
+                            <div class="autonext-input-group">
+                                <InputNumber id="Horsepower" class="autonext-form-control"
+                                             @bind-Value="VariantModel.Horsepower" step="1" min="0" max="2000" />
+                                <div class="autonext-input-group-append">
+                                    <span class="autonext-input-group-text">HP</span>
+                                </div>
+                            </div>
+                            <ValidationMessage For="@(() => VariantModel.Horsepower)" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="autonext-form-group">
+                            <label for="Torque">Torque</label>
+                            <div class="autonext-input-group">
+                                <InputNumber id="Torque" class="autonext-form-control"
+                                             @bind-Value="VariantModel.Torque" step="1" min="0" max="2000" />
+                                <div class="autonext-input-group-append">
+                                    <span class="autonext-input-group-text">Nm</span>
+                                </div>
+                            </div>
+                            <ValidationMessage For="@(() => VariantModel.Torque)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="DriveType">Drive Type</label>
+                    <select id="DriveType" class="autonext-form-control" @bind="VariantModel.DriveType">
+                        <option value="">Select Drive Type</option>
+                        <option value="FWD">Front-Wheel Drive (FWD)</option>
+                        <option value="RWD">Rear-Wheel Drive (RWD)</option>
+                        <option value="AWD">All-Wheel Drive (AWD)</option>
+                        <option value="4WD">4-Wheel Drive (4WD)</option>
+                    </select>
+                    <ValidationMessage For="@(() => VariantModel.DriveType)" />
+                </div>
+            </div>
+
+            <!-- Dimensions & Capacity Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-aspect-ratio me-2"></i>Dimensions & Capacity
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="SeatingCapacity">Seating Capacity</label>
+                            <div class="autonext-input-group">
+                                <InputNumber id="SeatingCapacity" class="autonext-form-control"
+                                             @bind-Value="VariantModel.SeatingCapacity" step="1" min="1" max="20" />
+                                <div class="autonext-input-group-append">
+                                    <span class="autonext-input-group-text">seats</span>
+                                </div>
+                            </div>
+                            <ValidationMessage For="@(() => VariantModel.SeatingCapacity)" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="DoorsCount">Doors Count</label>
+                            <div class="autonext-input-group">
+                                <InputNumber id="DoorsCount" class="autonext-form-control"
+                                             @bind-Value="VariantModel.DoorsCount" step="1" min="2" max="6" />
+                                <div class="autonext-input-group-append">
+                                    <span class="autonext-input-group-text">doors</span>
+                                </div>
+                            </div>
+                            <ValidationMessage For="@(() => VariantModel.DoorsCount)" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-currency-dollar me-2"></i>Pricing
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="BasePrice">Base Price</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">$</span>
+                        </div>
+                        <InputNumber id="BasePrice" class="autonext-form-control"
+                                     @bind-Value="VariantModel.BasePrice" step="1000" min="0" max="10000000" />
+                    </div>
+                    <ValidationMessage For="@(() => VariantModel.BasePrice)" />
+                    <small class="autonext-text-muted">Base MSRP for this variant</small>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     @bind-Value="VariantModel.DisplayOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => VariantModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in lists</small>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-toggle me-2"></i>Status
+                </h6>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="VariantModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(VariantModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive variants won't be available for selection</small>
+                </div>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsAvailable" class="autonext-form-check-input"
+                                       @bind-Value="VariantModel.IsAvailable" />
+                        <label class="autonext-form-check-label" for="IsAvailable">
+                            <i class="bi @(VariantModel.IsAvailable ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-warning") me-1"></i>
+                            Available for Sale
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Indicates if this variant is currently available for purchase</small>
+                </div>
+            </div>
+
+            <!-- Audit Information -->
+            @if (IsEditMode && VariantModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Audit Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@VariantModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (VariantModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@VariantModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Variant" : "Save Variant")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public VehicleVariant? VariantToEdit { get; set; }
+    [Parameter] public EventCallback<VehicleVariant> OnSave { get; set; }
+
+    [Inject] protected IVehicleModelService ModelService { get; set; } = default!;
+    [Inject] protected IFuelTypeService FuelTypeService { get; set; } = default!;
+    [Inject] protected ITransmissionService TransmissionService { get; set; } = default!;
+
+    private VehicleVariant VariantModel { get; set; } = new();
+    private EditContext? editContext;
+    private bool IsEditMode => VariantModel.Id.HasValue && VariantModel.Id != Guid.Empty;
+
+    protected List<VehicleModelResponseDto> AvailableModels { get; set; } = new();
+    protected List<FuelTypeResponseDto> AvailableFuelTypes { get; set; } = new();
+    protected List<TransmissionResponseDto> AvailableTransmissions { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookupData();
+        InitializeModel();
+        editContext = new EditContext(VariantModel);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadLookupData();
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(VariantModel);
+        }
+    }
+
+    private async Task LoadLookupData()
+    {
+        try
+        {
+            var models = await ModelService.GetAllAsync();
+            AvailableModels = models?.ToList() ?? new List<VehicleModelResponseDto>();
+
+            var fuelTypes = await FuelTypeService.GetAllAsync();
+            AvailableFuelTypes = fuelTypes?.ToList() ?? new List<FuelTypeResponseDto>();
+
+            var transmissions = await TransmissionService.GetAllAsync();
+            AvailableTransmissions = transmissions?.ToList() ?? new List<TransmissionResponseDto>();
+        }
+        catch (Exception ex)
+        {
+            // Log error
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (VariantToEdit != null)
+        {
+            // Clone the variant for editing
+            VariantModel = new VehicleVariant
+            {
+                Id = VariantToEdit.Id,
+                ModelId = VariantToEdit.ModelId,
+                Name = VariantToEdit.Name,
+                Code = VariantToEdit.Code,
+                Description = VariantToEdit.Description,
+                FuelTypeId = VariantToEdit.FuelTypeId,
+                TransmissionId = VariantToEdit.TransmissionId,
+                DriveType = VariantToEdit.DriveType,
+                EngineSize = VariantToEdit.EngineSize,
+                Horsepower = VariantToEdit.Horsepower,
+                Torque = VariantToEdit.Torque,
+                SeatingCapacity = VariantToEdit.SeatingCapacity,
+                DoorsCount = VariantToEdit.DoorsCount,
+                BasePrice = VariantToEdit.BasePrice,
+                IsAvailable = VariantToEdit.IsAvailable,
+                DisplayOrder = VariantToEdit.DisplayOrder,
+                IsActive = VariantToEdit.IsActive,
+                CreatedAt = VariantToEdit.CreatedAt,
+                UpdatedAt = VariantToEdit.UpdatedAt
+            };
+        }
+        else
+        {
+            // Reset form for new variant
+            VariantModel = new VehicleVariant
+            {
+                Id = Guid.NewGuid(),
+                Name = string.Empty,
+                Code = string.Empty,
+                IsAvailable = true,
+                IsActive = true,
+                DisplayOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Set audit fields
+        VariantModel.UpdatedAt = DateTime.UtcNow;
+        
+        await OnSave.InvokeAsync(VariantModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}

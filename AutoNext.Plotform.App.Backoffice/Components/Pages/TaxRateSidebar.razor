@@ -1,0 +1,459 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@TaxRateModel" OnValidSubmit="@HandleValidSubmit" FormName="taxRateForm">
+        <DataAnnotationsValidator />
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(IsEditMode ? "Edit Tax Rate" : "Add Tax Rate")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <!-- Tax Rate Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Tax Rate Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-tag"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter tax rate name"
+                                   @bind-Value="TaxRateModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => TaxRateModel.Name)" />
+                    <small class="autonext-text-muted">e.g., VAT 15%, Sales Tax 8%, GST 18%</small>
+                </div>
+
+                <!-- Tax Rate Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Tax Rate Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter tax rate code"
+                                   @bind-Value="TaxRateModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => TaxRateModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code (e.g., VAT_15, SALES_TAX_8)</small>
+                </div>
+
+                <!-- Rate Percentage -->
+                <div class="autonext-form-group">
+                    <label for="RatePercentage">Rate Percentage <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">%</span>
+                        </div>
+                        <InputNumber id="RatePercentage" class="autonext-form-control"
+                                     @bind-Value="TaxRateModel.RatePercentage" step="0.1" min="0" max="100" />
+                    </div>
+                    <ValidationMessage For="@(() => TaxRateModel.RatePercentage)" />
+                    <small class="autonext-text-muted">Tax rate as percentage (0-100)</small>
+                </div>
+            </div>
+
+            <!-- Location Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-geo-alt me-2"></i>Location
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="autonext-form-group">
+                            <label for="TaxType">Tax Type</label>
+                            <div class="autonext-input-group">
+                                <div class="autonext-input-group-prepend">
+                                    <span class="autonext-input-group-text">
+                                        <i class="bi bi-file-earmark-text"></i>
+                                    </span>
+                                </div>
+                                <InputText id="TaxType" class="autonext-form-control"
+                                           placeholder="e.g., VAT, GST, Sales Tax"
+                                           @bind-Value="TaxRateModel.TaxType" />
+                            </div>
+                            <ValidationMessage For="@(() => TaxRateModel.TaxType)" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="autonext-form-group">
+                            <label for="Country">Country</label>
+                            <div class="autonext-input-group">
+                                <div class="autonext-input-group-prepend">
+                                    <span class="autonext-input-group-text">
+                                        <i class="bi bi-globe"></i>
+                                    </span>
+                                </div>
+                                <InputText id="Country" class="autonext-form-control"
+                                           placeholder="e.g., USA, Canada, India"
+                                           @bind-Value="TaxRateModel.Country" />
+                            </div>
+                            <ValidationMessage For="@(() => TaxRateModel.Country)" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="autonext-form-group">
+                            <label for="State">State/Province</label>
+                            <div class="autonext-input-group">
+                                <div class="autonext-input-group-prepend">
+                                    <span class="autonext-input-group-text">
+                                        <i class="bi bi-map"></i>
+                                    </span>
+                                </div>
+                                <InputText id="State" class="autonext-form-control"
+                                           placeholder="e.g., California, Ontario, Maharashtra"
+                                           @bind-Value="TaxRateModel.State" />
+                            </div>
+                            <ValidationMessage For="@(() => TaxRateModel.State)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="autonext-form-group">
+                    <label for="City">City</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-building"></i>
+                            </span>
+                        </div>
+                        <InputText id="City" class="autonext-form-control"
+                                   placeholder="e.g., New York, Toronto, Mumbai"
+                                   @bind-Value="TaxRateModel.City" />
+                    </div>
+                    <ValidationMessage For="@(() => TaxRateModel.City)" />
+                </div>
+            </div>
+
+            <!-- Vehicle Types Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-car-front me-2"></i>Vehicle Types
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label>Applies To Vehicle Types</label>
+                    <div class="autonext-categories-input">
+                        <div class="autonext-input-group autonext-mb-2">
+                            <input type="text" class="autonext-form-control"
+                                   placeholder="Enter vehicle type (e.g., Sedan, SUV)"
+                                   @bind="newVehicleType"
+                                   @onkeypress="HandleVehicleTypeKeyPress" />
+                            <button class="btn btn-outline-primary" type="button"
+                                    @onclick="AddVehicleType">
+                                <i class="bi bi-plus"></i> Add
+                            </button>
+                        </div>
+                        @if (vehicleTypes.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-1">
+                                @foreach (var vehicleType in vehicleTypes)
+                                {
+                                    <span class="badge bg-primary">
+                                        @vehicleType
+                                        <button type="button" class="btn-close btn-close-sm ms-1"
+                                                @onclick="() => RemoveVehicleType(vehicleType)"
+                                                aria-label="Remove"></button>
+                                    </span>
+                                }
+                            </div>
+                        }
+                        <small class="autonext-text-muted">Specify which vehicle types this tax applies to</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Thresholds Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-currency-dollar me-2"></i>Price Thresholds
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="MinPriceThreshold">Min Price Threshold</label>
+                            <div class="autonext-input-group">
+                                <div class="autonext-input-group-prepend">
+                                    <span class="autonext-input-group-text">$</span>
+                                </div>
+                                <InputNumber id="MinPriceThreshold" class="autonext-form-control"
+                                             @bind-Value="TaxRateModel.MinPriceThreshold" min="0" />
+                            </div>
+                            <ValidationMessage For="@(() => TaxRateModel.MinPriceThreshold)" />
+                            <small class="autonext-text-muted">Minimum vehicle price for tax application</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="MaxPriceThreshold">Max Price Threshold</label>
+                            <div class="autonext-input-group">
+                                <div class="autonext-input-group-prepend">
+                                    <span class="autonext-input-group-text">$</span>
+                                </div>
+                                <InputNumber id="MaxPriceThreshold" class="autonext-form-control"
+                                             @bind-Value="TaxRateModel.MaxPriceThreshold" min="0" />
+                            </div>
+                            <ValidationMessage For="@(() => TaxRateModel.MaxPriceThreshold)" />
+                            <small class="autonext-text-muted">Maximum vehicle price for tax application</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <!-- Display Order -->
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     @bind-Value="TaxRateModel.DisplayOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => TaxRateModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in lists</small>
+                </div>
+
+                <!-- Effective Dates -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="EffectiveFrom">Effective From <span class="text-danger">*</span></label>
+                            <InputDate id="EffectiveFrom" class="autonext-form-control"
+                                       @bind-Value="TaxRateModel.EffectiveFrom" />
+                            <ValidationMessage For="@(() => TaxRateModel.EffectiveFrom)" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="EffectiveTo">Effective To</label>
+                            <InputDate id="EffectiveTo" class="autonext-form-control"
+                                       @bind-Value="TaxRateModel.EffectiveTo" />
+                            <ValidationMessage For="@(() => TaxRateModel.EffectiveTo)" />
+                            <small class="autonext-text-muted">Leave empty for no end date</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-toggle me-2"></i>Status
+                </h6>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsCompound" class="autonext-form-check-input"
+                                       @bind-Value="TaxRateModel.IsCompound" />
+                        <label class="autonext-form-check-label" for="IsCompound">
+                            <i class="bi bi-calculator @(TaxRateModel.IsCompound ? "text-warning" : "text-primary") me-1"></i>
+                            Compound Tax
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Applied on top of other taxes</small>
+                </div>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="TaxRateModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(TaxRateModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive tax rates won't be applied</small>
+                </div>
+            </div>
+
+            <!-- Audit Information -->
+            @if (IsEditMode && TaxRateModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Audit Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@TaxRateModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (TaxRateModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@TaxRateModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Tax Rate" : "Save Tax Rate")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public TaxRate? TaxRateToEdit { get; set; }
+    [Parameter] public EventCallback<TaxRate> OnSave { get; set; }
+
+    private TaxRate TaxRateModel { get; set; } = new();
+    private EditContext? editContext;
+    private string newVehicleType = string.Empty;
+    private List<string> vehicleTypes = new();
+    private bool IsEditMode => TaxRateModel.Id.HasValue && TaxRateModel.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(TaxRateModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(TaxRateModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (TaxRateToEdit != null)
+        {
+            // Clone the tax rate for editing
+            TaxRateModel = new TaxRate
+            {
+                Id = TaxRateToEdit.Id,
+                Name = TaxRateToEdit.Name,
+                Code = TaxRateToEdit.Code,
+                TaxType = TaxRateToEdit.TaxType,
+                Country = TaxRateToEdit.Country,
+                State = TaxRateToEdit.State,
+                City = TaxRateToEdit.City,
+                RatePercentage = TaxRateToEdit.RatePercentage,
+                IsCompound = TaxRateToEdit.IsCompound,
+                AppliesToVehicleTypes = TaxRateToEdit.AppliesToVehicleTypes,
+                MinPriceThreshold = TaxRateToEdit.MinPriceThreshold,
+                MaxPriceThreshold = TaxRateToEdit.MaxPriceThreshold,
+                EffectiveFrom = TaxRateToEdit.EffectiveFrom,
+                EffectiveTo = TaxRateToEdit.EffectiveTo,
+                DisplayOrder = TaxRateToEdit.DisplayOrder,
+                IsActive = TaxRateToEdit.IsActive,
+                CreatedAt = TaxRateToEdit.CreatedAt,
+                UpdatedAt = TaxRateToEdit.UpdatedAt
+            };
+
+            // Load vehicle types
+            vehicleTypes = string.IsNullOrEmpty(TaxRateToEdit.AppliesToVehicleTypes)
+                ? new List<string>()
+                : TaxRateToEdit.AppliesToVehicleTypes.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        }
+        else
+        {
+            // Reset form for new tax rate
+            TaxRateModel = new TaxRate
+            {
+                Id = Guid.NewGuid(),
+                Name = string.Empty,
+                Code = string.Empty,
+                RatePercentage = 0,
+                IsActive = true,
+                IsCompound = false,
+                DisplayOrder = 0,
+                EffectiveFrom = DateTime.UtcNow.Date,
+                CreatedAt = DateTime.UtcNow
+            };
+            vehicleTypes.Clear();
+        }
+    }
+
+    private void AddVehicleType()
+    {
+        if (!string.IsNullOrWhiteSpace(newVehicleType) && !vehicleTypes.Contains(newVehicleType.Trim()))
+        {
+            vehicleTypes.Add(newVehicleType.Trim());
+            newVehicleType = string.Empty;
+        }
+    }
+
+    private void RemoveVehicleType(string vehicleType)
+    {
+        vehicleTypes.Remove(vehicleType);
+    }
+
+    private void HandleVehicleTypeKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddVehicleType();
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Save vehicle types back to model
+        TaxRateModel.AppliesToVehicleTypes = vehicleTypes.Any() ? string.Join(",", vehicleTypes) : null;
+        
+        // Set audit fields
+        TaxRateModel.UpdatedAt = DateTime.UtcNow;
+        
+        await OnSave.InvokeAsync(TaxRateModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}

@@ -1,0 +1,257 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@TransmissionModel" OnValidSubmit="@HandleValidSubmit" FormName="transmissionForm">
+        <DataAnnotationsValidator />
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(IsEditMode ? "Edit Transmission" : "Add Transmission")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <!-- Transmission Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Transmission Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-gear-wide-connected"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter transmission name"
+                                   @bind-Value="TransmissionModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => TransmissionModel.Name)" />
+                    <small class="autonext-text-muted">e.g., 6-Speed Automatic, Manual 5-Speed, CVT</small>
+                </div>
+
+                <!-- Transmission Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Transmission Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter transmission code"
+                                   @bind-Value="TransmissionModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => TransmissionModel.Code)" />
+                    <small class="autonext-text-muted">Unique short code (e.g., AT6, MT5, CVT)</small>
+                </div>
+
+                <!-- Description -->
+                <div class="autonext-form-group">
+                    <label for="Description">Description</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-card-text"></i>
+                            </span>
+                        </div>
+                        <InputTextArea id="Description" class="autonext-form-control" rows="2"
+                                       placeholder="Enter description (optional)"
+                                       @bind-Value="TransmissionModel.Description" />
+                    </div>
+                    <ValidationMessage For="@(() => TransmissionModel.Description)" />
+                    <small class="autonext-text-muted">Additional details about this transmission type</small>
+                </div>
+            </div>
+
+            <!-- Technical Specifications Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-speedometer2 me-2"></i>Technical Specifications
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="GearsCount">Number of Gears</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-gear"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="GearsCount" class="autonext-form-control"
+                                     @bind-Value="TransmissionModel.GearsCount" min="1" max="20" />
+                    </div>
+                    <ValidationMessage For="@(() => TransmissionModel.GearsCount)" />
+                    <small class="autonext-text-muted">Number of forward gears (leave empty for CVT/unknown)</small>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <!-- Sort Order -->
+                <div class="autonext-form-group">
+                    <label for="SortOrder">Sort Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="SortOrder" class="autonext-form-control"
+                                     @bind-Value="TransmissionModel.SortOrder" min="0" max="9999" />
+                    </div>
+                    <ValidationMessage For="@(() => TransmissionModel.SortOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in dropdowns and lists</small>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-toggle me-2"></i>Status
+                </h6>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="TransmissionModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(TransmissionModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive transmissions won't appear in vehicle listings</small>
+                </div>
+            </div>
+
+            <!-- Audit Information -->
+            @if (IsEditMode && TransmissionModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Audit Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@TransmissionModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (TransmissionModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@TransmissionModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Transmission" : "Save Transmission")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public Transmission? TransmissionToEdit { get; set; }
+    [Parameter] public EventCallback<Transmission> OnSave { get; set; }
+
+    private Transmission TransmissionModel { get; set; } = new();
+    private EditContext? editContext;
+    private bool IsEditMode => TransmissionModel.Id.HasValue && TransmissionModel.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(TransmissionModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(TransmissionModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (TransmissionToEdit != null)
+        {
+            // Clone the transmission for editing
+            TransmissionModel = new Transmission
+            {
+                Id = TransmissionToEdit.Id,
+                Name = TransmissionToEdit.Name,
+                Code = TransmissionToEdit.Code,
+                Description = TransmissionToEdit.Description,
+                GearsCount = TransmissionToEdit.GearsCount,
+                SortOrder = TransmissionToEdit.SortOrder,
+                IsActive = TransmissionToEdit.IsActive,
+                CreatedAt = TransmissionToEdit.CreatedAt,
+                UpdatedAt = TransmissionToEdit.UpdatedAt
+            };
+        }
+        else
+        {
+            // Reset form for new transmission
+            TransmissionModel = new Transmission
+            {
+                Id = Guid.NewGuid(),
+                Name = string.Empty,
+                Code = string.Empty,
+                IsActive = true,
+                SortOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Set audit fields
+        TransmissionModel.UpdatedAt = DateTime.UtcNow;
+        
+        await OnSave.InvokeAsync(TransmissionModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}
