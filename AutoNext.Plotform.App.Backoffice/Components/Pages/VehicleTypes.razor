@@ -1,0 +1,305 @@
+﻿@page "/vehicle-types"
+@inherits VehicleTypesBase
+@using BlazorBootstrap
+
+<div class="container-fluid" style="padding-left: 0px; padding-right: 0px;">
+    <div class="row" style="padding-left: 0px; padding-right: 0px;">
+        <div class="col">
+            <div class="card vehicletype-card">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0">
+                                <i class="bi bi-car-front text-primary me-2"></i>Vehicle Types
+                            </h5>
+                            <span class="badge bg-light text-dark ms-2">
+                                <span class="text-primary fw-bold">@TotalCount</span> types
+                            </span>
+                            @if (SelectedTypes.Any())
+                            {
+                                <span class="badge bg-primary ms-1">@SelectedTypes.Count selected</span>
+                            }
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            @if (SelectedTypes.Any())
+                            {
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                                        @onclick="BulkDelete">
+                                    <i class="bi bi-trash"></i>
+                                    <span class="d-none d-sm-inline">Delete (@SelectedTypes.Count)</span>
+                                </button>
+                            }
+                            <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                                    @onclick="OpenAddTypeSidebar">
+                                <i class="bi bi-plus-circle"></i>
+                                <span class="d-none d-sm-inline">New Type</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card-body border-bottom bg-light">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Search</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Name or code..."
+                                       @bind="SearchTerm" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Status</label>
+                            <select class="form-select form-select-sm" @bind="ActiveFilter" @bind:event="onchange">
+                                <option value="">All</option>
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Sort Order</label>
+                            <select class="form-select form-select-sm" @bind="SortOrderFilter" @bind:event="onchange">
+                                <option value="">All</option>
+                                <option value="asc">Low to High</option>
+                                <option value="desc">High to Low</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-sm btn-outline-secondary w-100" @onclick="ClearFilters">
+                                <i class="bi bi-eraser"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body p-0">
+                    @if (IsLoading)
+                    {
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-3 small">Loading vehicle types...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover vehicletype-table mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40px">
+                                            <input type="checkbox"
+                                                   checked="@AllPageSelected"
+                                                   @onchange="_ => ToggleAllSelection()" />
+                                        </th>
+                                        <th style="width: 60px">Icon</th>
+                                        <th>Name</th>
+                                        <th>Code</th>
+                                        <th class="text-center">Order</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th style="width: 140px">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (PaginatedTypes.Any())
+                                    {
+                                        @foreach (var type in PaginatedTypes)
+                                        {
+                                            var localType = type;
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox"
+                                                           checked="@SelectedTypes.Contains(localType)"
+                                                           @onchange="e => OnTypeSelectionChanged(localType, (bool)e.Value!)" />
+                                                </td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(localType.IconUrl))
+                                                    {
+                                                        <img src="@localType.IconUrl" alt="@localType.Name"
+                                                             style="width: 32px; height: 32px; object-fit: contain; border-radius: 4px;" 
+                                                             onerror="this.style.display='none'" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="type-icon-placeholder">
+                                                            <i class="bi bi-car-front"></i>
+                                                        </div>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <strong>@localType.Name</strong>
+                                                        @if (!string.IsNullOrEmpty(localType.Description))
+                                                        {
+                                                            <div class="small text-muted">@localType.Description</div>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <code class="small">@localType.Code</code>
+                                                </td>
+                                                <td class="text-center">@localType.SortOrder</td>
+                                                <td>
+                                                    <span class="badge @GetStatusBadgeClass(localType.IsActive)">
+                                                        @GetStatusText(localType.IsActive)
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    @localType.CreatedAt.ToString("yyyy-MM-dd")
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-outline-primary"
+                                                                @onclick="() => OpenEditTypeSidebar(localType)">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning"
+                                                                @onclick="() => ToggleStatus(localType)">
+                                                            <i class="bi @(localType.IsActive ? "bi-pause-circle" : "bi-play-circle")"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger"
+                                                                @onclick="() => DeleteType(localType)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="8" class="text-center py-5 text-muted">
+                                                @if (!string.IsNullOrEmpty(SearchTerm) || ActiveFilter != null || !string.IsNullOrEmpty(SortOrderFilter))
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-filter-circle fs-1"></i>
+                                                        <p class="mt-2">No types match your filters</p>
+                                                        <button class="btn btn-sm btn-outline-primary mt-2" @onclick="ClearFilters">
+                                                            Clear Filters
+                                                        </button>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-car-front fs-1"></i>
+                                                        <p class="mt-2">No vehicle types found</p>
+                                                        <button class="btn btn-sm btn-primary mt-2" @onclick="OpenAddTypeSidebar">
+                                                            <i class="bi bi-plus-circle"></i> Add First Type
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (TotalPages > 1)
+                        {
+                            <div class="pagination-container p-3 border-top">
+                                <nav>
+                                    <ul class="pagination justify-content-center mb-0">
+                                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage - 1)">
+                                                Previous
+                                            </button>
+                                        </li>
+
+                                        @for (int i = 1; i <= TotalPages; i++)
+                                        {
+                                            var pageNum = i;
+                                            if (pageNum == 1 || pageNum == TotalPages || (pageNum >= CurrentPage - 2 && pageNum <= CurrentPage + 2))
+                                            {
+                                                <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                                    <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                                                </li>
+                                            }
+                                            else if (pageNum == CurrentPage - 3 || pageNum == CurrentPage + 3)
+                                            {
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                            }
+                                        }
+
+                                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)">
+                                                Next
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
+                    }
+                </div>
+
+                @if (!IsLoading && AllTypes.Any())
+                {
+                    <div class="card-footer bg-white border-top">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <small class="text-muted">
+                                    <span class="fw-medium">@TotalCount</span> total
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                    <span class="fw-medium">@ActiveCount</span> active
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-x-circle-fill text-danger me-1"></i>
+                                    <span class="fw-medium">@InactiveCount</span> inactive
+                                </small>
+                                <small class="text-muted">
+                                    Showing @(((CurrentPage - 1) * ItemsPerPage) + 1) to
+                                    @(Math.Min(CurrentPage * ItemsPerPage, TotalCount)) of @TotalCount entries
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Show:</small>
+                                <select class="form-select form-select-sm page-size-select" @onchange="OnPageSizeChanged">
+                                    @foreach (var size in PageSizeOptions)
+                                    {
+                                        <option value="@size" selected="@(size == ItemsPerPage)">@size</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sidebar Component -->
+<VehicleTypeSidebar @bind-IsVisible="@showSidebar" TypeToEdit="@selectedType" OnSave="@OnTypeSave" />
+
+<style>
+    .type-icon-placeholder {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+    }
+    
+    .vehicletype-table tbody tr:hover {
+        background-color: rgba(25, 135, 84, 0.05);
+        cursor: pointer;
+    }
+    
+    .page-size-select {
+        width: auto;
+        min-width: 70px;
+    }
+</style>

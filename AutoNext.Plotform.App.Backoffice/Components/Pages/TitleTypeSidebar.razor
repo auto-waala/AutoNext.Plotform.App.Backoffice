@@ -1,0 +1,293 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@TitleTypeModel" OnValidSubmit="@HandleValidSubmit" FormName="titleTypeForm">
+        <DataAnnotationsValidator />
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(IsEditMode ? "Edit Title Type" : "Add Title Type")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <!-- Title Type Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Title Type Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-award"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter title type name"
+                                   @bind-Value="TitleTypeModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => TitleTypeModel.Name)" />
+                    <small class="autonext-text-muted">e.g., Clean Title, Salvage Title, Rebuilt Title</small>
+                </div>
+
+                <!-- Title Type Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Title Type Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter title type code"
+                                   @bind-Value="TitleTypeModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => TitleTypeModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code (e.g., CLEAN_TITLE, SALVAGE)</small>
+                </div>
+
+                <!-- Description -->
+                <div class="autonext-form-group">
+                    <label for="Description">Description</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-card-text"></i>
+                            </span>
+                        </div>
+                        <InputTextArea id="Description" class="autonext-form-control" rows="2"
+                                       placeholder="Enter description (optional)"
+                                       @bind-Value="TitleTypeModel.Description" />
+                    </div>
+                    <ValidationMessage For="@(() => TitleTypeModel.Description)" />
+                    <small class="autonext-text-muted">Additional information about this title type</small>
+                </div>
+            </div>
+
+            <!-- Title Classification Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-shield-check me-2"></i>Title Classification
+                </h6>
+
+                <!-- Is Clean -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsClean" class="autonext-form-check-input"
+                                       @bind-Value="TitleTypeModel.IsClean" />
+                        <label class="autonext-form-check-label" for="IsClean">
+                            <i class="bi @(TitleTypeModel.IsClean ? "bi-check-circle-fill text-success" : "bi-exclamation-triangle-fill text-warning") me-1"></i>
+                            Clean Title
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Clean titles have no salvage history</small>
+                </div>
+
+                <!-- Affects Value -->
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="AffectsValue" class="autonext-form-check-input"
+                                       @bind-Value="TitleTypeModel.AffectsValue" />
+                        <label class="autonext-form-check-label" for="AffectsValue">
+                            <i class="bi @(TitleTypeModel.AffectsValue ? "bi-arrow-down-circle text-danger" : "bi-check-circle text-success") me-1"></i>
+                            Affects Vehicle Value
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">This title type reduces vehicle market value</small>
+                </div>
+            </div>
+
+            <!-- Value Impact Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-currency-exchange me-2"></i>Value Impact
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="ValueDeductionPercentage">Value Deduction Percentage</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">%</span>
+                        </div>
+                        <InputNumber id="ValueDeductionPercentage" class="autonext-form-control"
+                                     @bind-Value="TitleTypeModel.ValueDeductionPercentage" step="0.1" min="0" max="100" />
+                    </div>
+                    <ValidationMessage For="@(() => TitleTypeModel.ValueDeductionPercentage)" />
+                    <small class="autonext-text-muted">
+                        Percentage reduction in vehicle value (leave empty if no deduction)
+                    </small>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <!-- Display Order -->
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     @bind-Value="TitleTypeModel.DisplayOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => TitleTypeModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in lists</small>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-toggle me-2"></i>Status
+                </h6>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="TitleTypeModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(TitleTypeModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive title types won't be available for selection</small>
+                </div>
+            </div>
+
+            <!-- Audit Information -->
+            @if (IsEditMode && TitleTypeModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Audit Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@TitleTypeModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (TitleTypeModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@TitleTypeModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Title Type" : "Save Title Type")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public TitleType? TitleTypeToEdit { get; set; }
+    [Parameter] public EventCallback<TitleType> OnSave { get; set; }
+
+    private TitleType TitleTypeModel { get; set; } = new();
+    private EditContext? editContext;
+    private bool IsEditMode => TitleTypeModel.Id.HasValue && TitleTypeModel.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(TitleTypeModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(TitleTypeModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (TitleTypeToEdit != null)
+        {
+            // Clone the title type for editing
+            TitleTypeModel = new TitleType
+            {
+                Id = TitleTypeToEdit.Id,
+                Name = TitleTypeToEdit.Name,
+                Code = TitleTypeToEdit.Code,
+                Description = TitleTypeToEdit.Description,
+                IsClean = TitleTypeToEdit.IsClean,
+                AffectsValue = TitleTypeToEdit.AffectsValue,
+                ValueDeductionPercentage = TitleTypeToEdit.ValueDeductionPercentage,
+                DisplayOrder = TitleTypeToEdit.DisplayOrder,
+                IsActive = TitleTypeToEdit.IsActive,
+                CreatedAt = TitleTypeToEdit.CreatedAt,
+                UpdatedAt = TitleTypeToEdit.UpdatedAt
+            };
+        }
+        else
+        {
+            // Reset form for new title type
+            TitleTypeModel = new TitleType
+            {
+                Id = Guid.NewGuid(),
+                Name = string.Empty,
+                Code = string.Empty,
+                IsClean = true,
+                IsActive = true,
+                DisplayOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Set audit fields
+        TitleTypeModel.UpdatedAt = DateTime.UtcNow;
+        
+        await OnSave.InvokeAsync(TitleTypeModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}

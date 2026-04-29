@@ -1,0 +1,272 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@ConditionModel" OnValidSubmit="@HandleValidSubmit" FormName="conditionForm">
+        <DataAnnotationsValidator />
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(IsEditMode ? "Edit Vehicle Condition" : "Add Vehicle Condition")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <!-- Condition Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Condition Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-car-front"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter condition name"
+                                   @bind-Value="ConditionModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => ConditionModel.Name)" />
+                    <small class="autonext-text-muted">e.g., Excellent, Good, Fair, Poor, As-Is</small>
+                </div>
+
+                <!-- Condition Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Condition Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter condition code"
+                                   @bind-Value="ConditionModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => ConditionModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code (e.g., EXCELLENT, GOOD, FAIR)</small>
+                </div>
+
+                <!-- Description -->
+                <div class="autonext-form-group">
+                    <label for="Description">Description</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-card-text"></i>
+                            </span>
+                        </div>
+                        <InputTextArea id="Description" class="autonext-form-control" rows="3"
+                                       placeholder="Detailed description of this condition (optional)"
+                                       @bind-Value="ConditionModel.Description" />
+                    </div>
+                    <ValidationMessage For="@(() => ConditionModel.Description)" />
+                    <small class="autonext-text-muted">What defines this condition level for buyers</small>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <!-- Display Order -->
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     @bind-Value="ConditionModel.DisplayOrder" min="0" max="9999" />
+                    </div>
+                    <ValidationMessage For="@(() => ConditionModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in dropdowns (e.g., Excellent=1, Poor=5)</small>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-toggle me-2"></i>Status
+                </h6>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="ConditionModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(ConditionModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive conditions won't be available for vehicle listings</small>
+                </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-eye me-2"></i>Preview
+                </h6>
+                <div class="p-3 bg-light rounded">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="condition-avatar-preview">
+                            <i class="bi bi-car-front"></i>
+                        </div>
+                        <div>
+                            <strong class="text-primary">@ConditionModel.Name</strong>
+                            <div class="small text-muted fst-italic">@ConditionModel.Description</div>
+                            <div class="small">
+                                <code class="bg-secondary bg-opacity-10 px-2 py-1 rounded">@ConditionModel.Code</code>
+                                <span class="ms-2 badge @(ConditionModel.IsActive ? "bg-success" : "bg-secondary")">
+                                    @(ConditionModel.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Information -->
+            @if (IsEditMode && ConditionModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Audit Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@ConditionModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (ConditionModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@ConditionModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Condition" : "Save Condition")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public VehicleCondition? ConditionToEdit { get; set; }
+    [Parameter] public EventCallback<VehicleCondition> OnSave { get; set; }
+
+    private VehicleCondition ConditionModel { get; set; } = new();
+    private EditContext? editContext;
+    private bool IsEditMode => ConditionModel.Id.HasValue && ConditionModel.Id != Guid.Empty;
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(ConditionModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(ConditionModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (ConditionToEdit != null)
+        {
+            // Clone the condition for editing
+            ConditionModel = new VehicleCondition
+            {
+                Id = ConditionToEdit.Id,
+                Name = ConditionToEdit.Name,
+                Code = ConditionToEdit.Code,
+                Description = ConditionToEdit.Description,
+                DisplayOrder = ConditionToEdit.DisplayOrder,
+                IsActive = ConditionToEdit.IsActive,
+                CreatedAt = ConditionToEdit.CreatedAt,
+                UpdatedAt = ConditionToEdit.UpdatedAt
+            };
+        }
+        else
+        {
+            // Reset form for new condition
+            ConditionModel = new VehicleCondition
+            {
+                Id = Guid.NewGuid(),
+                Name = string.Empty,
+                Code = string.Empty,
+                IsActive = true,
+                DisplayOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Set audit fields
+        ConditionModel.UpdatedAt = DateTime.UtcNow;
+        
+        await OnSave.InvokeAsync(ConditionModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}
+
+<style>
+    .condition-avatar-preview {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #0dcaf0 0%, #0d6efd 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+    }
+</style>

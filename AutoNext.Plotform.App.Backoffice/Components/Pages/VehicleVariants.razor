@@ -1,0 +1,354 @@
+﻿@page "/vehicle-variants"
+@inherits VehicleVariantsBase
+
+<div class="container-fluid" style="padding-left: 0px; padding-right: 0px;">
+    <div class="row" style="padding-left: 0px; padding-right: 0px;">
+        <div class="col">
+            <div class="card variant-card">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0">
+                                <i class="bi bi-car-front text-primary me-2"></i>Vehicle Variants
+                            </h5>
+                            <span class="badge bg-light text-dark ms-2">
+                                <span class="text-primary fw-bold">@TotalCount</span> variants
+                            </span>
+                            @if (SelectedVariants.Any())
+                            {
+                                <span class="badge bg-primary ms-1">@SelectedVariants.Count selected</span>
+                            }
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            @if (SelectedVariants.Any())
+                            {
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                                        @onclick="BulkDelete">
+                                    <i class="bi bi-trash"></i>
+                                    <span class="d-none d-sm-inline">Delete (@SelectedVariants.Count)</span>
+                                </button>
+                            }
+                            <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                                    @onclick="OpenAddVariantSidebar">
+                                <i class="bi bi-plus-circle"></i>
+                                <span class="d-none d-sm-inline">New Variant</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card-body border-bottom bg-light">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Search</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Name, code or model..."
+                                       @bind="SearchTerm" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Model</label>
+                            <select class="form-select form-select-sm" @bind="ModelFilter" @bind:event="onchange">
+                                <option value="">All Models</option>
+                                @foreach (var model in AvailableModels)
+                                {
+                                    <option value="@model.Id">@model.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Availability</label>
+                            <select class="form-select form-select-sm" @bind="AvailableFilter" @bind:event="onchange">
+                                <option value="">All</option>
+                                <option value="true">Available</option>
+                                <option value="false">Not Available</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Status</label>
+                            <select class="form-select form-select-sm" @bind="ActiveFilter" @bind:event="onchange">
+                                <option value="">All</option>
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Fuel Type</label>
+                            <select class="form-select form-select-sm" @bind="FuelTypeFilter" @bind:event="onchange">
+                                <option value="">All</option>
+                                @foreach (var fuelType in AvailableFuelTypes)
+                                {
+                                    <option value="@fuelType.Id">@fuelType.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-sm btn-outline-secondary w-100" @onclick="ClearFilters">
+                                <i class="bi bi-eraser"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body p-0">
+                    @if (IsLoading)
+                    {
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-3 small">Loading vehicle variants...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover variant-table mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40px">
+                                            <input type="checkbox"
+                                                   checked="@AllPageSelected"
+                                                   @onchange="_ => ToggleAllSelection()" />
+                                        </th>
+                                        <th>Variant Name</th>
+                                        <th>Code</th>
+                                        <th>Model</th>
+                                        <th>Engine</th>
+                                        <th class="text-center">Power</th>
+                                        <th class="text-center">Price</th>
+                                        <th>Availability</th>
+                                        <th>Status</th>
+                                        <th style="width: 140px">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (PaginatedVariants.Any())
+                                    {
+                                        @foreach (var variant in PaginatedVariants)
+                                        {
+                                            var localVariant = variant;
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox"
+                                                           checked="@SelectedVariants.Contains(localVariant)"
+                                                           @onchange="e => OnVariantSelectionChanged(localVariant, (bool)e.Value!)" />
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <strong>@localVariant.Name</strong>
+                                                        @if (!string.IsNullOrEmpty(localVariant.Description))
+                                                        {
+                                                            <div class="small text-muted">@localVariant.Description</div>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <code class="small">@localVariant.Code</code>
+                                                </td>
+                                                <td>
+                                                    <span class="fw-medium">@localVariant.ModelName</span>
+                                                    <br />
+                                                    <small class="text-muted">@localVariant.ModelCode</small>
+                                                </td>
+                                                <td>
+                                                    @if (localVariant.EngineSize.HasValue)
+                                                    {
+                                                        <span>@localVariant.EngineSize.Value:F1L</span>
+                                                        if (localVariant.FuelTypeName != null)
+                                                        {
+                                                            <br />
+                                                            <small class="text-muted">@localVariant.FuelTypeName</small>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    @if (localVariant.Horsepower.HasValue)
+                                                    {
+                                                        <span class="fw-bold">@localVariant.Horsepower HP</span>
+                                                        if (localVariant.Torque.HasValue)
+                                                        {
+                                                            <br />
+                                                            <small class="text-muted">@localVariant.Torque Nm</small>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    @if (localVariant.BasePrice.HasValue)
+                                                    {
+                                                        <span class="fw-bold text-success">@localVariant.BasePrice.Value.ToString("N0")</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <span class="badge @(localVariant.IsAvailable ? "bg-success" : "bg-secondary")">
+                                                        @(localVariant.IsAvailable ? "Available" : "Unavailable")
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge @GetStatusBadgeClass(localVariant.IsActive)">
+                                                        @GetStatusText(localVariant.IsActive)
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-outline-primary"
+                                                                @onclick="() => OpenEditVariantSidebar(localVariant)">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning"
+                                                                @onclick="() => ToggleStatus(localVariant)">
+                                                            <i class="bi @(localVariant.IsActive ? "bi-pause-circle" : "bi-play-circle")"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-info"
+                                                                @onclick="() => ToggleAvailability(localVariant)">
+                                                            <i class="bi @(localVariant.IsAvailable ? "bi-x-circle" : "bi-check-circle")"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger"
+                                                                @onclick="() => DeleteVariant(localVariant)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="10" class="text-center py-5 text-muted">
+                                                @if (!string.IsNullOrEmpty(SearchTerm) || ModelFilter != null || AvailableFilter != null || ActiveFilter != null || FuelTypeFilter != null)
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-filter-circle fs-1"></i>
+                                                        <p class="mt-2">No variants match your filters</p>
+                                                        <button class="btn btn-sm btn-outline-primary mt-2" @onclick="ClearFilters">
+                                                            Clear Filters
+                                                        </button>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-car-front fs-1"></i>
+                                                        <p class="mt-2">No vehicle variants found</p>
+                                                        <button class="btn btn-sm btn-primary mt-2" @onclick="OpenAddVariantSidebar">
+                                                            <i class="bi bi-plus-circle"></i> Add First Variant
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (TotalPages > 1)
+                        {
+                            <div class="pagination-container p-3 border-top">
+                                <nav>
+                                    <ul class="pagination justify-content-center mb-0">
+                                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage - 1)">
+                                                Previous
+                                            </button>
+                                        </li>
+
+                                        @for (int i = 1; i <= TotalPages; i++)
+                                        {
+                                            var pageNum = i;
+                                            if (pageNum == 1 || pageNum == TotalPages || (pageNum >= CurrentPage - 2 && pageNum <= CurrentPage + 2))
+                                            {
+                                                <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                                    <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                                                </li>
+                                            }
+                                            else if (pageNum == CurrentPage - 3 || pageNum == CurrentPage + 3)
+                                            {
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                            }
+                                        }
+
+                                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)">
+                                                Next
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
+                    }
+                </div>
+
+                @if (!IsLoading && AllVariants.Any())
+                {
+                    <div class="card-footer bg-white border-top">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <small class="text-muted">
+                                    <span class="fw-medium">@TotalCount</span> total
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                    <span class="fw-medium">@ActiveCount</span> active
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-x-circle-fill text-danger me-1"></i>
+                                    <span class="fw-medium">@InactiveCount</span> inactive
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-check-circle text-success me-1"></i>
+                                    <span class="fw-medium">@AvailableCount</span> available
+                                </small>
+                                <small class="text-muted">
+                                    Showing @(((CurrentPage - 1) * ItemsPerPage) + 1) to
+                                    @(Math.Min(CurrentPage * ItemsPerPage, TotalCount)) of @TotalCount entries
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Show:</small>
+                                <select class="form-select form-select-sm page-size-select" @onchange="OnPageSizeChanged">
+                                    @foreach (var size in PageSizeOptions)
+                                    {
+                                        <option value="@size" selected="@(size == ItemsPerPage)">@size</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sidebar Component -->
+<VehicleVariantSidebar @bind-IsVisible="@showSidebar" VariantToEdit="@selectedVariant" OnSave="@OnVariantSave" />
+
+<style>
+    .variant-table tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+        cursor: pointer;
+    }
+    
+    .page-size-select {
+        width: auto;
+        min-width: 70px;
+    }
+</style>

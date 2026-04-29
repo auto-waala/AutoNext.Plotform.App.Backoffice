@@ -1,0 +1,348 @@
+﻿@page "/warranty-types"
+@inherits WarrantyTypesBase
+@using BlazorBootstrap
+
+<div class="container-fluid" style="padding-left: 0px; padding-right: 0px;">
+    <div class="row" style="padding-left: 0px; padding-right: 0px;">
+        <div class="col">
+            <div class="card warranty-card">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0">
+                                <i class="bi bi-shield-check text-primary me-2"></i>Warranty Types
+                            </h5>
+                            <span class="badge bg-light text-dark ms-2">
+                                <span class="text-primary fw-bold">@TotalCount</span> warranty types
+                            </span>
+                            @if (SelectedWarrantyTypes.Any())
+                            {
+                                <span class="badge bg-primary ms-1">@SelectedWarrantyTypes.Count selected</span>
+                            }
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            @if (SelectedWarrantyTypes.Any())
+                            {
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                                        @onclick="BulkDelete">
+                                    <i class="bi bi-trash"></i>
+                                    <span class="d-none d-sm-inline">Delete (@SelectedWarrantyTypes.Count)</span>
+                                </button>
+                            }
+                            <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                                    @onclick="OpenAddWarrantyTypeSidebar">
+                                <i class="bi bi-plus-circle"></i>
+                                <span class="d-none d-sm-inline">New Warranty Type</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card-body border-bottom bg-light">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Search</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Name or code..."
+                                       @bind="SearchTerm" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Transferable</label>
+                            <select class="form-select form-select-sm" @bind="TransferableFilter" @bind:event="onchange">
+                                <option value="">All</option>
+                                <option value="true">Transferable</option>
+                                <option value="false">Non-Transferable</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Status</label>
+                            <select class="form-select form-select-sm" @bind="ActiveFilter" @bind:event="onchange">
+                                <option value="">All</option>
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Min Duration (Months)</label>
+                            <input type="number" class="form-control form-control-sm" 
+                                   placeholder="Min months" @bind="MinDurationMonths" @bind:event="oninput" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Max Duration (Months)</label>
+                            <input type="number" class="form-control form-control-sm" 
+                                   placeholder="Max months" @bind="MaxDurationMonths" @bind:event="oninput" />
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-sm btn-outline-secondary w-100" @onclick="ClearFilters">
+                                <i class="bi bi-eraser"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body p-0">
+                    @if (IsLoading)
+                    {
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-3 small">Loading warranty types...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover warranty-table mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40px">
+                                            <input type="checkbox"
+                                                   checked="@AllPageSelected"
+                                                   @onchange="_ => ToggleAllSelection()" />
+                                        </th>
+                                        <th>Name</th>
+                                        <th>Code</th>
+                                        <th>Duration</th>
+                                        <th>Coverage</th>
+                                        <th class="text-center">Transferable</th>
+                                        <th class="text-center">Order</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th style="width: 140px">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (PaginatedWarrantyTypes.Any())
+                                    {
+                                        @foreach (var warrantyType in PaginatedWarrantyTypes)
+                                        {
+                                            var localWarrantyType = warrantyType;
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox"
+                                                           checked="@SelectedWarrantyTypes.Contains(localWarrantyType)"
+                                                           @onchange="e => OnWarrantyTypeSelectionChanged(localWarrantyType, (bool)e.Value!)" />
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <strong>@localWarrantyType.Name</strong>
+                                                        @if (!string.IsNullOrEmpty(localWarrantyType.Description))
+                                                        {
+                                                            <div class="small text-muted">@localWarrantyType.Description</div>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <code class="small">@localWarrantyType.Code</code>
+                                                </td>
+                                                <td>
+                                                    @if (localWarrantyType.DurationMonths.HasValue || localWarrantyType.DurationKm.HasValue)
+                                                    {
+                                                        <div class="fw-semibold">
+                                                            @if (localWarrantyType.DurationMonths.HasValue)
+                                                            {
+                                                                <span>@localWarrantyType.DurationMonths months</span>
+                                                            }
+                                                            @if (localWarrantyType.DurationKm.HasValue)
+                                                            {
+                                                                <br />
+                                                                <small class="text-muted">@localWarrantyType.DurationKm.Value.ToString("N0") km</small>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">Unlimited</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (localWarrantyType.ApplicableCategories != null && localWarrantyType.ApplicableCategories.Any())
+                                                    {
+                                                        <div class="d-flex flex-wrap gap-1">
+                                                            @foreach (var category in localWarrantyType.ApplicableCategories.Take(2))
+                                                            {
+                                                                <span class="badge bg-info text-dark">@category</span>
+                                                            }
+                                                            @if (localWarrantyType.ApplicableCategories.Count > 2)
+                                                            {
+                                                                <span class="badge bg-secondary">+@(localWarrantyType.ApplicableCategories.Count - 2)</span>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">All categories</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    @if (localWarrantyType.IsTransferable)
+                                                    {
+                                                        <span class="badge bg-success">
+                                                            <i class="bi bi-arrow-repeat me-1"></i>Transferable
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary">
+                                                            <i class="bi bi-lock me-1"></i>Non-Transferable
+                                                        </span>
+                                                    }
+                                                </td
+                                                <td class="text-center">@localWarrantyType.DisplayOrder</td>
+                                                <td>
+                                                    <span class="badge @GetStatusBadgeClass(localWarrantyType.IsActive)">
+                                                        @GetStatusText(localWarrantyType.IsActive)
+                                                    </span>
+                                                </td
+                                                <td>
+                                                    @localWarrantyType.CreatedAt.ToString("yyyy-MM-dd")
+                                                 </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-outline-primary"
+                                                                @onclick="() => OpenEditWarrantyTypeSidebar(localWarrantyType)">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning"
+                                                                @onclick="() => ToggleStatus(localWarrantyType)">
+                                                            <i class="bi @(localWarrantyType.IsActive ? "bi-pause-circle" : "bi-play-circle")"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger"
+                                                                @onclick="() => DeleteWarrantyType(localWarrantyType)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                 </td>
+                                             </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="10" class="text-center py-5 text-muted">
+                                                @if (!string.IsNullOrEmpty(SearchTerm) || TransferableFilter != null || ActiveFilter != null || MinDurationMonths.HasValue || MaxDurationMonths.HasValue)
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-filter-circle fs-1"></i>
+                                                        <p class="mt-2">No warranty types match your filters</p>
+                                                        <button class="btn btn-sm btn-outline-primary mt-2" @onclick="ClearFilters">
+                                                            Clear Filters
+                                                        </button>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-shield-check fs-1"></i>
+                                                        <p class="mt-2">No warranty types found</p>
+                                                        <button class="btn btn-sm btn-primary mt-2" @onclick="OpenAddWarrantyTypeSidebar">
+                                                            <i class="bi bi-plus-circle"></i> Add First Warranty Type
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (TotalPages > 1)
+                        {
+                            <div class="pagination-container p-3 border-top">
+                                <nav>
+                                    <ul class="pagination justify-content-center mb-0">
+                                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage - 1)">
+                                                Previous
+                                            </button>
+                                        </li>
+
+                                        @for (int i = 1; i <= TotalPages; i++)
+                                        {
+                                            var pageNum = i;
+                                            if (pageNum == 1 || pageNum == TotalPages || (pageNum >= CurrentPage - 2 && pageNum <= CurrentPage + 2))
+                                            {
+                                                <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                                    <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                                                </li>
+                                            }
+                                            else if (pageNum == CurrentPage - 3 || pageNum == CurrentPage + 3)
+                                            {
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                            }
+                                        }
+
+                                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)">
+                                                Next
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
+                    }
+                </div>
+
+                @if (!IsLoading && AllWarrantyTypes.Any())
+                {
+                    <div class="card-footer bg-white border-top">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <small class="text-muted">
+                                    <span class="fw-medium">@TotalCount</span> total
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                    <span class="fw-medium">@ActiveCount</span> active
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-x-circle-fill text-danger me-1"></i>
+                                    <span class="fw-medium">@InactiveCount</span> inactive
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-arrow-repeat text-success me-1"></i>
+                                    <span class="fw-medium">@TransferableCount</span> transferable
+                                </small>
+                                <small class="text-muted">
+                                    Showing @(((CurrentPage - 1) * ItemsPerPage) + 1) to
+                                    @(Math.Min(CurrentPage * ItemsPerPage, TotalCount)) of @TotalCount entries
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Show:</small>
+                                <select class="form-select form-select-sm page-size-select" @onchange="OnPageSizeChanged">
+                                    @foreach (var size in PageSizeOptions)
+                                    {
+                                        <option value="@size" selected="@(size == ItemsPerPage)">@size</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sidebar Component -->
+<WarrantyTypeSidebar @bind-IsVisible="@showSidebar" WarrantyTypeToEdit="@selectedWarrantyType" OnSave="@OnWarrantyTypeSave" />
+
+<style>
+    .warranty-table tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+        cursor: pointer;
+    }
+    
+    .page-size-select {
+        width: auto;
+        min-width: 70px;
+    }
+</style>

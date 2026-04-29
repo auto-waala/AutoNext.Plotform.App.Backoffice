@@ -1,0 +1,318 @@
+﻿@page "/vehicle-models"
+@inherits VehicleModelsBase
+@using BlazorBootstrap
+
+<div class="container-fluid" style="padding-left: 0px; padding-right: 0px;">
+    <div class="row" style="padding-left: 0px; padding-right: 0px;">
+        <div class="col">
+            <div class="card vehiclemodel-card">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center py-1">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0">
+                                <i class="bi bi-car-front-fill text-primary me-2"></i>Vehicle Models
+                            </h5>
+                            <span class="badge bg-light text-dark ms-2">
+                                <span class="text-primary fw-bold">@TotalCount</span> models
+                            </span>
+                            @if (SelectedModels.Any())
+                            {
+                                <span class="badge bg-primary ms-1">@SelectedModels.Count selected</span>
+                            }
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            @if (SelectedModels.Any())
+                            {
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                                        @onclick="BulkDelete">
+                                    <i class="bi bi-trash"></i>
+                                    <span class="d-none d-sm-inline">Delete (@SelectedModels.Count)</span>
+                                </button>
+                            }
+                            <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                                    @onclick="OpenAddModelSidebar">
+                                <i class="bi bi-plus-circle"></i>
+                                <span class="d-none d-sm-inline">New Model</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card-body border-bottom bg-light">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Search</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Model name, code, slug..."
+                                       @bind="SearchTerm" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Brand</label>
+                            <select class="form-select form-select-sm" @bind="BrandFilter" @bind:event="onchange">
+                                <option value="">All Brands</option>
+                                @foreach (var brand in AvailableBrands)
+                                {
+                                    <option value="@brand.Key">@brand.Value</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Vehicle Type</label>
+                            <select class="form-select form-select-sm" @bind="VehicleTypeFilter" @bind:event="onchange">
+                                <option value="">All Types</option>
+                                @foreach (var type in AvailableVehicleTypes)
+                                {
+                                    <option value="@type.Key">@type.Value</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Status</label>
+                            <select class="form-select form-select-sm" @bind="ActiveFilter" @bind:event="onchange">
+                                <option value="">All</option>
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Current Model</label>
+                            <select class="form-select form-select-sm" @bind="CurrentModelFilter" @bind:event="onchange">
+                                <option value="">All</option>
+                                <option value="true">Current</option>
+                                <option value="false">Legacy</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-sm btn-outline-secondary w-100" @onclick="ClearFilters">
+                                <i class="bi bi-eraser"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body p-0">
+                    @if (IsLoading)
+                    {
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-3 small">Loading vehicle models...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover vehiclemodel-table mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 40px">
+                                            <input type="checkbox"
+                                                   checked="@AllPageSelected"
+                                                   @onchange="_ => ToggleAllSelection()" />
+                                        </th>
+                                        <th>Model</th>
+                                        <th>Brand</th>
+                                        <th>Type</th>
+                                        <th>Years</th>
+                                        <th>Slug</th>
+                                        <th class="text-center">Order</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th style="width: 140px">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (PaginatedModels.Any())
+                                    {
+                                        @foreach (var model in PaginatedModels)
+                                        {
+                                            var localModel = model;
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox"
+                                                           checked="@SelectedModels.Contains(localModel)"
+                                                           @onchange="e => OnModelSelectionChanged(localModel, (bool)e.Value!)" />
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <strong>@localModel.Name</strong>
+                                                        @if (!string.IsNullOrEmpty(localModel.Description))
+                                                        {
+                                                            <div class="small text-muted">@localModel.Description</div>
+                                                        }
+                                                        @if (localModel.IsCurrentModel)
+                                                        {
+                                                            <div class="badge bg-success mt-1">Current Model</div>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-primary">@(localModel.BrandName ?? "Unknown")</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">@(localModel.VehicleTypeName ?? "Unknown")</span>
+                                                </td>
+                                                <td>
+                                                    @if (localModel.StartYear.HasValue && localModel.EndYear.HasValue)
+                                                    {
+                                                        <span>@localModel.StartYear - @localModel.EndYear</span>
+                                                    }
+                                                    else if (localModel.StartYear.HasValue)
+                                                    {
+                                                        <span>@localModel.StartYear+</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <code class="small">@localModel.Slug</code>
+                                                </td>
+                                                <td class="text-center">@localModel.DisplayOrder</td>
+                                                <td>
+                                                    <span class="badge @GetStatusBadgeClass(localModel.IsActive)">
+                                                        @GetStatusText(localModel.IsActive)
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    @localModel.CreatedAt.ToString("yyyy-MM-dd")
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-outline-primary"
+                                                                @onclick="() => OpenEditModelSidebar(localModel)">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning"
+                                                                @onclick="() => ToggleStatus(localModel)">
+                                                            <i class="bi @(localModel.IsActive ? "bi-pause-circle" : "bi-play-circle")"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger"
+                                                                @onclick="() => DeleteModel(localModel)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="10" class="text-center py-5 text-muted">
+                                                @if (!string.IsNullOrEmpty(SearchTerm) || !string.IsNullOrEmpty(BrandFilter) || !string.IsNullOrEmpty(VehicleTypeFilter) || ActiveFilter != null || CurrentModelFilter != null)
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-filter-circle fs-1"></i>
+                                                        <p class="mt-2">No models match your filters</p>
+                                                        <button class="btn btn-sm btn-outline-primary mt-2" @onclick="ClearFilters">
+                                                            Clear Filters
+                                                        </button>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div>
+                                                        <i class="bi bi-car-front-fill fs-1"></i>
+                                                        <p class="mt-2">No vehicle models found</p>
+                                                        <button class="btn btn-sm btn-primary mt-2" @onclick="OpenAddModelSidebar">
+                                                            <i class="bi bi-plus-circle"></i> Add First Model
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (TotalPages > 1)
+                        {
+                            <div class="pagination-container p-3 border-top">
+                                <nav>
+                                    <ul class="pagination justify-content-center mb-0">
+                                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage - 1)">
+                                                Previous
+                                            </button>
+                                        </li>
+                                        @for (int i = 1; i <= TotalPages; i++)
+                                        {
+                                            var pageNum = i;
+                                            <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                                <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                                            </li>
+                                        }
+                                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)">
+                                                Next
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
+                    }
+                </div>
+
+                @if (!IsLoading && AllModels.Any())
+                {
+                    <div class="card-footer bg-white border-top">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <small class="text-muted">
+                                    <span class="fw-medium">@TotalCount</span> total
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                    <span class="fw-medium">@ActiveCount</span> active
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-star-fill text-warning me-1"></i>
+                                    <span class="fw-medium">@CurrentModelCount</span> current
+                                </small>
+                                <small class="text-muted">
+                                    Showing @(((CurrentPage - 1) * ItemsPerPage) + 1) to
+                                    @(Math.Min(CurrentPage * ItemsPerPage, TotalCount)) of @TotalCount entries
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Show:</small>
+                                <select class="form-select form-select-sm page-size-select" @onchange="OnPageSizeChanged">
+                                    @foreach (var size in PageSizeOptions)
+                                    {
+                                        <option value="@size" selected="@(size == ItemsPerPage)">@size</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sidebar Component -->
+<VehicleModelSidebar @bind-IsVisible="@showSidebar" 
+                    ModelToEdit="@selectedModel"
+                    Brands="@AvailableBrands"
+                    VehicleTypes="@AvailableVehicleTypes"
+                    OnSave="@OnModelSave" />
+
+<style>
+    .vehiclemodel-table tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+        cursor: pointer;
+    }
+    
+    .page-size-select {
+        width: auto;
+        min-width: 70px;
+    }
+</style>

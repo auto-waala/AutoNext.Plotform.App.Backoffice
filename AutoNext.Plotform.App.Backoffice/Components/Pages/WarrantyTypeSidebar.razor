@@ -1,0 +1,389 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+<div class="autonext-sidebar-overlay @(IsVisible ? "visible" : "")" @onclick="Close"></div>
+
+<div class="autonext-sidebar @(IsVisible ? "visible" : "")">
+    <EditForm Model="@WarrantyTypeModel" OnValidSubmit="@HandleValidSubmit" FormName="warrantyTypeForm">
+        <DataAnnotationsValidator />
+        <div class="autonext-sidebar-header">
+            <h5 class="autonext-sidebar-title">
+                @(IsEditMode ? "Edit Warranty Type" : "Add Warranty Type")
+            </h5>
+            <button type="button" class="autonext-sidebar-close" @onclick="Close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="autonext-sidebar-body">
+            <!-- Basic Information Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-info-circle me-2"></i>Basic Information
+                </h6>
+
+                <!-- Warranty Type Name -->
+                <div class="autonext-form-group">
+                    <label for="Name">Warranty Type Name <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-shield-check"></i>
+                            </span>
+                        </div>
+                        <InputText id="Name" class="autonext-form-control"
+                                   placeholder="Enter warranty type name"
+                                   @bind-Value="WarrantyTypeModel.Name" />
+                    </div>
+                    <ValidationMessage For="@(() => WarrantyTypeModel.Name)" />
+                    <small class="autonext-text-muted">e.g., Basic Warranty, Extended Warranty, Premium Coverage</small>
+                </div>
+
+                <!-- Warranty Type Code -->
+                <div class="autonext-form-group">
+                    <label for="Code">Warranty Type Code <span class="text-danger">*</span></label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-upc-scan"></i>
+                            </span>
+                        </div>
+                        <InputText id="Code" class="autonext-form-control"
+                                   placeholder="Enter warranty type code"
+                                   @bind-Value="WarrantyTypeModel.Code" />
+                    </div>
+                    <ValidationMessage For="@(() => WarrantyTypeModel.Code)" />
+                    <small class="autonext-text-muted">Unique uppercase code (e.g., BASIC_WARRANTY, EXTENDED_48)</small>
+                </div>
+
+                <!-- Description -->
+                <div class="autonext-form-group">
+                    <label for="Description">Description</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-card-text"></i>
+                            </span>
+                        </div>
+                        <InputTextArea id="Description" class="autonext-form-control" rows="3"
+                                       placeholder="Enter description (optional)"
+                                       @bind-Value="WarrantyTypeModel.Description" />
+                    </div>
+                    <ValidationMessage For="@(() => WarrantyTypeModel.Description)" />
+                    <small class="autonext-text-muted">Detailed description of what this warranty covers</small>
+                </div>
+            </div>
+
+            <!-- Duration Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-calendar-range me-2"></i>Warranty Duration
+                </h6>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="DurationMonths">Duration (Months)</label>
+                            <div class="autonext-input-group">
+                                <div class="autonext-input-group-prepend">
+                                    <span class="autonext-input-group-text">
+                                        <i class="bi bi-calendar-month"></i>
+                                    </span>
+                                </div>
+                                <InputNumber id="DurationMonths" class="autonext-form-control"
+                                             @bind-Value="WarrantyTypeModel.DurationMonths" step="1" min="0" max="1200" />
+                                <div class="autonext-input-group-append">
+                                    <span class="autonext-input-group-text">months</span>
+                                </div>
+                            </div>
+                            <ValidationMessage For="@(() => WarrantyTypeModel.DurationMonths)" />
+                            <small class="autonext-text-muted">Leave empty for unlimited duration</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="autonext-form-group">
+                            <label for="DurationKm">Duration (Kilometers)</label>
+                            <div class="autonext-input-group">
+                                <div class="autonext-input-group-prepend">
+                                    <span class="autonext-input-group-text">
+                                        <i class="bi bi-speedometer2"></i>
+                                    </span>
+                                </div>
+                                <InputNumber id="DurationKm" class="autonext-form-control"
+                                             @bind-Value="WarrantyTypeModel.DurationKm" step="10000" min="0" max="1000000" />
+                                <div class="autonext-input-group-append">
+                                    <span class="autonext-input-group-text">km</span>
+                                </div>
+                            </div>
+                            <ValidationMessage For="@(() => WarrantyTypeModel.DurationKm)" />
+                            <small class="autonext-text-muted">Leave empty for unlimited kilometers</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-2">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <small>The warranty covers the vehicle for <strong>@GetDurationDisplay()</strong></small>
+                </div>
+            </div>
+
+            <!-- Applicable Categories Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-tags me-2"></i>Applicable Categories
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="ApplicableCategories">Applicable Vehicle Categories</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-tag"></i>
+                            </span>
+                        </div>
+                        <select id="ApplicableCategories" class="autonext-form-control" multiple
+                                style="height: 120px;" @bind="SelectedCategories">
+                            <option value="NEW">New Vehicles</option>
+                            <option value="USED">Used Vehicles</option>
+                            <option value="CERTIFIED_PRE_OWNED">Certified Pre-Owned</option>
+                            <option value="LUXURY">Luxury Vehicles</option>
+                            <option value="COMMERCIAL">Commercial Vehicles</option>
+                            <option value="ELECTRIC">Electric Vehicles</option>
+                            <option value="HYBRID">Hybrid Vehicles</option>
+                            <option value="CLASSIC">Classic Cars</option>
+                        </select>
+                    </div>
+                    <small class="autonext-text-muted">Hold Ctrl (or Cmd) to select multiple categories. Leave empty to apply to all categories.</small>
+                </div>
+            </div>
+
+            <!-- Transferability Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-arrow-repeat me-2"></i>Transferability
+                </h6>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsTransferable" class="autonext-form-check-input"
+                                       @bind-Value="WarrantyTypeModel.IsTransferable" />
+                        <label class="autonext-form-check-label" for="IsTransferable">
+                            <i class="bi @(WarrantyTypeModel.IsTransferable ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Warranty is Transferable to Next Owner
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">
+                        @(WarrantyTypeModel.IsTransferable ?
+                            "This warranty can be transferred to a new owner when the vehicle is sold" :
+                            "This warranty is only valid for the original purchaser")
+                    </small>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-gear me-2"></i>Configuration
+                </h6>
+
+                <div class="autonext-form-group">
+                    <label for="DisplayOrder">Display Order</label>
+                    <div class="autonext-input-group">
+                        <div class="autonext-input-group-prepend">
+                            <span class="autonext-input-group-text">
+                                <i class="bi bi-sort-numeric-down"></i>
+                            </span>
+                        </div>
+                        <InputNumber id="DisplayOrder" class="autonext-form-control"
+                                     @bind-Value="WarrantyTypeModel.DisplayOrder" />
+                    </div>
+                    <ValidationMessage For="@(() => WarrantyTypeModel.DisplayOrder)" />
+                    <small class="autonext-text-muted">Lower numbers appear first in warranty options lists</small>
+                </div>
+            </div>
+
+            <!-- Status Section -->
+            <div class="autonext-form-section">
+                <h6 class="autonext-section-title">
+                    <i class="bi bi-toggle me-2"></i>Status
+                </h6>
+
+                <div class="autonext-form-group">
+                    <div class="autonext-form-check">
+                        <InputCheckbox id="IsActive" class="autonext-form-check-input"
+                                       @bind-Value="WarrantyTypeModel.IsActive" />
+                        <label class="autonext-form-check-label" for="IsActive">
+                            <i class="bi @(WarrantyTypeModel.IsActive ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger") me-1"></i>
+                            Active Status
+                        </label>
+                    </div>
+                    <small class="autonext-text-muted">Inactive warranty types won't be available for selection on vehicles</small>
+                </div>
+            </div>
+
+            <!-- Audit Information -->
+            @if (IsEditMode && WarrantyTypeModel.CreatedAt.HasValue)
+            {
+                <div class="autonext-form-section">
+                    <h6 class="autonext-section-title">
+                        <i class="bi bi-clock-history me-2"></i>Audit Information
+                    </h6>
+                    <div class="autonext-info-grid">
+                        <div class="autonext-info-item">
+                            <span class="autonext-info-label">Created:</span>
+                            <span class="autonext-info-value">@WarrantyTypeModel.CreatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                        @if (WarrantyTypeModel.UpdatedAt.HasValue)
+                        {
+                            <div class="autonext-info-item">
+                                <span class="autonext-info-label">Last Updated:</span>
+                                <span class="autonext-info-value">@WarrantyTypeModel.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Footer -->
+        <div class="autonext-sidebar-footer">
+            <button type="button" class="btn btn-secondary me-2" @onclick="Close">
+                <i class="bi bi-x-circle me-1"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi @(IsEditMode ? "bi-pencil" : "bi-save") me-1"></i>
+                @(IsEditMode ? "Update Warranty Type" : "Save Warranty Type")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public WarrantyType? WarrantyTypeToEdit { get; set; }
+    [Parameter] public EventCallback<WarrantyType> OnSave { get; set; }
+
+    private WarrantyType WarrantyTypeModel { get; set; } = new();
+    private EditContext? editContext;
+    private bool IsEditMode => WarrantyTypeModel.Id.HasValue && WarrantyTypeModel.Id != Guid.Empty;
+    
+    private List<string> SelectedCategories { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        InitializeModel();
+        editContext = new EditContext(WarrantyTypeModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        InitializeModel();
+        if (editContext != null)
+        {
+            editContext = new EditContext(WarrantyTypeModel);
+        }
+    }
+
+    private void InitializeModel()
+    {
+        if (WarrantyTypeToEdit != null)
+        {
+            // Clone the warranty type for editing
+            WarrantyTypeModel = new WarrantyType
+            {
+                Id = WarrantyTypeToEdit.Id,
+                Name = WarrantyTypeToEdit.Name,
+                Code = WarrantyTypeToEdit.Code,
+                Description = WarrantyTypeToEdit.Description,
+                DurationMonths = WarrantyTypeToEdit.DurationMonths,
+                DurationKm = WarrantyTypeToEdit.DurationKm,
+                IsTransferable = WarrantyTypeToEdit.IsTransferable,
+                ApplicableCategories = WarrantyTypeToEdit.ApplicableCategories,
+                DisplayOrder = WarrantyTypeToEdit.DisplayOrder,
+                IsActive = WarrantyTypeToEdit.IsActive,
+                CreatedAt = WarrantyTypeToEdit.CreatedAt,
+                UpdatedAt = WarrantyTypeToEdit.UpdatedAt
+            };
+            
+            // Parse applicable categories if stored as CSV
+            if (!string.IsNullOrEmpty(WarrantyTypeToEdit.ApplicableCategories))
+            {
+                SelectedCategories = WarrantyTypeToEdit.ApplicableCategories.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+            }
+        }
+        else
+        {
+            // Reset form for new warranty type
+            WarrantyTypeModel = new WarrantyType
+            {
+                Id = Guid.NewGuid(),
+                Name = string.Empty,
+                Code = string.Empty,
+                IsTransferable = true,
+                IsActive = true,
+                DisplayOrder = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+            SelectedCategories = new List<string>();
+        }
+    }
+
+    private string GetDurationDisplay()
+    {
+        var parts = new List<string>();
+        
+        if (WarrantyTypeModel.DurationMonths.HasValue && WarrantyTypeModel.DurationMonths > 0)
+        {
+            var years = WarrantyTypeModel.DurationMonths / 12;
+            var months = WarrantyTypeModel.DurationMonths % 12;
+            
+            if (years > 0)
+                parts.Add($"{years} year{(years > 1 ? "s" : "")}");
+            if (months > 0)
+                parts.Add($"{months} month{(months > 1 ? "s" : "")}");
+        }
+        
+        if (WarrantyTypeModel.DurationKm.HasValue && WarrantyTypeModel.DurationKm > 0)
+        {
+            parts.Add($"{WarrantyTypeModel.DurationKm.Value.ToString("N0")} km");
+        }
+        
+        if (!parts.Any())
+            return "unlimited duration";
+            
+        return string.Join(" or ", parts);
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Convert selected categories to CSV string
+        if (SelectedCategories.Any())
+        {
+            WarrantyTypeModel.ApplicableCategories = string.Join(",", SelectedCategories);
+        }
+        else
+        {
+            WarrantyTypeModel.ApplicableCategories = null;
+        }
+        
+        // Set audit fields
+        WarrantyTypeModel.UpdatedAt = DateTime.UtcNow;
+        
+        await OnSave.InvokeAsync(WarrantyTypeModel);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        editContext = null;
+    }
+}
