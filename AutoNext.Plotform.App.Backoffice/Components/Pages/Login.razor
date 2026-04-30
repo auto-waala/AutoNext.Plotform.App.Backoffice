@@ -1,0 +1,505 @@
+﻿@page "/login"
+@layout AutoNext.Plotform.App.Backoffice.Components.Layout.EmptyLayout
+@using AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
+@using AutoNext.Plotform.App.Backoffice.Models.DTO
+@using AutoNext.Plotform.App.Backoffice.Integrations;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.ComponentModel.DataAnnotations
+@inject AuthStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IAuthService AuthService
+@inject ILogger<Login> Logger
+@attribute [AllowAnonymous]
+
+<div class="login-form-container">
+    <div class="form-content">
+        <!-- Header -->
+        <div class="form-header">
+            <h3>Welcome Back!</h3>
+            <p>Sign in to access your dashboard</p>
+        </div>
+
+        <!-- Social Login (Optional) -->
+        <div class="social-login">
+            <button type="button" class="social-btn google-btn" @onclick="HandleGoogleLogin">
+                <i class="bi bi-google"></i>
+                <span>Continue with Google</span>
+            </button>
+        </div>
+
+        <div class="divider">
+            <span>or sign in with email</span>
+        </div>
+
+        <!-- Login Form -->
+        <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin" FormName="loginForm">
+            <DataAnnotationsValidator />
+            
+            <!-- Error Message -->
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert-message error">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>@errorMessage</span>
+                </div>
+            }
+
+            <!-- Email Field -->
+            <div class="form-field">
+                <label class="field-label">
+                    <i class="bi bi-envelope"></i>
+                    Email Address
+                </label>
+                <div class="input-container">
+                    <InputText type="email" class="form-input"
+                               placeholder="admin@autonext.com"
+                               @bind-Value="loginModel.Email" />
+                    @if (!string.IsNullOrEmpty(loginModel.Email))
+                    {
+                        <span class="input-icon success">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </span>
+                    }
+                </div>
+                <ValidationMessage For="@(() => loginModel.Email)" />
+            </div>
+
+            <!-- Password Field -->
+            <div class="form-field">
+                <label class="field-label">
+                    <i class="bi bi-lock"></i>
+                    Password
+                </label>
+                <div class="input-container">
+                    <InputText type="@(showPassword ? "text" : "password")"
+                               class="form-input"
+                               placeholder="Enter your password"
+                               @bind-Value="loginModel.Password" />
+                    <button type="button" class="password-toggle" @onclick="TogglePasswordVisibility">
+                        <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                    </button>
+                </div>
+                <ValidationMessage For="@(() => loginModel.Password)" />
+            </div>
+
+            <!-- Remember Me & Forgot Password -->
+            <div class="form-options">
+                <label class="checkbox-container">
+                    <InputCheckbox @bind-Value="rememberMe" />
+                    <span>Remember me</span>
+                </label>
+                <a href="/forgot-password" class="forgot-link">Forgot Password?</a>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="submit-btn" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner"></span>
+                    <span>Signing in...</span>
+                }
+                else
+                {
+                    <span>
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        Sign In
+                    </span>
+                }
+            </button>
+        </EditForm>
+
+        <!-- Footer -->
+        <div class="form-footer">
+            <p>Don't have an account? <a href="/register">Contact Administrator</a></p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .login-form-container {
+        padding: 2rem;
+    }
+    
+    .form-content {
+        max-width: 100%;
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    
+        .form-header h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0 0 0.25rem;
+        }
+    
+        .form-header p {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin: 0;
+        }
+    
+    /* Social Login */
+    .social-login {
+        margin-bottom: 1rem;
+    }
+    
+    .social-btn {
+        width: 100%;
+        padding: 0.75rem;
+        border-radius: 12px;
+        font-weight: 500;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border: 1px solid #e2e8f0;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+        .social-btn:hover {
+            background: #f8fafc;
+            border-color: #06b6d4;
+            transform: translateY(-1px);
+        }
+    
+        .social-btn i {
+            font-size: 1.1rem;
+        }
+    
+    .google-btn i {
+        color: #ea4335;
+    }
+    
+    /* Divider */
+    .divider {
+        text-align: center;
+        margin: 1rem 0;
+        position: relative;
+    }
+    
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: calc(50% - 30px);
+            height: 1px;
+            background: #e2e8f0;
+        }
+    
+        .divider::before {
+            left: 0;
+        }
+    
+        .divider::after {
+            right: 0;
+        }
+    
+        .divider span {
+            background: white;
+            padding: 0 1rem;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+    
+    /* Form Fields */
+    .form-field {
+        margin-bottom: 1.25rem;
+    }
+    
+    .field-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #334155;
+        margin-bottom: 0.5rem;
+    }
+    
+        .field-label i {
+            color: #06b6d4;
+            font-size: 0.875rem;
+        }
+    
+    .input-container {
+        position: relative;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+        background: white;
+    }
+    
+        .form-input:focus {
+            outline: none;
+            border-color: #06b6d4;
+            box-shadow: 0 0 0 3px rgba(6,182,212,0.1);
+        }
+    
+    .input-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    
+        .input-icon.success {
+            color: #10b981;
+        }
+    
+    .password-toggle {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 0;
+    }
+    
+    /* Alert Message */
+    .alert-message {
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+        .alert-message.error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+        }
+    
+        .alert-message.success {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #059669;
+        }
+    
+    /* Form Options */
+    .form-options {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+    
+        .checkbox-container input {
+            width: 1rem;
+            height: 1rem;
+            cursor: pointer;
+            accent-color: #06b6d4;
+        }
+    
+    .forgot-link {
+        color: #06b6d4;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+    
+    /* Submit Button */
+    .submit-btn {
+        width: 100%;
+        padding: 0.875rem;
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(6,182,212,0.4);
+        }
+    
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+    
+    .spinner {
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    
+    /* Form Footer */
+    .form-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+        .form-footer p {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin: 0;
+        }
+    
+        .form-footer a {
+            color: #06b6d4;
+            text-decoration: none;
+            font-weight: 500;
+        }
+    
+            .form-footer a:hover {
+                text-decoration: underline;
+            }
+    
+    /* Validation Messages */
+    .validation-message {
+        color: #dc2626;
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        display: block;
+    }
+    
+    /* Responsive */
+    @@media (max-width: 640px) {
+        .login-form-container {
+            padding: 1.5rem;
+        }
+        
+        .form-header h3 {
+            font-size: 1.25rem;
+        }
+        
+        .submit-btn {
+            padding: 0.75rem;
+        }
+    }
+</style>
+
+@code {
+    private LoginModel loginModel = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+    private bool showPassword = false;
+    private bool rememberMe = false;
+
+    private class LoginModel
+    {
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            Logger.LogInformation("Login attempt for: {Email}", loginModel.Email);
+
+            var request = new LoginRequestDto
+            {
+                Email = loginModel.Email.Trim(),
+                Password = loginModel.Password
+            };
+
+            var response = await AuthService.LoginAsync(request);
+
+            if (response != null)
+            {
+                await AuthStateProvider.LoginAsync(response);
+                Logger.LogInformation("Login successful for: {Email}", loginModel.Email);
+
+                // Force a full page reload to ensure cookie is set and recognized
+                Navigation.NavigateTo("/", true);
+            }
+            else
+            {
+                errorMessage = "Invalid email or password. Please try again.";
+                Logger.LogWarning("Login failed for: {Email}", loginModel.Email);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "An error occurred during login. Please try again later.";
+            Logger.LogError(ex, "Login error for: {Email}", loginModel.Email);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleGoogleLogin()
+    {
+        try
+        {
+            // Your Google login implementation
+            Logger.LogInformation("Google login initiated");
+            // Navigation.NavigateTo("/api/auth/google", true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Google login error");
+            errorMessage = "Google login failed. Please try again.";
+        }
+    }
+}

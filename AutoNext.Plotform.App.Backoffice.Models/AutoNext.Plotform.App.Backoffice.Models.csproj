@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="AccessControl\" />
     <Folder Include="Mapers\AccessControle\" />
   </ItemGroup>
 
