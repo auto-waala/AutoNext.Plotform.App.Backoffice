@@ -468,8 +468,11 @@
                 await AuthStateProvider.LoginAsync(response);
                 Logger.LogInformation("Login successful for: {Email}", loginModel.Email);
 
-                // Force a full page reload to ensure cookie is set and recognized
-                Navigation.NavigateTo("/brands", true);
+                // Give time for the session to be fully persisted and circuit to reconnect
+                await Task.Delay(500);
+            
+                // Use replace: true to avoid history issues
+                Navigation.NavigateTo("/brands", replace: true);
             }
             else
             {

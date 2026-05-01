@@ -1,5 +1,7 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+﻿@using AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
+@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
+@inject AuthStateProvider AuthStateProvider
 
 <CascadingAuthenticationState>
     <Router AppAssembly="typeof(Program).Assembly">
@@ -7,16 +9,14 @@
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
                 <NotAuthorized>
                     @{
-                        Console.WriteLine("NotAuthorized - redirecting to login");
-                        Navigation.NavigateTo("/login", replace: true);
+                        Navigation.NavigateTo("/login", forceLoad: true);
                     }
                 </NotAuthorized>
                 <Authorizing>
-                    @* Show nothing during authorizing to prevent flickering *@
                     <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
                         <div class="text-center">
                             <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;"></div>
-                            <p class="text-light mt-3">Checking authentication...</p>
+                            <p class="text-light mt-3">Loading...</p>
                         </div>
                     </div>
                 </Authorizing>
@@ -27,7 +27,7 @@
             <LayoutView Layout="typeof(Layout.MainLayout)">
                 <div class="container text-center mt-5">
                     <h3>404 - Page Not Found</h3>
-                    @* <button class="btn btn-primary" @onclick="() => Navigation.NavigateTo('/')">Go Home</button> *@
+                    <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/",true)'>Go Home</button>
                 </div>
             </LayoutView>
         </NotFound>
@@ -35,5 +35,15 @@
 </CascadingAuthenticationState>
 
 @code {
-    // Navigation is already injected
+    [Inject] private ILogger<Routes> _logger { get; set; } = default!;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _logger.LogInformation("Routes component first render - initializing circuit");
+            await AuthStateProvider.InitializeCircuitAsync();
+            StateHasChanged();
+        }
+    }
 }

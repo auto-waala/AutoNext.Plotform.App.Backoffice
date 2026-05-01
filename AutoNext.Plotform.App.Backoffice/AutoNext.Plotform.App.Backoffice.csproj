@@ -12,6 +12,7 @@
 		<ProjectReference Include="..\AutoNext.Plotform.App.Backoffice.Models\AutoNext.Plotform.App.Backoffice.Models.csproj" />
 		<PackageReference Include="AutoMapper" Version="16.1.1" />
 		<PackageReference Include="Blazor.Bootstrap" Version="3.4.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Authorization" Version="9.0.14" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="9.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.14" />
