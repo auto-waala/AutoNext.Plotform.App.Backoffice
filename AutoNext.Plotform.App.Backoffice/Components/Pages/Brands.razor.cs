@@ -10,7 +10,7 @@ using Radzen;
 
 namespace AutoNext.Plotform.App.Backoffice.Components.Pages;
 
-//[Authorize]
+[Authorize]
 public class BrandsBase : ComponentBase
 {
     [Inject] protected IBrandService BrandService { get; set; } = default!;

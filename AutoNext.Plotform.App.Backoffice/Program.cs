@@ -54,6 +54,7 @@ try
         });
 
     builder.Services.AddAuthorization();
+    builder.Services.AddCascadingAuthenticationState();
 
     // Add Razor Components
     builder.Services.AddRazorComponents()
