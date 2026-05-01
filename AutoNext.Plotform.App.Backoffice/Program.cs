@@ -8,7 +8,6 @@ using BlazorBootstrap;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Radzen;
 using Serilog;
@@ -36,22 +35,25 @@ try
 
     builder.Host.UseSerilog();
 
-    // ===== ADD HTTP CONTEXT ACCESSOR =====
-    builder.Services.AddHttpContextAccessor();
-
-    // ===== AUTHENTICATION SERVICES =====
-    builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-        .AddCookie(options =>
+    // ===== AUTHENTICATION SERVICES - Required for [Authorize] attribute =====
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = "JWT";
+        options.DefaultChallengeScheme = "JWT";
+    })
+    .AddJwtBearer("JWT", options =>
+    {
+        // Disable JWT validation since we handle it manually
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
-            options.Cookie.Name = "AutoNext.Auth";
-            options.LoginPath = "/login";
-            options.LogoutPath = "/logout";
-            options.ExpireTimeSpan = TimeSpan.FromHours(8);
-            options.SlidingExpiration = true;
-            options.Cookie.HttpOnly = true;
-            options.Cookie.SameSite = SameSiteMode.Lax;
-            options.Cookie.IsEssential = true;
-        });
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateIssuerSigningKey = false,
+            ValidateLifetime = false
+        };
+    });
 
     builder.Services.AddAuthorization();
     builder.Services.AddCascadingAuthenticationState();
@@ -186,12 +188,20 @@ try
     // Configure the HTTP request pipeline
     app.UseMiddleware<ExceptionMiddleware>();
 
-    // COMMENT OUT OR REMOVE THE AUTHENTICATION CHECK MIDDLEWARE - IT CAUSES REDIRECT LOOP
-    // app.UseMiddleware<AuthenticationCheckMiddleware>();
+    // Add root redirect middleware
+    app.Use(async (context, next) =>
+    {
+        var path = context.Request.Path.Value?.ToLower() ?? "";
 
-    // IMPORTANT: Add authentication and authorization middleware
-    app.UseAuthentication();
-    app.UseAuthorization();
+        // Redirect root to login
+        if (path == "/" || string.IsNullOrEmpty(path))
+        {
+            context.Response.Redirect("/login");
+            return;
+        }
+
+        await next();
+    });
 
     if (!app.Environment.IsDevelopment())
     {
@@ -202,6 +212,10 @@ try
     {
         app.UseDeveloperExceptionPage();
     }
+
+    // IMPORTANT: Add these middleware in the correct order
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     app.UseSerilogRequestLogging();
     app.UseHttpsRedirection();

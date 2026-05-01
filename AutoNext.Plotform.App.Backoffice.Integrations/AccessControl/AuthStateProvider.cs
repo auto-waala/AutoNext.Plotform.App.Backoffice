@@ -1,12 +1,9 @@
 ﻿using AutoNext.Plotform.App.Backoffice.Models.DTO;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
 {
@@ -15,43 +12,32 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
         private readonly ProtectedLocalStorage _protectedLocalStorage;
         private readonly IAuthService _authService;
         private readonly ILogger<AuthStateProvider> _logger;
-        private readonly IHttpContextAccessor _httpContextAccessor;
-
         private UserSessionDto? _currentUser;
-
-        // Tracks whether the Blazor circuit is ready for JS interop
         private bool _isCircuitReady = false;
         private bool _isInitialized = false;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
-
-        // Anonymous state returned during prerender
-        private static readonly AuthenticationState _anonymous =
-            new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+        private static readonly AuthenticationState _anonymous = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
 
         public AuthStateProvider(
             ProtectedLocalStorage protectedLocalStorage,
             IAuthService authService,
-            ILogger<AuthStateProvider> logger,
-            IHttpContextAccessor httpContextAccessor)
+            ILogger<AuthStateProvider> logger)
         {
             _protectedLocalStorage = protectedLocalStorage;
             _authService = authService;
             _logger = logger;
-            _httpContextAccessor = httpContextAccessor;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             try
             {
-                // ── PHASE 1: Prerender ──────────────────────────────────────────
-                // Circuit isn't ready yet — JS interop is unavailable.
-                // Return anonymous immediately so <Authorizing> never gets stuck.
+                _logger.LogDebug("GetAuthenticationStateAsync called. CircuitReady: {CircuitReady}, Initialized: {Initialized}",
+                    _isCircuitReady, _isInitialized);
+
                 if (!_isCircuitReady)
                     return _anonymous;
 
-                // ── PHASE 2: Circuit ready ──────────────────────────────────────
-                // Now we can safely read ProtectedLocalStorage.
                 if (!_isInitialized)
                     await InitializeAsync();
 
@@ -70,18 +56,13 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
             }
         }
 
-        /// <summary>
-        /// Call this from a root-level component (e.g. Routes.razor or MainLayout)
-        /// inside OnAfterRenderAsync(firstRender: true) to signal the circuit is ready.
-        /// </summary>
         public async Task InitializeCircuitAsync()
         {
+            _logger.LogInformation("InitializeCircuitAsync called");
             if (_isCircuitReady) return;
 
             _isCircuitReady = true;
             await InitializeAsync();
-
-            // Re-evaluate auth state now that storage is readable
             NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
         }
 
@@ -93,6 +74,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
                 if (_isInitialized) return;
                 await LoadUserSessionAsync();
                 _isInitialized = true;
+                _logger.LogInformation("AuthStateProvider initialized. HasUser: {HasUser}", _currentUser != null);
             }
             finally
             {
@@ -105,15 +87,23 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
             try
             {
                 var result = await _protectedLocalStorage.GetAsync<string>("userSession");
+                _logger.LogDebug("LoadUserSessionAsync - Storage read completed. Success: {Success}, HasValue: {HasValue}",
+                    result.Success, !string.IsNullOrEmpty(result.Value));
+
                 if (result.Success && !string.IsNullOrEmpty(result.Value))
                 {
                     _currentUser = JsonConvert.DeserializeObject<UserSessionDto>(result.Value);
-                    _logger.LogDebug("User session loaded for: {Email}", _currentUser?.Email);
+                    _logger.LogInformation("User session loaded for: {Email}, Token Length: {TokenLength}",
+                        _currentUser?.Email,
+                        _currentUser?.AccessToken?.Length ?? 0);
+                }
+                else
+                {
+                    _logger.LogDebug("No user session found in storage");
                 }
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("JavaScript interop"))
             {
-                // Shouldn't reach here now, but kept as a safety net
                 _logger.LogWarning("JS interop called too early in LoadUserSessionAsync");
             }
             catch (Exception ex)
@@ -124,6 +114,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
 
         public async Task LoginAsync(AuthResponseDto authResponse)
         {
+            _logger.LogInformation("LoginAsync called for user: {Email}", authResponse.User.Email);
+
             var userSession = new UserSessionDto
             {
                 UserId = authResponse.User.Id,
@@ -146,19 +138,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
             {
                 var serialized = JsonConvert.SerializeObject(userSession);
                 await _protectedLocalStorage.SetAsync("userSession", serialized);
+                _logger.LogInformation("User session saved for: {Email}, Token Length: {TokenLength}",
+                    userSession.Email, userSession.AccessToken?.Length ?? 0);
 
-                var httpContext = _httpContextAccessor.HttpContext;
-                if (httpContext != null)
+                // Verify the save worked
+                var verifyResult = await _protectedLocalStorage.GetAsync<string>("userSession");
+                if (verifyResult.Success && !string.IsNullOrEmpty(verifyResult.Value))
                 {
-                    var claims = BuildClaims(userSession);
-                    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var principal = new ClaimsPrincipal(identity);
-                    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
-                        new AuthenticationProperties
-                        {
-                            IsPersistent = true,
-                            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
-                        });
+                    _logger.LogInformation("Session verification successful");
+                }
+                else
+                {
+                    _logger.LogError("Session verification failed - storage write may have issue");
                 }
             }
             catch (Exception ex)
@@ -166,15 +157,25 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
                 _logger.LogError(ex, "Failed to save user session");
             }
 
-            NotifyAuthenticationStateChanged(Task.FromResult(BuildAuthState(userSession)));
+            var authState = BuildAuthState(userSession);
+            NotifyAuthenticationStateChanged(Task.FromResult(authState));
+            _logger.LogInformation("Authentication state changed notification sent");
         }
 
         public async Task LogoutAsync()
         {
+            _logger.LogInformation("LogoutAsync called");
+
             if (_currentUser != null)
             {
-                try { await _authService.LogoutAsync(_currentUser.UserId, _currentUser.RefreshToken); }
-                catch (Exception ex) { _logger.LogError(ex, "Error during logout API call"); }
+                try
+                {
+                    await _authService.LogoutAsync(_currentUser.UserId, _currentUser.RefreshToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error during logout API call");
+                }
             }
 
             _currentUser = null;
@@ -183,10 +184,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
             try
             {
                 await _protectedLocalStorage.DeleteAsync("userSession");
-
-                var httpContext = _httpContextAccessor.HttpContext;
-                if (httpContext != null)
-                    await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                _logger.LogInformation("User session deleted from storage");
             }
             catch (Exception ex)
             {
@@ -198,8 +196,13 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
 
         public async Task<bool> RefreshTokenAsync()
         {
+            _logger.LogInformation("RefreshTokenAsync called");
+
             if (_currentUser == null || string.IsNullOrEmpty(_currentUser.RefreshToken))
+            {
+                _logger.LogWarning("Cannot refresh token - no user session or refresh token");
                 return false;
+            }
 
             try
             {
@@ -217,6 +220,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
                     var serialized = JsonConvert.SerializeObject(_currentUser);
                     await _protectedLocalStorage.SetAsync("userSession", serialized);
 
+                    _logger.LogInformation("Token refreshed successfully");
                     NotifyAuthenticationStateChanged(Task.FromResult(BuildAuthState(_currentUser)));
                     return true;
                 }
@@ -232,15 +236,29 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
 
         public async Task<UserSessionDto?> GetUserSessionAsync()
         {
-            if (_isCircuitReady && !_isInitialized)
+            _logger.LogDebug("GetUserSessionAsync called. CircuitReady: {CircuitReady}, Initialized: {Initialized}",
+                _isCircuitReady, _isInitialized);
+
+            if (!_isCircuitReady)
+            {
+                await InitializeCircuitAsync();
+            }
+
+            if (!_isInitialized)
+            {
                 await InitializeAsync();
+            }
+
             return _currentUser;
         }
 
         public async Task<string?> GetAccessTokenAsync()
-            => (await GetUserSessionAsync())?.AccessToken;
-
-        // ── Helpers ────────────────────────────────────────────────────────────
+        {
+            var userSession = await GetUserSessionAsync();
+            var token = userSession?.AccessToken;
+            _logger.LogDebug("GetAccessTokenAsync returning token of length: {Length}", token?.Length ?? 0);
+            return token;
+        }
 
         private AuthenticationState BuildAuthState(UserSessionDto session)
         {
