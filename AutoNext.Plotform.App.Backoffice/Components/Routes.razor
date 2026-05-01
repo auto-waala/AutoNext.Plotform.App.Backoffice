@@ -1,12 +1,24 @@
-﻿<CascadingAuthenticationState>
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+
+<CascadingAuthenticationState>
     <Router AppAssembly="typeof(Program).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
                 <NotAuthorized>
-                    <RedirectToLogin />
+                    @{
+                        Console.WriteLine("NotAuthorized - redirecting to login");
+                        Navigation.NavigateTo("/login", replace: true);
+                    }
                 </NotAuthorized>
                 <Authorizing>
-                    <AuthInitializer />
+                    @* Show nothing during authorizing to prevent flickering *@
+                    <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
+                        <div class="text-center">
+                            <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;"></div>
+                            <p class="text-light mt-3">Checking authentication...</p>
+                        </div>
+                    </div>
                 </Authorizing>
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="routeData" Selector="h1" />
@@ -15,9 +27,13 @@
             <LayoutView Layout="typeof(Layout.MainLayout)">
                 <div class="container text-center mt-5">
                     <h3>404 - Page Not Found</h3>
-                    <a href="/dashboard" class="btn btn-primary">Go Home</a>
+                    @* <button class="btn btn-primary" @onclick="() => Navigation.NavigateTo('/')">Go Home</button> *@
                 </div>
             </LayoutView>
         </NotFound>
     </Router>
 </CascadingAuthenticationState>
+
+@code {
+    // Navigation is already injected
+}
