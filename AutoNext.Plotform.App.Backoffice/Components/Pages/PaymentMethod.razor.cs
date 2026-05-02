@@ -1,16 +1,18 @@
 ﻿using AutoMapper;
 using AutoNext.Plotform.App.Backoffice.Handlers;
 using AutoNext.Plotform.App.Backoffice.Integrations.Core;
-using AutoNext.Plotform.App.Backoffice.Models.Core;
 using AutoNext.Plotform.App.Backoffice.Models.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Radzen;
 
 namespace AutoNext.Plotform.App.Backoffice.Components.Pages;
 
+[Authorize]
 public class PaymentMethodBase : ComponentBase
 {
+   
     [Inject] protected IPaymentMethodService PaymentMethodService { get; set; } = default!;
     [Inject] protected NavigationManager Navigation { get; set; } = default!;
     [Inject] protected IJSRuntime JSRuntime { get; set; } = default!;

@@ -25,6 +25,6 @@ namespace AutoNext.Plotform.App.Backoffice.Models.DTO
         [MaxLength(20)]
         public string? PhoneNumber { get; set; }
 
-        public string? UserType { get; set; } = "Customer";
+        public string? UserType { get; set; } = "Admin";
     }
 }

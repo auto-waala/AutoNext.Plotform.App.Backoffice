@@ -9,7 +9,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
         Task<AuthResponseDto?> RefreshTokenAsync(RefreshTokenRequestDto request);
         Task<bool> LogoutAsync(Guid userId, string refreshToken);
         Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordDto request);
-        Task<bool> ForgotPasswordAsync(ForgotPasswordDto request);
+        Task<ForgotPasswordResponseDto> ForgotPasswordAsync(ForgotPasswordDto request);
         Task<bool> ResetPasswordAsync(ResetPasswordRequestDto request);
         Task<AuthResponseDto?> GoogleLoginAsync(GoogleLoginRequestDto request);
         Task<bool> SendVerificationOtpAsync(string email, string purpose);

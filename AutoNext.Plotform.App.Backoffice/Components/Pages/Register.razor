@@ -1,42 +1,21 @@
-﻿@page "/login"
+﻿@page "/register"
 @layout AutoNext.Plotform.App.Backoffice.Components.Layout.EmptyLayout
-@using AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
-@using AutoNext.Plotform.App.Backoffice.Models.DTO
-@using AutoNext.Plotform.App.Backoffice.Integrations;
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
-@using System.ComponentModel.DataAnnotations
-@inject AuthStateProvider AuthStateProvider
-@inject NavigationManager Navigation
-@inject IAuthService AuthService
-@inject ILogger<Login> Logger
-@attribute [AllowAnonymous]
+@inherits RegisterBase
 
 <div class="login-form-container">
     <div class="form-content">
+
         <!-- Header -->
         <div class="form-header">
-            <h3>Welcome Back!</h3>
-            <p>Sign in to access your dashboard</p>
+            <h3>Create Account</h3>
+            <p>Register to get started</p>
         </div>
 
-        <!-- Social Login (Optional) -->
-        <div class="social-login">
-            <button type="button" class="social-btn google-btn" @onclick="HandleGoogleLogin">
-                <i class="bi bi-google"></i>
-                <span>Continue with Google</span>
-            </button>
-        </div>
-
-        <div class="divider">
-            <span>or sign in with email</span>
-        </div>
-
-        <!-- Login Form -->
-        <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin" FormName="loginForm">
+        <EditForm Model="Model" OnValidSubmit="HandleRegister">
             <DataAnnotationsValidator />
-            
-            <!-- Error Message -->
+            <ValidationSummary />
+
+            <!-- Error -->
             @if (!string.IsNullOrEmpty(errorMessage))
             {
                 <div class="alert-message error">
@@ -45,27 +24,64 @@
                 </div>
             }
 
-            <!-- Email Field -->
+            <!-- Success -->
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert-message success">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>@successMessage</span>
+                </div>
+            }
+
+            <!-- First Name -->
+            <div class="form-field">
+                <label class="field-label">
+                    <i class="bi bi-person"></i>
+                    First Name
+                </label>
+                <InputText class="form-input"
+                           placeholder="Enter first name"
+                           @bind-Value="Model.FirstName" />
+                <ValidationMessage For="@(() => Model.FirstName)" />
+            </div>
+
+            <!-- Last Name -->
+            <div class="form-field">
+                <label class="field-label">
+                    <i class="bi bi-person-fill"></i>
+                    Last Name
+                </label>
+                <InputText class="form-input"
+                           placeholder="Enter last name"
+                           @bind-Value="Model.LastName" />
+                <ValidationMessage For="@(() => Model.LastName)" />
+            </div>
+
+            <!-- Email -->
             <div class="form-field">
                 <label class="field-label">
                     <i class="bi bi-envelope"></i>
                     Email Address
                 </label>
-                <div class="input-container">
-                    <InputText type="email" class="form-input"
-                               placeholder="admin@autonext.com"
-                               @bind-Value="loginModel.Email" />
-                    @if (!string.IsNullOrEmpty(loginModel.Email))
-                    {
-                        <span class="input-icon success">
-                            <i class="bi bi-check-circle-fill"></i>
-                        </span>
-                    }
-                </div>
-                <ValidationMessage For="@(() => loginModel.Email)" />
+                <InputText type="email" class="form-input"
+                           placeholder="example@autonext.com"
+                           @bind-Value="Model.Email" />
+                <ValidationMessage For="@(() => Model.Email)" />
             </div>
 
-            <!-- Password Field -->
+            <!-- Phone -->
+            <div class="form-field">
+                <label class="field-label">
+                    <i class="bi bi-telephone"></i>
+                    Phone Number
+                </label>
+                <InputText class="form-input"
+                           placeholder="Optional"
+                           @bind-Value="Model.PhoneNumber" />
+                <ValidationMessage For="@(() => Model.PhoneNumber)" />
+            </div>
+
+            <!-- Password -->
             <div class="form-field">
                 <label class="field-label">
                     <i class="bi bi-lock"></i>
@@ -74,36 +90,43 @@
                 <div class="input-container">
                     <InputText type="@(showPassword ? "text" : "password")"
                                class="form-input"
-                               placeholder="Enter your password"
-                               @bind-Value="loginModel.Password" />
-                    <button type="button" class="password-toggle" @onclick="TogglePasswordVisibility">
+                               placeholder="Enter password"
+                               @bind-Value="Model.Password" />
+                    <button type="button" class="password-toggle" @onclick="TogglePassword">
                         <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")"></i>
                     </button>
                 </div>
-                <ValidationMessage For="@(() => loginModel.Password)" />
+                <ValidationMessage For="@(() => Model.Password)" />
             </div>
 
-            <!-- Remember Me & Forgot Password -->
-            <div class="form-options">
-                <label class="checkbox-container">
-                    <InputCheckbox @bind-Value="rememberMe" />
-                    <span>Remember me</span>
+            <!-- Confirm Password -->
+            <div class="form-field">
+                <label class="field-label">
+                    <i class="bi bi-lock-fill"></i>
+                    Confirm Password
                 </label>
-                <a href="/forgot-password" class="forgot-link">Forgot Password?</a>
+                <InputText type="@(showPassword ? "text" : "password")"
+                           class="form-input"
+                           placeholder="Confirm password"
+                           @bind-Value="ConfirmPassword" />
+                @if (!PasswordsMatch && !string.IsNullOrEmpty(ConfirmPassword))
+                {
+                    <span class="validation-message">Passwords do not match</span>
+                }
             </div>
 
-            <!-- Submit Button -->
+            <!-- Submit -->
             <button type="submit" class="submit-btn" disabled="@isLoading">
                 @if (isLoading)
                 {
                     <span class="spinner"></span>
-                    <span>Signing in...</span>
+                    <span>Registering...</span>
                 }
                 else
                 {
                     <span>
-                        <i class="bi bi-box-arrow-in-right"></i>
-                        Sign In
+                        <i class="bi bi-person-plus"></i>
+                        Register
                     </span>
                 }
             </button>
@@ -111,7 +134,7 @@
 
         <!-- Footer -->
         <div class="form-footer">
-            <p>Don't have an account? <a href="/register">Contact Administrator</a></p>
+            <p>Already have an account? <a href="/login">Login</a></p>
         </div>
     </div>
 </div>
@@ -422,92 +445,3 @@
         }
     }
 </style>
-
-@code {
-    private LoginModel loginModel = new();
-    private string errorMessage = string.Empty;
-    private bool isLoading = false;
-    private bool showPassword = false;
-    private bool rememberMe = false;
-    [Inject] protected NotificationService NotificationService { get; set; } = default!;
-
-    private class LoginModel
-    {
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
-        public string Email { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Password is required")]
-        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
-        public string Password { get; set; } = string.Empty;
-    }
-
-    private void TogglePasswordVisibility()
-    {
-        showPassword = !showPassword;
-    }
-
-    private async Task HandleLogin()
-    {
-        isLoading = true;
-        errorMessage = string.Empty;
-
-        try
-        {
-            Logger.LogInformation("Login attempt for: {Email}", loginModel.Email);
-            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Login attempt for: {loginModel.Email}");  
-
-            var request = new LoginRequestDto
-            {
-                Email = loginModel.Email.Trim(),
-                Password = loginModel.Password
-            };
-
-            var response = await AuthService.LoginAsync(request);
-
-            if (response != null)
-            {
-                await AuthStateProvider.LoginAsync(response);
-                Logger.LogInformation("Login successful for: {Email}", loginModel.Email);
-
-                // Give time for the session to be fully persisted and circuit to reconnect
-                await Task.Delay(500);
-            
-                // Use replace: true to avoid history issues
-                Navigation.NavigateTo("/brands", replace: true);
-            }
-            else
-            {
-                errorMessage = "Invalid email or password. Please try again.";
-                Logger.LogWarning("Login failed for: {Email}", loginModel.Email);
-                NotificationService.Notify(NotificationSeverity.Error, "Error", $"Login failed for: {loginModel.Email}");
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = "An error occurred during login. Please try again later.";
-            Logger.LogError(ex, "Login error for: {Email}", loginModel.Email);
-            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Login error for: {loginModel.Email}");
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
-    private async Task HandleGoogleLogin()
-    {
-        try
-        {
-            // Your Google login implementation
-            Logger.LogInformation("Google login initiated");
-            NotificationService.Notify(NotificationSeverity.Info, "Info", "Google login initiated");
-            // Navigation.NavigateTo("/api/auth/google", true);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Google login error");
-            errorMessage = "Google login failed. Please try again.";
-        }
-    }
-}

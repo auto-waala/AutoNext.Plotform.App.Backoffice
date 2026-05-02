@@ -220,7 +220,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
             }
         }
 
-        public async Task<bool> ForgotPasswordAsync(ForgotPasswordDto request)
+        public async Task<ForgotPasswordResponseDto> ForgotPasswordAsync(ForgotPasswordDto request)
         {
             try
             {
@@ -229,12 +229,21 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.AccessControl
                 var response = await _retryPolicy.ExecuteAsync(() =>
                     _httpClient.PostAsJsonAsync("api/v1/auth/forgot-password", request));
 
-                return response.IsSuccessStatusCode;
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<ApiResponse<ForgotPasswordResponseDto>>(content).Data;
+                }
+                else
+                {
+                    _logger.LogWarning("Forgot password request failed for email: {Email}. Status: {StatusCode}", request.Email, response.StatusCode);
+                    return new ForgotPasswordResponseDto { IsValid = false };
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during forgot password for: {Email}", request.Email);
-                return false;
+                return new ForgotPasswordResponseDto { IsValid = false };
             }
         }
 

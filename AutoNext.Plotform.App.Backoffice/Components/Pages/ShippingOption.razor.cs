@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Components;
-using AutoNext.Plotform.App.Backoffice.Models.Core;
+﻿using AutoNext.Plotform.App.Backoffice.Models.Core;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components;
 
 namespace AutoNext.Plotform.App.Backoffice.Components.Pages
 {
+    [Authorize]
     public class ShippingOptionBase : ComponentBase, IDisposable
     {
         [Parameter] public bool IsVisible { get; set; }

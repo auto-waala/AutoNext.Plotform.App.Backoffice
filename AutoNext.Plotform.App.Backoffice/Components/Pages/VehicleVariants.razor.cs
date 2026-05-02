@@ -3,6 +3,7 @@ using AutoNext.Plotform.App.Backoffice.Handlers;
 using AutoNext.Plotform.App.Backoffice.Integrations.Core;
 using AutoNext.Plotform.App.Backoffice.Models.Core;
 using AutoNext.Plotform.App.Backoffice.Models.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Radzen;
@@ -10,6 +11,7 @@ using System.Linq;
 
 namespace AutoNext.Plotform.App.Backoffice.Components.Pages;
 
+[Authorize]
 public class VehicleVariantsBase : ComponentBase
 {
     [Inject] protected IVehicleVariantService VariantService { get; set; } = default!;
