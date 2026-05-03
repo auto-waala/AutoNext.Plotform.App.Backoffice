@@ -113,7 +113,11 @@ app.MapGet("/gateway/health", () => Results.Ok(new
         Core = app.Environment.IsDevelopment() ? "https://localhost:7231" :
               app.Environment.EnvironmentName == "AzureDevelopment" ?
               "https://autonext-core-dev.services.azurewebsites.betalen.in" :
-              "https://autonext-core-prod.services.azurewebsites.betalen.in"
+              "https://autonext-core-prod.services.azurewebsites.betalen.in",
+        Blob = app.Environment.IsDevelopment() ? "https://localhost:7157" :
+              app.Environment.EnvironmentName == "AzureDevelopment" ?
+              "https://autonext-blob-dev.services.azurewebsites.betalen.in" :
+              "https://autonext-blob.services.azurewebsites.betalen.in"
     }
 }));
 
@@ -153,6 +157,22 @@ app.MapGet("/gateway/health/detailed", async () =>
     catch (Exception ex)
     {
         results["Core"] = new { Status = "Unhealthy", Error = ex.Message };
+    }
+
+    // Check Blob health
+    try
+    {
+        var blobUrl = app.Environment.IsDevelopment() ? "https://localhost:7157/health" :
+                     app.Environment.EnvironmentName == "AzureDevelopment" ?
+                     "https://autonext-blob-dev.services.azurewebsites.betalen.in/health" :
+                     "https://autonext-blob.services.azurewebsites.betalen.in/health";
+
+        var blobResponse = await httpClient.GetAsync(blobUrl);
+        results["Blob"] = new { Status = blobResponse.IsSuccessStatusCode ? "Healthy" : "Unhealthy", Url = blobUrl };
+    }
+    catch (Exception ex)
+    {
+        results["Blob"] = new { Status = "Unhealthy", Error = ex.Message };
     }
 
     return Results.Ok(new
