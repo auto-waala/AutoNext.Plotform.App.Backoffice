@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.AspNetCore.Authorization;
 using Radzen;
 using Serilog;
+using AutoNext.Plotform.App.Backoffice.Integrations.Listings;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -158,6 +159,7 @@ try
     RegisterServiceWithTokenHandler<IVehicleTypeService, VehicleTypeService>();
     RegisterServiceWithTokenHandler<IVehicleVariantService, VehicleVariantService>();
     RegisterServiceWithTokenHandler<IWarrantyTypeService, WarrantyTypeService>();
+    RegisterServiceWithTokenHandler<INewlyArrivedService, NewlyArrivedService>();
 
     // ===== AUTO MAPPER CONFIGURATION =====
 
