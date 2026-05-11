@@ -1,0 +1,517 @@
+﻿@page "/newly-arrived-vehicles"
+@inherits NewlyArrivedVehiclesBase
+
+<div class="container-fluid px-0">
+    <div class="row mx-0">
+        <div class="col px-0">
+            <div class="card na-card border-0 shadow-sm">
+
+                <!-- Header -->
+                <div class="card-header bg-white border-bottom px-4 py-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0 fw-bold">
+                                <i class="bi bi-stars text-warning me-2"></i>Newly Arrived Vehicles
+                            </h5>
+                            <span class="badge bg-light text-dark border">
+                                <span class="text-primary fw-bold">@TotalCount</span> vehicles
+                            </span>
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-star-fill me-1"></i>@FeaturedCount featured
+                            </span>
+                            @if (SelectedVehicles.Any())
+                            {
+                                <span class="badge bg-primary">@SelectedVehicles.Count selected</span>
+                            }
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            @if (SelectedVehicles.Any())
+                            {
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                                        @onclick="BulkDelete">
+                                    <i class="bi bi-trash"></i>
+                                    <span class="d-none d-sm-inline">Delete (@SelectedVehicles.Count)</span>
+                                </button>
+                            }
+                            <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                                    @onclick="OpenAddModal">
+                                <i class="bi bi-plus-circle"></i>
+                                <span class="d-none d-sm-inline">Add Vehicle</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card-body border-bottom bg-light px-4 py-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted mb-1">Search</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Brand, model, type..." value="@SearchTerm" @oninput="e => { SearchTerm = e.Value?.ToString() ?? string.Empty; ApplyFilters(); }" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Period</label>
+                            <select class="form-select form-select-sm" value="@ArrivalPeriodFilter"
+                                    @onchange="e => { ArrivalPeriodFilter = e.Value?.ToString() ?? string.Empty; ApplyFilters(); }">
+                                <option value="">All</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Type</label>
+                            <select class="form-select form-select-sm" value="@VehicleTypeFilter" @onchange="e => { VehicleTypeFilter = e.Value?.ToString() ?? string.Empty; ApplyFilters(); }">
+                                <option value="">All Types</option>
+                                @foreach (var type in UniqueVehicleTypes)
+                                {
+                                    <option value="@type">@type</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Featured</label>
+                            <select class="form-select form-select-sm" value="@FeaturedFilter"
+                                    @onchange="e => { FeaturedFilter = e.Value?.ToString() ?? string.Empty; ApplyFilters(); }">
+                                <option value="">All</option>
+                                <option value="true">Featured</option>
+                                <option value="false">Not Featured</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Sort By</label>
+                            <select class="form-select form-select-sm" value="@SortBy" @onchange="e => { SortBy = e.Value?.ToString() ?? defaultValues; ApplyFilters(); }">
+                                    <option value="newest">Newest First</option>
+                                    <option value="price_asc">Price: Low to High</option>
+                                    <option value="price_desc">Price: High to Low</option>
+                                    <option value="rating">Top Rated</option>
+                                    </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-sm btn-outline-secondary w-100" @onclick="ClearFilters">
+                                <i class="bi bi-eraser"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Grid Body -->
+                <div class="card-body p-4">
+                    @if (IsLoading)
+                    {
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-3 small">Loading vehicles...</p>
+                        </div>
+                    }
+                    else if (!PaginatedVehicles.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            @if (!string.IsNullOrEmpty(SearchTerm) || !string.IsNullOrEmpty(ArrivalPeriodFilter) || !string.IsNullOrEmpty(VehicleTypeFilter))
+                            {
+                                <div>
+                                    <i class="bi bi-filter-circle fs-1"></i>
+                                    <p class="mt-2">No vehicles match your filters</p>
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="ClearFilters">Clear Filters</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div>
+                                    <i class="bi bi-stars fs-1 text-warning"></i>
+                                    <p class="mt-2">No newly arrived vehicles yet</p>
+                                    <button class="btn btn-sm btn-primary" @onclick="OpenAddModal">
+                                        <i class="bi bi-plus-circle me-1"></i>Add First Vehicle
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-4">
+                            @foreach (var vehicle in PaginatedVehicles)
+                            {
+                                var v = vehicle;
+                                <div class="col">
+                                    <div class="na-vehicle-card h-100 @(SelectedVehicles.Contains(v) ? "na-card-selected" : "")">
+
+                                        <!-- Selection checkbox -->
+                                        <div class="na-card-check">
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   checked="@SelectedVehicles.Contains(v)"
+                                                   @onchange="e => OnVehicleSelectionChanged(v, (bool)e.Value!)" />
+                                        </div>
+
+                                        <!-- Featured badge -->
+                                        @if (v.Featured)
+                                        {
+                                            <div class="na-featured-badge">
+                                                <i class="bi bi-star-fill me-1"></i>Featured
+                                            </div>
+                                        }
+
+                                        <!-- Arrival period badge -->
+                                        <div class="na-period-badge">
+                                            <span class="badge @GetArrivalPeriodBadgeClass(v.ArrivalPeriod)">
+                                                @v.ArrivalPeriod
+                                            </span>
+                                        </div>
+
+                                        <!-- Image -->
+                                        <div class="na-card-image">
+                                            <img src="@GetThumbnail(v)"
+                                                 alt="@v.BrandName @v.ModelName"
+                                                 onerror="this.src='https://placehold.co/400x220?text=No+Image'" />
+                                        </div>
+
+                                        <!-- Body -->
+                                        <div class="na-card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                                <div>
+                                                    <p class="na-brand text-muted mb-0">@v.BrandName</p>
+                                                    <h6 class="na-model mb-0">@v.ModelName</h6>
+                                                </div>
+                                                <span class="badge bg-light text-secondary border small">@v.VehicleType</span>
+                                            </div>
+
+                                            <!-- Rating -->
+                                            @if (v.Rating > 0)
+                                            {
+                                                <div class="d-flex align-items-center gap-1 my-1">
+                                                    <span class="na-stars text-warning">@GetStarHtml(v.Rating)</span>
+                                                    <span class="small text-muted">@v.Rating.ToString("F1") (@v.ReviewCount)</span>
+                                                </div>
+                                            }
+
+                                            <!-- Price -->
+                                            <div class="na-price">
+                                                @FormatPrice(v.MinPrice)
+                                                @if (v.MaxPrice > v.MinPrice)
+                                                {
+                                                    <span class="text-muted"> – @FormatPrice(v.MaxPrice)</span>
+                                                }
+                                            </div>
+
+                                            <!-- EMI -->
+                                            @if (v.Emi != null && v.Emi.Emi > 0)
+                                            {
+                                                <div class="na-emi small text-success">
+                                                    <i class="bi bi-credit-card me-1"></i>EMI from ₹@v.Emi.Emi.ToString("N0")/mo
+                                                </div>
+                                            }
+
+                                            <!-- Variants count -->
+                                            @if (v.Variants?.Any() == true)
+                                            {
+                                                <div class="small text-muted mt-1">
+                                                    <i class="bi bi-layers me-1"></i>@v.Variants.Count variant@(v.Variants.Count > 1 ? "s" : "")
+                                                </div>
+                                            }
+
+                                            <!-- Arrival date -->
+                                            <div class="na-arrival-date small text-muted mt-1">
+                                                <i class="bi bi-calendar3 me-1"></i>@v.ArrivalDate.ToString("MMM dd, yyyy")
+                                            </div>
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <div class="na-card-actions">
+                                            <button class="btn btn-sm btn-outline-primary flex-fill"
+                                                    title="Edit"
+                                                    @onclick="() => OpenEditModal(v)">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-success flex-fill"
+                                                    title="Publish"
+                                                    @onclick="() => PublishVehicle(v)">
+                                                <i class="bi bi-send"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning flex-fill"
+                                                    title="Unpublish"
+                                                    @onclick="() => UnpublishVehicle(v)">
+                                                <i class="bi bi-pause-circle"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger flex-fill"
+                                                    title="Delete"
+                                                    @onclick="() => DeleteVehicle(v)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Pagination -->
+                        @if (TotalPages > 1)
+                        {
+                            <div class="d-flex justify-content-center mt-4">
+                                <nav>
+                                    <ul class="pagination pagination-sm mb-0">
+                                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage - 1)">Previous</button>
+                                        </li>
+                                        @for (int i = 1; i <= TotalPages; i++)
+                                        {
+                                            var pageNum = i;
+                                            if (pageNum == 1 || pageNum == TotalPages || (pageNum >= CurrentPage - 2 && pageNum <= CurrentPage + 2))
+                                            {
+                                                <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                                    <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                                                </li>
+                                            }
+                                            else if (pageNum == CurrentPage - 3 || pageNum == CurrentPage + 3)
+                                            {
+                                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                                            }
+                                        }
+                                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)">Next</button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Footer -->
+                @if (!IsLoading && AllVehicles.Any())
+                {
+                    <div class="card-footer bg-white border-top px-4 py-2">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <small class="text-muted"><span class="fw-medium">@TotalCount</span> total</small>
+                                <small class="text-muted">
+                                    <i class="bi bi-star-fill text-warning me-1"></i>
+                                    <span class="fw-medium">@FeaturedCount</span> featured
+                                </small>
+                                <small class="text-muted">
+                                    Showing @(((CurrentPage - 1) * ItemsPerPage) + 1)–@(Math.Min(CurrentPage * ItemsPerPage, FilteredVehicles.Count)) of @FilteredVehicles.Count
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Per page:</small>
+                                <select class="form-select form-select-sm" style="width:auto" @onchange="OnPageSizeChanged">
+                                    @foreach (var size in PageSizeOptions)
+                                    {
+                                        <option value="@size" selected="@(size == ItemsPerPage)">@size</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add / Edit Modal -->
+@if (ShowAddEditModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-@(IsEditMode ? "pencil" : "plus-circle") me-2"></i>
+                        @(IsEditMode ? "Edit Vehicle" : "Add Newly Arrived Vehicle")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Brand Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" @bind="FormModel.BrandName" placeholder="e.g. Maruti Suzuki" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Model Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" @bind="FormModel.ModelName" placeholder="e.g. Swift" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Vehicle Type</label>
+                            <input type="text" class="form-control form-control-sm" @bind="FormModel.VehicleType" placeholder="e.g. Hatchback" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Body Type</label>
+                            <input type="text" class="form-control form-control-sm" @bind="FormModel.BodyType" placeholder="e.g. 5-door" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Min Price (₹)</label>
+                            <input type="number" class="form-control form-control-sm" @bind="FormModel.MinPrice" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Max Price (₹)</label>
+                            <input type="number" class="form-control form-control-sm" @bind="FormModel.MaxPrice" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Arrival Period</label>
+                            <select class="form-select form-select-sm" @bind="FormModel.ArrivalPeriod">
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Rating (0–5)</label>
+                            <input type="number" step="0.1" min="0" max="5" class="form-control form-control-sm" @bind="FormModel.Rating" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Review Count</label>
+                            <input type="number" class="form-control form-control-sm" @bind="FormModel.ReviewCount" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-medium">Page Title</label>
+                            <input type="text" class="form-control form-control-sm" @bind="FormModel.PageTitle" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-medium">Description</label>
+                            <textarea class="form-control form-control-sm" rows="3" @bind="FormModel.DescriptionText"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="CloseModal">Cancel</button>
+                    <button class="btn btn-sm btn-primary" @onclick="SaveVehicle">
+                        <i class="bi bi-check-circle me-1"></i>@(IsEditMode ? "Update" : "Create")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .na-vehicle-card {
+        border: 1.5px solid #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+        transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+        .na-vehicle-card:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            border-color: #0d6efd40;
+        }
+
+    .na-card-selected {
+        border-color: #0d6efd !important;
+        box-shadow: 0 0 0 3px rgba(13,110,253,0.15);
+    }
+
+    .na-card-check {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+        background: white;
+        border-radius: 4px;
+        padding: 1px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+
+    .na-featured-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        background: linear-gradient(135deg, #f6c90e, #f39c12);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 20px;
+        box-shadow: 0 2px 6px rgba(243,156,18,0.4);
+    }
+
+    .na-period-badge {
+        position: absolute;
+        top: 40px;
+        right: 10px;
+        z-index: 10;
+    }
+
+    .na-card-image {
+        width: 100%;
+        height: 180px;
+        overflow: hidden;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .na-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+    .na-vehicle-card:hover .na-card-image img {
+        transform: scale(1.04);
+    }
+
+    .na-card-body {
+        padding: 12px 14px 8px;
+        flex: 1;
+    }
+
+    .na-brand {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    .na-model {
+        font-size: 15px;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .na-price {
+        font-size: 15px;
+        font-weight: 700;
+        color: #0d6efd;
+        margin-top: 4px;
+    }
+
+    .na-emi {
+        font-size: 12px;
+        margin-top: 2px;
+    }
+
+    .na-arrival-date {
+        font-size: 11px;
+    }
+
+    .na-stars {
+        font-size: 13px;
+        letter-spacing: 1px;
+    }
+
+    .na-card-actions {
+        display: flex;
+        border-top: 1px solid #f0f0f0;
+        padding: 8px 10px;
+        gap: 6px;
+    }
+
+        .na-card-actions .btn {
+            font-size: 13px;
+            padding: 4px 0;
+        }
+</style>
