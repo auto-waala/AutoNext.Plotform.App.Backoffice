@@ -185,27 +185,30 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
 
         protected void OpenEditModal(NewlyArrivedResponseDto vehicle)
         {
-            IsEditMode = true;
-            SelectedVehicle = vehicle;
-            FormModel = new NewlyArrivedRequestDto
-            {
-                BrandName = vehicle.BrandName,
-                ModelName = vehicle.ModelName,
-                VehicleType = vehicle.VehicleType,
-                BodyType = vehicle.BodyType,
-                MinPrice = vehicle.MinPrice,
-                MaxPrice = vehicle.MaxPrice,
-                ArrivalPeriod = vehicle.ArrivalPeriod,
-                Rating = vehicle.Rating,
-                ReviewCount = vehicle.ReviewCount,
-                PageTitle = vehicle.PageTitle,
-                DescriptionText = vehicle.DescriptionText,
-                Emi = vehicle.Emi,
-                Images = vehicle.Images,
-                Videos = vehicle.Videos,
-                Variants = vehicle.Variants,
-            };
-            ShowAddEditModal = true;
+
+            Navigation.NavigateTo($"/newly-arrived-vehicles/{vehicle.Id}");
+
+            //IsEditMode = true;
+            //SelectedVehicle = vehicle;
+            //FormModel = new NewlyArrivedRequestDto
+            //{
+            //    BrandName = vehicle.BrandName,
+            //    ModelName = vehicle.ModelName,
+            //    VehicleType = vehicle.VehicleType,
+            //    BodyType = vehicle.BodyType,
+            //    MinPrice = vehicle.MinPrice,
+            //    MaxPrice = vehicle.MaxPrice,
+            //    ArrivalPeriod = vehicle.ArrivalPeriod,
+            //    Rating = vehicle.Rating,
+            //    ReviewCount = vehicle.ReviewCount,
+            //    PageTitle = vehicle.PageTitle,
+            //    DescriptionText = vehicle.DescriptionText,
+            //    Emi = vehicle.Emi,
+            //    Images = vehicle.Images,
+            //    Videos = vehicle.Videos,
+            //    Variants = vehicle.Variants,
+            //};
+            //ShowAddEditModal = true;
         }
 
         protected void CloseModal()
