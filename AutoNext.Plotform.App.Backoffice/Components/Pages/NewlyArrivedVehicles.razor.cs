@@ -1,13 +1,14 @@
-﻿using AutoNext.Plotform.App.Backoffice.Integrations.Listings;
+﻿using AutoNext.Plotform.App.Backoffice.Integrations.Core;
+using AutoNext.Plotform.App.Backoffice.Integrations.Listings;
 using AutoNext.Plotform.App.Backoffice.Models.DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.JSInterop;
 using Radzen;
 
 namespace AutoNext.Plotform.App.Backoffice.Components.Pages
 {
-    [Authorize]
     public class NewlyArrivedVehiclesBase : ComponentBase
     {
         [Inject] protected INewlyArrivedService NewlyArrivedService { get; set; } = default!;
@@ -15,7 +16,11 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
         [Inject] protected IJSRuntime JSRuntime { get; set; } = default!;
         [Inject] protected ILogger<NewlyArrivedVehiclesBase> Logger { get; set; } = default!;
         [Inject] protected NotificationService NotificationService { get; set; } = default!;
+        [Inject] protected IBrandService BrandService { get; set; } = default!;
+        [Inject] protected IVehicleTypeService VehicleTypeService { get; set; } = default!;
 
+        protected List<BrandResponseDto> Brands { get; set; } = new();
+        protected List<VehicleTypeResponseDto> VehicleTypes { get; set; } = new();
         protected List<NewlyArrivedResponseDto> AllVehicles { get; set; } = new();
         protected List<NewlyArrivedResponseDto> SelectedVehicles { get; set; } = new();
 
@@ -72,6 +77,8 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
         {
             Logger.LogInformation("NewlyArrivedVehicles page initialized");
             await LoadVehiclesAsync();
+            await LoadBandsAsync();
+            await LoadVehicleTypesAsync();
         }
 
         protected async Task LoadVehiclesAsync()
@@ -93,6 +100,56 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             {
                 Logger.LogError(ex, "Error loading newly arrived vehicles");
                 NotificationService.Notify(NotificationSeverity.Error, "Error", "Failed to load vehicles.");
+            }
+            finally
+            {
+                IsLoading = false;
+                StateHasChanged();
+            }
+        }
+        protected async Task LoadBandsAsync()
+        {
+            try
+            {
+                IsLoading = true;
+                StateHasChanged();
+
+                var result = await BrandService.GetAllBrandsAsync();
+                Brands = result?.ToList() ?? new List<BrandResponseDto>();
+
+
+                Logger.LogInformation("Loaded {Count} brands", Brands.Count);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading brands");
+                NotificationService.Notify(NotificationSeverity.Error, "Error", "Failed to load brands.");
+            }
+            finally
+            {
+                IsLoading = false;
+                StateHasChanged();
+            }
+        }
+
+        protected async Task LoadVehicleTypesAsync()
+        {
+            try
+            {
+                IsLoading = true;
+                StateHasChanged();
+
+                var result = await VehicleTypeService.GetAllAsync();
+
+                VehicleTypes = result?.ToList() ?? new List<VehicleTypeResponseDto>();
+
+
+                Logger.LogInformation("Loaded {Count} VehicleTypes", Brands.Count);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading VehicleTypes");
+                NotificationService.Notify(NotificationSeverity.Error, "Error", "Failed to load VehicleTypes.");
             }
             finally
             {
