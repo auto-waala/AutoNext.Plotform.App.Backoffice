@@ -78,7 +78,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Core
                 {
                     var requestId = Guid.NewGuid();
                     _logger.LogDebug("[{RequestId}] Sending request to get vehicle types (onlyActive: {OnlyActive})", requestId, onlyActive);
-                    return await _httpClient.GetAsync($"api/v1/vehicletype{(onlyActive ? "/active" : "")}");
+                    return await _httpClient.GetAsync($"api/v1/VehicleTypes?onlyActive={onlyActive.ToString().ToLower()}");
                 });
 
                 if (!response.IsSuccessStatusCode)

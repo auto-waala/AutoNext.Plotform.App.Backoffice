@@ -84,11 +84,11 @@
                         <div class="col-md-2">
                             <label class="form-label small text-muted mb-1">Sort By</label>
                             <select class="form-select form-select-sm" value="@SortBy" @onchange="e => { SortBy = e.Value?.ToString() ?? defaultValues; ApplyFilters(); }">
-                                    <option value="newest">Newest First</option>
-                                    <option value="price_asc">Price: Low to High</option>
-                                    <option value="price_desc">Price: High to Low</option>
-                                    <option value="rating">Top Rated</option>
-                                    </select>
+                                <option value="newest">Newest First</option>
+                                <option value="price_asc">Price: Low to High</option>
+                                <option value="price_desc">Price: High to Low</option>
+                                <option value="rating">Top Rated</option>
+                            </select>
                         </div>
                         <div class="col-md-1">
                             <button class="btn btn-sm btn-outline-secondary w-100" @onclick="ClearFilters">
@@ -329,7 +329,13 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label small fw-medium">Brand Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" @bind="FormModel.BrandName" placeholder="e.g. Maruti Suzuki" />
+                            <select class="form-select form-control" @bind="FormModel.BrandName">
+                                @foreach (var brand in Brands)
+                                {
+                                    <option value="@brand.Name">@brand.Name</option>
+                                }
+                            </select>
+                            @* <input type="text" class="form-control form-control-sm" @bind="FormModel.BrandName" placeholder="e.g. Maruti Suzuki" /> *@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-medium">Model Name <span class="text-danger">*</span></label>
@@ -337,7 +343,12 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-medium">Vehicle Type</label>
-                            <input type="text" class="form-control form-control-sm" @bind="FormModel.VehicleType" placeholder="e.g. Hatchback" />
+                            <select class="form-select form-control" @bind="FormModel.VehicleType">
+                                @foreach (var vehicleType in VehicleTypes)
+                                {
+                                    <option value="@vehicleType.Name">@vehicleType.Name</option>
+                                }
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-medium">Body Type</label>
