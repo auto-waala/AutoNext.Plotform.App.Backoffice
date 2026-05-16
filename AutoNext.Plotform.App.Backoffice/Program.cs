@@ -160,6 +160,7 @@ try
     RegisterServiceWithTokenHandler<IVehicleVariantService, VehicleVariantService>();
     RegisterServiceWithTokenHandler<IWarrantyTypeService, WarrantyTypeService>();
     RegisterServiceWithTokenHandler<INewlyArrivedService, NewlyArrivedService>();
+    RegisterServiceWithTokenHandler<IFeaturedVehicleService, FeaturedVehicleService>();
 
     // ===== AUTO MAPPER CONFIGURATION =====
 
