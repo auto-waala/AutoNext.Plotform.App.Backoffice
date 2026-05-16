@@ -1,9 +1,7 @@
 ﻿using AutoNext.Plotform.App.Backoffice.Integrations.Core;
 using AutoNext.Plotform.App.Backoffice.Integrations.Listings;
 using AutoNext.Plotform.App.Backoffice.Models.DTO;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.JSInterop;
 using Radzen;
 
@@ -186,7 +184,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
         protected void OpenEditModal(NewlyArrivedResponseDto vehicle)
         {
 
-            Navigation.NavigateTo($"/newly-arrived-vehicles/{vehicle.Id}");
+            Navigation.NavigateTo($"/newly-arrived-vehicles/{vehicle.Id}/edit");
 
             //IsEditMode = true;
             //SelectedVehicle = vehicle;
@@ -405,8 +403,8 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             if (!string.IsNullOrEmpty(vehicle.ThumbnailImage))
                 return vehicle.ThumbnailImage;
 
-            var primary = vehicle.Images?.FirstOrDefault(i => i.IsPrimary)?.Url
-                          ?? vehicle.Images?.FirstOrDefault()?.Url;
+            var primary = vehicle.Images?.FirstOrDefault(i => i.IsPrimary)?.FileUrl
+                          ?? vehicle.Images?.FirstOrDefault()?.FileUrl;
 
             return primary ?? "https://placehold.co/400x250?text=No+Image";
         }

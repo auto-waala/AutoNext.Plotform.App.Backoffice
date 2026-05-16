@@ -45,12 +45,9 @@
 
     public class ImageDto
     {
-        public string Url { get; set; } = string.Empty;
-        public string WebpUrl { get; set; } = string.Empty;
-        public string AltText { get; set; } = string.Empty;
-        public string Type { get; set; } = "exterior";
-        public int Order { get; set; }
-        public bool IsPrimary { get; set; } = false;
+        public string FileId { get; set; } = string.Empty;
+        public string FileUrl { get; set; } = string.Empty;
+        public bool IsPrimary { get; set; }
     }
 
     public class NewlyArrivedResponseDto
@@ -80,18 +77,9 @@
 
     public class VideoDto
     {
-        public string Image { get; set; } = string.Empty;
-        public string WebpImage { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public string Url { get; set; } = string.Empty;  // YouTube URL
-        public string Type { get; set; } = "youtube";   // youtube, vimeo
-        public string Duration { get; set; } = string.Empty;
-        public DateTime Date { get; set; }
-        public string VideoId { get; set; } = string.Empty; // YouTube video ID
-        public string AuthorName { get; set; } = string.Empty;
-        public int NoOfViewer { get; set; }
-        public string ViewCountText { get; set; } = string.Empty;
-        public string DaysText { get; set; } = string.Empty;
+        public string FileUrl { get; set; } = string.Empty;
+        public string? ThumbnailUrl { get; set; }
+        public string? Duration { get; set; }
     }
 
     public class VariantDetailDto
