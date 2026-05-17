@@ -8,6 +8,7 @@ using Polly;
 using Polly.Retry;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.RegularExpressions;
 
 namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 {
@@ -18,8 +19,12 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         private readonly ILogger<NewlyArrivedService> _logger;
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
         private readonly SemaphoreSlim _cacheLock = new SemaphoreSlim(1, 1);
+        private const string CACHE_KEY_PREFIX = "newly_arrived_";
 
-        public NewlyArrivedService(HttpClient httpClient, IMemoryCache memoryCache, ILogger<NewlyArrivedService> logger)
+        public NewlyArrivedService(
+            HttpClient httpClient,
+            IMemoryCache memoryCache,
+            ILogger<NewlyArrivedService> logger)
         {
             _httpClient = httpClient;
             _cache = memoryCache;
@@ -48,34 +53,71 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             statusCode == HttpStatusCode.GatewayTimeout ||
             statusCode == HttpStatusCode.RequestTimeout;
 
-        // ✅ GENERIC API RESPONSE HANDLER
         private async Task<T?> ReadApiResponseAsync<T>(HttpResponseMessage response)
         {
             var content = await response.Content.ReadAsStringAsync();
 
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<T>>(content);
-
-            if (apiResponse == null || !apiResponse.IsSuccess)
+            if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("API response invalid or failed");
+                _logger.LogWarning("API request failed with status {StatusCode}: {Content}",
+                    response.StatusCode, content);
                 return default;
             }
 
-            return apiResponse.Data;
+            try
+            {
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<T>>(content);
+
+                if (apiResponse == null)
+                {
+                    _logger.LogWarning("Failed to deserialize API response");
+                    return default;
+                }
+
+                if (!apiResponse.IsSuccess)
+                {
+                    _logger.LogWarning("API returned error: {Message}", apiResponse.Message);
+                    return default;
+                }
+
+                return apiResponse.Data;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON deserialization error for response: {Content}", content);
+                return default;
+            }
         }
+
+        private void InvalidateAllCaches()
+        {
+            _logger.LogDebug("Invalidating all newly arrived caches");
+        }
+
+        private void InvalidateVehicleCache(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return;
+
+            _cache.Remove($"{CACHE_KEY_PREFIX}{id}");
+            _cache.Remove($"{CACHE_KEY_PREFIX}slug_*");
+            _logger.LogDebug("Invalidated cache for vehicle: {Id}", id);
+        }
+
+        private string GetPagedCacheKey(int page, int pageSize) =>
+            $"{CACHE_KEY_PREFIX}all_{page}_{pageSize}";
 
         public async Task<PagedResult<NewlyArrivedResponseDto>> GetAllAsync(int page, int pageSize)
         {
-            string cacheKey = $"newly_arrived_all_{page}_{pageSize}";
+            string cacheKey = GetPagedCacheKey(page, pageSize);
 
-            if (_cache.TryGetValue(cacheKey, out PagedResult<NewlyArrivedResponseDto> cached))
-                return cached;
+            if (_cache.TryGetValue(cacheKey, out PagedResult<NewlyArrivedResponseDto>? cached))
+                return cached!;
 
             await _cacheLock.WaitAsync();
             try
             {
                 if (_cache.TryGetValue(cacheKey, out cached))
-                    return cached;
+                    return cached!;
 
                 var response = await _retryPolicy.ExecuteAsync(() =>
                     _httpClient.GetAsync($"api/v1/newlyarrived?page={page}&pageSize={pageSize}")
@@ -89,8 +131,9 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
                 _cache.Set(cacheKey, result, new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
-                    SlidingExpiration = TimeSpan.FromMinutes(10)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                    SlidingExpiration = TimeSpan.FromMinutes(2),
+                    Priority = CacheItemPriority.Normal
                 });
 
                 return result;
@@ -103,9 +146,12 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
         public async Task<NewlyArrivedResponseDto?> GetByIdAsync(string id)
         {
-            string cacheKey = $"newly_arrived_{id}";
+            if (string.IsNullOrWhiteSpace(id))
+                return null;
 
-            if (_cache.TryGetValue(cacheKey, out NewlyArrivedResponseDto cached))
+            string cacheKey = $"{CACHE_KEY_PREFIX}{id}";
+
+            if (_cache.TryGetValue(cacheKey, out NewlyArrivedResponseDto? cached))
                 return cached;
 
             var response = await _retryPolicy.ExecuteAsync(() =>
@@ -118,16 +164,26 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var item = await ReadApiResponseAsync<NewlyArrivedResponseDto>(response);
 
             if (item != null)
-                _cache.Set(cacheKey, item, TimeSpan.FromMinutes(60));
+            {
+                _cache.Set(cacheKey, item, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                    SlidingExpiration = TimeSpan.FromMinutes(3),
+                    Priority = CacheItemPriority.High
+                });
+            }
 
             return item;
         }
 
         public async Task<NewlyArrivedResponseDto?> GetByModelSlugAsync(string modelSlug)
         {
-            string cacheKey = $"newly_arrived_slug_{modelSlug}";
+            if (string.IsNullOrWhiteSpace(modelSlug))
+                return null;
 
-            if (_cache.TryGetValue(cacheKey, out NewlyArrivedResponseDto cached))
+            string cacheKey = $"{CACHE_KEY_PREFIX}slug_{modelSlug}";
+
+            if (_cache.TryGetValue(cacheKey, out NewlyArrivedResponseDto? cached))
                 return cached;
 
             var response = await _retryPolicy.ExecuteAsync(() =>
@@ -140,17 +196,23 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var item = await ReadApiResponseAsync<NewlyArrivedResponseDto>(response);
 
             if (item != null)
-                _cache.Set(cacheKey, item, TimeSpan.FromMinutes(60));
+            {
+                _cache.Set(cacheKey, item, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                    SlidingExpiration = TimeSpan.FromMinutes(3)
+                });
+            }
 
             return item;
         }
 
         public async Task<IEnumerable<NewlyArrivedResponseDto>> GetFeaturedArrivalsAsync(int limit = 10)
         {
-            string cacheKey = $"newly_arrived_featured_{limit}";
+            string cacheKey = $"{CACHE_KEY_PREFIX}featured_{limit}";
 
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto> cached))
-                return cached;
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto>? cached))
+                return cached!;
 
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.GetAsync($"api/v1/newlyarrived/featured?limit={limit}")
@@ -162,17 +224,21 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var items = await ReadApiResponseAsync<IEnumerable<NewlyArrivedResponseDto>>(response)
                         ?? Enumerable.Empty<NewlyArrivedResponseDto>();
 
-            _cache.Set(cacheKey, items, TimeSpan.FromMinutes(30));
+            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2),
+                SlidingExpiration = TimeSpan.FromMinutes(1)
+            });
 
             return items;
         }
 
         public async Task<IEnumerable<NewlyArrivedResponseDto>> GetWeeklyArrivalsAsync(int limit = 20)
         {
-            string cacheKey = $"newly_arrived_weekly_{limit}";
+            string cacheKey = $"{CACHE_KEY_PREFIX}weekly_{limit}";
 
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto> cached))
-                return cached;
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto>? cached))
+                return cached!;
 
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.GetAsync($"api/v1/newlyarrived/weekly?limit={limit}")
@@ -184,17 +250,21 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var items = await ReadApiResponseAsync<IEnumerable<NewlyArrivedResponseDto>>(response)
                         ?? Enumerable.Empty<NewlyArrivedResponseDto>();
 
-            _cache.Set(cacheKey, items, TimeSpan.FromMinutes(60));
+            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
 
             return items;
         }
 
         public async Task<IEnumerable<NewlyArrivedResponseDto>> GetMonthlyArrivalsAsync(int month, int year, int limit = 20)
         {
-            string cacheKey = $"newly_arrived_monthly_{month}_{year}_{limit}";
+            string cacheKey = $"{CACHE_KEY_PREFIX}monthly_{month}_{year}_{limit}";
 
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto> cached))
-                return cached;
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto>? cached))
+                return cached!;
 
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.GetAsync($"api/v1/newlyarrived/monthly?month={month}&year={year}&limit={limit}")
@@ -206,17 +276,21 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var items = await ReadApiResponseAsync<IEnumerable<NewlyArrivedResponseDto>>(response)
                         ?? Enumerable.Empty<NewlyArrivedResponseDto>();
 
-            _cache.Set(cacheKey, items, TimeSpan.FromMinutes(60));
+            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
 
             return items;
         }
 
         public async Task<IEnumerable<NewlyArrivedResponseDto>> GetYearlyArrivalsAsync(int year)
         {
-            string cacheKey = $"newly_arrived_yearly_{year}";
+            string cacheKey = $"{CACHE_KEY_PREFIX}yearly_{year}";
 
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto> cached))
-                return cached;
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto>? cached))
+                return cached!;
 
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.GetAsync($"api/v1/newlyarrived/yearly?year={year}")
@@ -228,13 +302,20 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var items = await ReadApiResponseAsync<IEnumerable<NewlyArrivedResponseDto>>(response)
                         ?? Enumerable.Empty<NewlyArrivedResponseDto>();
 
-            _cache.Set(cacheKey, items, TimeSpan.FromMinutes(60));
+            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
 
             return items;
         }
 
         public async Task<NewlyArrivedResponseDto> CreateAsync(NewlyArrivedRequestDto request, string publishedBy)
         {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.PostAsJsonAsync("api/v1/newlyarrived", request)
             );
@@ -244,14 +325,22 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             response.EnsureSuccessStatusCode();
 
-            InvalidateCaches();
+            var result = await ReadApiResponseAsync<NewlyArrivedResponseDto>(response)
+                         ?? throw new Exception("Invalid response");
 
-            return await ReadApiResponseAsync<NewlyArrivedResponseDto>(response)
-                   ?? throw new Exception("Invalid response");
+            InvalidateAllCaches();
+
+            return result;
         }
 
         public async Task<NewlyArrivedResponseDto?> UpdateAsync(string id, NewlyArrivedRequestDto request)
         {
+            if (string.IsNullOrWhiteSpace(id))
+                throw new ArgumentNullException(nameof(id));
+
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.PutAsJsonAsync($"api/v1/newlyarrived/{id}", request)
             );
@@ -259,60 +348,73 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (!response.IsSuccessStatusCode)
                 return null;
 
-            InvalidateCaches();
-            _cache.Remove($"newly_arrived_{id}");
+            var result = await ReadApiResponseAsync<NewlyArrivedResponseDto>(response);
 
-            return await ReadApiResponseAsync<NewlyArrivedResponseDto>(response);
+            if (result != null)
+            {
+                InvalidateVehicleCache(id);
+                InvalidateAllCaches();
+            }
+
+            return result;
         }
 
         public async Task<bool> PublishAsync(string id, string publishedBy)
         {
+            if (string.IsNullOrWhiteSpace(id))
+                return false;
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PatchAsync($"api/v1/newlyarrived/{id}/publish", JsonContent.Create(new { publishedBy }))
+                _httpClient.PatchAsync($"api/v1/newlyarrived/{id}/publish",
+                    JsonContent.Create(new { publishedBy }))
             );
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateCaches();
-                _cache.Remove($"newly_arrived_{id}");
+                InvalidateVehicleCache(id);
+                InvalidateAllCaches();
+                return true;
             }
 
-            return response.IsSuccessStatusCode;
+            return false;
         }
 
         public async Task<bool> UnpublishAsync(string id)
         {
+            if (string.IsNullOrWhiteSpace(id))
+                return false;
+
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.PatchAsync($"api/v1/newlyarrived/{id}/unpublish", null)
             );
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateCaches();
-                _cache.Remove($"newly_arrived_{id}");
+                InvalidateVehicleCache(id);
+                InvalidateAllCaches();
+                return true;
             }
 
-            return response.IsSuccessStatusCode;
+            return false;
         }
 
         public async Task<bool> DeleteAsync(string id)
         {
+            if (string.IsNullOrWhiteSpace(id))
+                return false;
+
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.DeleteAsync($"api/v1/newlyarrived/{id}")
             );
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateCaches();
-                _cache.Remove($"newly_arrived_{id}");
+                InvalidateVehicleCache(id);
+                InvalidateAllCaches();
+                return true;
             }
 
-            return response.IsSuccessStatusCode;
-        }
-
-        private void InvalidateCaches()
-        {
-            _logger.LogDebug("Invalidating newly arrived caches");
+            return false;
         }
     }
 }

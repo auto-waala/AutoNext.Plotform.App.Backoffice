@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using Radzen;
 using Serilog;
 using AutoNext.Plotform.App.Backoffice.Integrations.Listings;
+using AutoNext.Plotform.App.Backoffice.Integrations.Blob;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -161,7 +162,7 @@ try
     RegisterServiceWithTokenHandler<IWarrantyTypeService, WarrantyTypeService>();
     RegisterServiceWithTokenHandler<INewlyArrivedService, NewlyArrivedService>();
     RegisterServiceWithTokenHandler<IFeaturedVehicleService, FeaturedVehicleService>();
-
+    RegisterServiceWithTokenHandler<IBlobService, BlobService>();
     // ===== AUTO MAPPER CONFIGURATION =====
 
     builder.Services.AddAutoMapper(cfg =>

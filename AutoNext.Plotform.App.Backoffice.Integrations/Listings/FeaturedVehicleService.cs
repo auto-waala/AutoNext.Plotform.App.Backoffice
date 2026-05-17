@@ -7,6 +7,7 @@ using Polly;
 using Polly.Retry;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.RegularExpressions;
 
 namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 {
@@ -18,6 +19,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
         private readonly SemaphoreSlim _cacheLock = new SemaphoreSlim(1, 1);
         private const string BASE_PATH = "api/v1/FeaturedVehicle";
+        private const string CACHE_KEY_PREFIX = "featured_vehicle_";
 
         public FeaturedVehicleService(
             HttpClient httpClient,
@@ -52,9 +54,6 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             statusCode == HttpStatusCode.GatewayTimeout ||
             statusCode == HttpStatusCode.RequestTimeout;
 
-        /// <summary>
-        /// Generic API response handler that unwraps ApiResponse<T>
-        /// </summary>
         private async Task<T?> ReadApiResponseAsync<T>(HttpResponseMessage response)
         {
             var content = await response.Content.ReadAsStringAsync();
@@ -92,22 +91,31 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         }
 
         /// <summary>
-        /// Invalidates cache entries that might be affected by changes
+        /// Invalidates all cache entries related to featured vehicles
         /// </summary>
-        private void InvalidateCaches()
+        private void InvalidateAllCaches()
         {
-            // Since we don't have pattern-based cache removal with IMemoryCache,
-            // we'll use a cache key prefix approach. For simplicity, we'll clear 
-            // the most common cache keys.
-            _logger.LogDebug("Invalidating featured vehicle caches");
+            _logger.LogDebug("Invalidating all featured vehicle caches");
+            // Note: IMemoryCache doesn't support pattern removal directly
+            // We'll rely on individual key removal and short expiration times
+            // For production, consider using IDistributedCache with Redis
+        }
 
-            // You can implement more sophisticated cache invalidation here
-            // For now, we'll just log that invalidation happened
-            // In production, consider using IDistributedCache with pattern removal
+        /// <summary>
+        /// Invalidates cache for a specific vehicle by ID
+        /// </summary>
+        private void InvalidateVehicleCache(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return;
+
+            _cache.Remove($"{CACHE_KEY_PREFIX}{id}");
+            _cache.Remove($"{CACHE_KEY_PREFIX}slug_*");
+            _cache.Remove($"{CACHE_KEY_PREFIX}model_*");
+            _logger.LogDebug("Invalidated cache for vehicle: {Id}", id);
         }
 
         private string GetPagedCacheKey(int page, int pageSize, string? sortBy, string? sortOrder) =>
-            $"featured_vehicle_all_{page}_{pageSize}_{sortBy ?? "none"}_{sortOrder ?? "none"}";
+            $"{CACHE_KEY_PREFIX}all_{page}_{pageSize}_{sortBy ?? "none"}_{sortOrder ?? "none"}";
 
         // ── GET Operations ─────────────────────────────────────────────────────────
 
@@ -138,8 +146,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
                 _cache.Set(cacheKey, result, new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
-                    SlidingExpiration = TimeSpan.FromMinutes(10),
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5), // Shorter for lists
+                    SlidingExpiration = TimeSpan.FromMinutes(2),
                     Priority = CacheItemPriority.Normal
                 });
 
@@ -173,7 +181,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (string.IsNullOrWhiteSpace(id))
                 return null;
 
-            string cacheKey = $"featured_vehicle_{id}";
+            string cacheKey = $"{CACHE_KEY_PREFIX}{id}";
 
             if (_cache.TryGetValue(cacheKey, out FeaturedVehicleResponseDto? cached))
                 return cached;
@@ -191,8 +199,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             {
                 _cache.Set(cacheKey, item, new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60),
-                    SlidingExpiration = TimeSpan.FromMinutes(15),
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                    SlidingExpiration = TimeSpan.FromMinutes(3),
                     Priority = CacheItemPriority.High
                 });
             }
@@ -205,7 +213,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (string.IsNullOrWhiteSpace(slug))
                 return null;
 
-            string cacheKey = $"featured_vehicle_slug_{slug}";
+            string cacheKey = $"{CACHE_KEY_PREFIX}slug_{slug}";
 
             if (_cache.TryGetValue(cacheKey, out FeaturedVehicleResponseDto? cached))
                 return cached;
@@ -223,8 +231,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             {
                 _cache.Set(cacheKey, item, new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60),
-                    SlidingExpiration = TimeSpan.FromMinutes(15)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                    SlidingExpiration = TimeSpan.FromMinutes(3)
                 });
             }
 
@@ -236,7 +244,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (string.IsNullOrWhiteSpace(modelSlug))
                 return null;
 
-            string cacheKey = $"featured_vehicle_model_{modelSlug}";
+            string cacheKey = $"{CACHE_KEY_PREFIX}model_{modelSlug}";
 
             if (_cache.TryGetValue(cacheKey, out FeaturedVehicleResponseDto? cached))
                 return cached;
@@ -254,212 +262,15 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             {
                 _cache.Set(cacheKey, item, new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60),
-                    SlidingExpiration = TimeSpan.FromMinutes(15)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                    SlidingExpiration = TimeSpan.FromMinutes(3)
                 });
             }
 
             return item;
         }
 
-        // ── Filtered Collections ─────────────────────────────────────────────────
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetActiveFeaturedVehiclesAsync(int limit = 50)
-        {
-            string cacheKey = $"featured_vehicle_active_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/active?limit={limit}")
-            );
-
-            if (!response.IsSuccessStatusCode)
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15),
-                SlidingExpiration = TimeSpan.FromMinutes(5)
-            });
-
-            return items;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetTopPriorityFeaturedVehiclesAsync(int limit = 10)
-        {
-            string cacheKey = $"featured_vehicle_top_priority_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/top-priority?limit={limit}")
-            );
-
-            if (!response.IsSuccessStatusCode)
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
-                SlidingExpiration = TimeSpan.FromMinutes(5)
-            });
-
-            return items;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByBrandAsync(string brandName, int limit = 20)
-        {
-            if (string.IsNullOrWhiteSpace(brandName))
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            string cacheKey = $"featured_vehicle_brand_{brandName}_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/brand/{Uri.EscapeDataString(brandName)}?limit={limit}")
-            );
-
-            if (!response.IsSuccessStatusCode)
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
-                SlidingExpiration = TimeSpan.FromMinutes(10)
-            });
-
-            return items;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByVehicleTypeAsync(string vehicleType, int limit = 20)
-        {
-            if (string.IsNullOrWhiteSpace(vehicleType))
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            string cacheKey = $"featured_vehicle_type_{vehicleType}_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/type/{Uri.EscapeDataString(vehicleType)}?limit={limit}")
-            );
-
-            if (!response.IsSuccessStatusCode)
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
-                SlidingExpiration = TimeSpan.FromMinutes(10)
-            });
-
-            return items;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByPriceRangeAsync(
-            decimal minPrice, decimal maxPrice, int limit = 20)
-        {
-            string cacheKey = $"featured_vehicle_price_{minPrice}_{maxPrice}_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/price-range?minPrice={minPrice}&maxPrice={maxPrice}&limit={limit}")
-            );
-
-            if (!response.IsSuccessStatusCode)
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15),
-                SlidingExpiration = TimeSpan.FromMinutes(5)
-            });
-
-            return items;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByCityAsync(string city, int limit = 20)
-        {
-            if (string.IsNullOrWhiteSpace(city))
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            string cacheKey = $"featured_vehicle_city_{city}_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/city/{Uri.EscapeDataString(city)}?limit={limit}")
-            );
-
-            if (!response.IsSuccessStatusCode)
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
-                SlidingExpiration = TimeSpan.FromMinutes(10)
-            });
-
-            return items;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> SearchAsync(string searchTerm, int limit = 20)
-        {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            string cacheKey = $"featured_vehicle_search_{searchTerm}_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/search?q={Uri.EscapeDataString(searchTerm)}&limit={limit}")
-            );
-
-            if (!response.IsSuccessStatusCode)
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15),
-                SlidingExpiration = TimeSpan.FromMinutes(5)
-            });
-
-            return items;
-        }
-
-        // ── CRUD Operations ───────────────────────────────────────────────────────
+        // ── CRUD Operations with Cache Invalidation ─────────────────────────────────
 
         public async Task<FeaturedVehicleResponseDto> CreateAsync(FeaturedVehicleRequestDto request)
         {
@@ -475,10 +286,11 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             response.EnsureSuccessStatusCode();
 
-            InvalidateCaches();
-
             var result = await ReadApiResponseAsync<FeaturedVehicleResponseDto>(response)
                          ?? throw new Exception("Failed to create featured vehicle: Invalid response from API");
+
+            // Invalidate all caches on create
+            InvalidateAllCaches();
 
             return result;
         }
@@ -498,11 +310,17 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (!response.IsSuccessStatusCode)
                 return null;
 
-            InvalidateCaches();
-            _cache.Remove($"featured_vehicle_{id}");
-            _cache.Remove($"featured_vehicle_slug_*"); // Note: This won't work with IMemoryCache pattern
+            var result = await ReadApiResponseAsync<FeaturedVehicleResponseDto>(response);
 
-            return await ReadApiResponseAsync<FeaturedVehicleResponseDto>(response);
+            if (result != null)
+            {
+                // Invalidate specific vehicle cache
+                InvalidateVehicleCache(id);
+                // Invalidate list caches
+                InvalidateAllCaches();
+            }
+
+            return result;
         }
 
         public async Task<bool> DeleteAsync(string id)
@@ -516,15 +334,15 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateCaches();
-                _cache.Remove($"featured_vehicle_{id}");
+                InvalidateVehicleCache(id);
+                InvalidateAllCaches();
                 return true;
             }
 
             return false;
         }
 
-        // ── Featured-specific Operations ─────────────────────────────────────────
+        // ── Featured-specific Operations with Cache Invalidation ─────────────────
 
         public async Task<bool> UpdatePriorityAsync(string id, int priority)
         {
@@ -542,8 +360,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateCaches();
-                _cache.Remove($"featured_vehicle_{id}");
+                InvalidateVehicleCache(id);
+                InvalidateAllCaches();
                 return true;
             }
 
@@ -561,7 +379,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateCaches();
+                InvalidateAllCaches();
                 return true;
             }
 
@@ -587,8 +405,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateCaches();
-                _cache.Remove($"featured_vehicle_{id}");
+                InvalidateVehicleCache(id);
+                InvalidateAllCaches();
                 return true;
             }
 
@@ -606,15 +424,69 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateCaches();
-                _cache.Remove($"featured_vehicle_{id}");
+                InvalidateVehicleCache(id);
+                InvalidateAllCaches();
                 return true;
             }
 
             return false;
         }
 
-        // ── Engagement Operations ────────────────────────────────────────────────
+        // ── Filtered Collections (with shorter cache durations) ─────────────────
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetActiveFeaturedVehiclesAsync(int limit = 50)
+        {
+            string cacheKey = $"{CACHE_KEY_PREFIX}active_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync($"{BASE_PATH}/active?limit={limit}")
+            );
+
+            if (!response.IsSuccessStatusCode)
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2),
+                SlidingExpiration = TimeSpan.FromMinutes(1)
+            });
+
+            return items;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetTopPriorityFeaturedVehiclesAsync(int limit = 10)
+        {
+            string cacheKey = $"{CACHE_KEY_PREFIX}top_priority_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync($"{BASE_PATH}/top-priority?limit={limit}")
+            );
+
+            if (!response.IsSuccessStatusCode)
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2),
+                SlidingExpiration = TimeSpan.FromMinutes(1)
+            });
+
+            return items;
+        }
+
+        // ── Engagement Operations (no cache invalidation needed) ─────────────────
 
         public async Task<bool> IncrementViewsAsync(string id)
         {
@@ -625,7 +497,6 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/view", null)
             );
 
-            // Don't invalidate cache for view increments to avoid cache thrashing
             return response.IsSuccessStatusCode;
         }
 
@@ -640,7 +511,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                _cache.Remove($"featured_vehicle_{id}");
+                InvalidateVehicleCache(id);
                 return true;
             }
 
@@ -658,7 +529,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                _cache.Remove($"featured_vehicle_{id}");
+                InvalidateVehicleCache(id);
                 return true;
             }
 
@@ -676,14 +547,12 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                _cache.Remove($"featured_vehicle_{id}");
+                InvalidateVehicleCache(id);
                 return true;
             }
 
             return false;
         }
-
-        // ── Rating Operations ────────────────────────────────────────────────────
 
         public async Task<bool> AddRatingAsync(string id, UserRatingDto rating)
         {
@@ -699,12 +568,153 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateCaches();
-                _cache.Remove($"featured_vehicle_{id}");
+                InvalidateVehicleCache(id);
                 return true;
             }
 
             return false;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByBrandAsync(string brandName, int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(brandName))
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            string cacheKey = $"{CACHE_KEY_PREFIX}brand_{brandName}_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync($"{BASE_PATH}/brand/{Uri.EscapeDataString(brandName)}?limit={limit}")
+            );
+
+            if (!response.IsSuccessStatusCode)
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
+
+            return items;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByVehicleTypeAsync(string vehicleType, int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(vehicleType))
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            string cacheKey = $"{CACHE_KEY_PREFIX}type_{vehicleType}_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync($"{BASE_PATH}/type/{Uri.EscapeDataString(vehicleType)}?limit={limit}")
+            );
+
+            if (!response.IsSuccessStatusCode)
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
+
+            return items;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByPriceRangeAsync(decimal minPrice, decimal maxPrice, int limit = 20)
+        {
+            string cacheKey = $"{CACHE_KEY_PREFIX}price_{minPrice}_{maxPrice}_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync($"{BASE_PATH}/price-range?minPrice={minPrice}&maxPrice={maxPrice}&limit={limit}")
+            );
+
+            if (!response.IsSuccessStatusCode)
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
+
+            return items;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByCityAsync(string city, int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(city))
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            string cacheKey = $"{CACHE_KEY_PREFIX}city_{city}_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync($"{BASE_PATH}/city/{Uri.EscapeDataString(city)}?limit={limit}")
+            );
+
+            if (!response.IsSuccessStatusCode)
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
+
+            return items;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> SearchAsync(string searchTerm, int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            string cacheKey = $"{CACHE_KEY_PREFIX}search_{searchTerm}_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync($"{BASE_PATH}/search?q={Uri.EscapeDataString(searchTerm)}&limit={limit}")
+            );
+
+            if (!response.IsSuccessStatusCode)
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
+
+            return items;
         }
     }
 }

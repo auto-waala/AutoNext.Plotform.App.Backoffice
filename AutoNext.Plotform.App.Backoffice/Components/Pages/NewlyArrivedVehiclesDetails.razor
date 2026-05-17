@@ -66,12 +66,12 @@
                         <h6 class="mb-0 fw-bold">
                             <i class="bi bi-info-circle me-2"></i>Basic Information
                         </h6>
-                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(Basic)">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(BasicSection)">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </button>
                     </div>
                     <div class="card-body">
-                        @if (EditingSections.Contains(Basic))
+                        @if (EditingSections.Contains(BasicSection))
                         {
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -99,10 +99,10 @@
                                     <textarea class="form-control" rows="3" @bind="EditModel.DescriptionText"></textarea>
                                 </div>
                                 <div class="col-12">
-                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(Basic)">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(BasicSection)">
                                         <i class="bi bi-check-circle me-1"></i>Save Section
                                     </button>
-                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(Basic)">
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(BasicSection)">
                                         Cancel
                                     </button>
                                 </div>
@@ -146,12 +146,12 @@
                         <h6 class="mb-0 fw-bold">
                             <i class="bi bi-currency-rupee me-2"></i>Pricing & EMI
                         </h6>
-                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(Pricing)">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(PricingSection)">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </button>
                     </div>
                     <div class="card-body">
-                        @if (EditingSections.Contains(Pricing))
+                        @if (EditingSections.Contains(PricingSection))
                         {
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -179,10 +179,10 @@
                                     <input type="text" class="form-control" @bind="EditModel.Emi.DisplayText" />
                                 </div>
                                 <div class="col-12">
-                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(Pricing)">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(PricingSection)">
                                         <i class="bi bi-check-circle me-1"></i>Save Section
                                     </button>
-                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(Pricing)">
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(PricingSection)">
                                         Cancel
                                     </button>
                                 </div>
@@ -221,12 +221,12 @@
                         <h6 class="mb-0 fw-bold">
                             <i class="bi bi-images me-2"></i>Images
                         </h6>
-                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(Images)">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(ImagesSection)">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </button>
                     </div>
                     <div class="card-body">
-                        @if (EditingSections.Contains(Images))
+                        @if (EditingSections.Contains(ImagesSection))
                         {
                             <div class="row g-3">
                                 <div class="col-12">
@@ -297,10 +297,10 @@
                                 </div>
 
                                 <div class="col-12">
-                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(Images)">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(ImagesSection)">
                                         <i class="bi bi-check-circle me-1"></i>Save Section
                                     </button>
-                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(Images)">
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(ImagesSection)">
                                         Cancel
                                     </button>
                                 </div>
@@ -312,14 +312,19 @@
                                 <div class="d-flex flex-wrap gap-2">
                                     @if (Vehicle.Images != null)
                                     {
-                                        @foreach (var image in Vehicle.Images)
+                                        @foreach (var image in Vehicle.Images.Take(6))
                                         {
                                             <img src="@image.FileUrl" alt="Vehicle Image"
                                                  class="rounded border"
                                                  style="width: 80px; height: 80px; object-fit: cover;" />
                                         }
+                                        @if (Vehicle.Images.Count > 6)
+                                        {
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-secondary">+@(Vehicle.Images.Count - 6)</span>
+                                            </div>
+                                        }
                                     }
-
                                 </div>
                                 @if ((Vehicle.Images?.Count ?? 0) == 0)
                                 {
@@ -340,14 +345,14 @@
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 fw-bold">
-                            <i class="bi bi-play-circle me-2"></i>Videos & Shorts
+                            <i class="bi bi-play-circle me-2"></i>Videos
                         </h6>
-                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(Videos)">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(VideosSection)">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </button>
                     </div>
                     <div class="card-body">
-                        @if (EditingSections.Contains(Videos))
+                        @if (EditingSections.Contains(VideosSection))
                         {
                             <div class="row g-3">
                                 <div class="col-12">
@@ -389,46 +394,60 @@
 
                                 <div class="col-12">
                                     <label class="form-label small fw-bold">Current Videos (@EditModel.Videos.Count)</label>
-                                    @for (int i = 0; i < EditModel.Videos.Count; i++)
-                                    {
-                                        var index = i;
-                                        var video = EditModel.Videos[index];
-                                        <div class="border rounded p-2 mb-2 d-flex justify-content-between align-items-center">
-                                            <div class="d-flex align-items-center gap-3">
-                                                @if (!string.IsNullOrEmpty(video.ThumbnailUrl))
-                                                {
-                                                    <img src="@video.ThumbnailUrl" alt="Video" style="height: 40px; width: 60px; object-fit: cover;" class="rounded" />
-                                                }
-                                                else
-                                                {
-                                                    <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 60px; height: 40px;">
-                                                        <i class="bi bi-play-circle text-muted"></i>
+                                    <div class="row g-3">
+                                        @for (int i = 0; i < EditModel.Videos.Count; i++)
+                                        {
+                                            var index = i;
+                                            var video = EditModel.Videos[index];
+                                            <div class="col-md-6 col-lg-4">
+                                                <div class="card h-100 shadow-sm">
+                                                    <div class="position-relative">
+                                                        @if (!string.IsNullOrEmpty(video.ThumbnailUrl))
+                                                        {
+                                                            <img src="@video.ThumbnailUrl" alt="Video Thumbnail"
+                                                                 class="card-img-top" style="height: 160px; object-fit: cover; cursor: pointer;"
+                                                                 @onclick="() => PlayVideo(video.FileUrl, Video)" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="bg-dark d-flex align-items-center justify-content-center"
+                                                                 style="height: 160px; cursor: pointer;"
+                                                                 @onclick="() => PlayVideo(video.FileUrl, Video)">
+                                                                <i class="bi bi-play-circle-fill text-white fs-1"></i>
+                                                            </div>
+                                                        }
+                                                        <div class="position-absolute top-0 end-0 m-2">
+                                                            <button class="btn btn-sm btn-danger rounded-circle"
+                                                                    style="width: 28px; height: 28px; padding: 0;"
+                                                                    @onclick="() => RemoveVideo(index)">
+                                                                <i class="bi bi-x small"></i>
+                                                            </button>
+                                                        </div>
+                                                        @if (!string.IsNullOrEmpty(video.Duration))
+                                                        {
+                                                            <div class="position-absolute bottom-0 end-0 m-2">
+                                                                <span class="badge bg-dark">@video.Duration</span>
+                                                            </div>
+                                                        }
                                                     </div>
-                                                }
-                                                <div>
-                                                    <div class="small">@(video.FileUrl?.Length > 50 ? video.FileUrl.Substring(0, 50) + "..." : video.FileUrl)</div>
-                                                    @if (!string.IsNullOrEmpty(video.Duration))
-                                                    {
-                                                        <small class="text-muted">@video.Duration</small>
-                                                    }
+                                                    <div class="card-body p-2">
+                                                        <small class="text-muted text-truncate d-block">@(video.FileUrl?.Length > 40 ? video.FileUrl.Substring(0, 40) + "..." : video.FileUrl)</small>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveVideo(index)">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    }
+                                        }
+                                    </div>
                                     @if (!EditModel.Videos.Any())
                                     {
-                                        <p class="text-muted small text-center py-2">No videos added</p>
+                                        <p class="text-muted small text-center py-3">No videos added</p>
                                     }
                                 </div>
 
                                 <div class="col-12">
-                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(Videos)">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(VideosSection)">
                                         <i class="bi bi-check-circle me-1"></i>Save Section
                                     </button>
-                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(Videos)">
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(VideosSection)">
                                         Cancel
                                     </button>
                                 </div>
@@ -439,20 +458,32 @@
                             <div>
                                 @if (Vehicle.Videos?.Any() == true)
                                 {
-                                    <div class="d-flex flex-column gap-2">
-                                        @foreach (var video in Vehicle.Videos.Take(3))
+                                    <div class="row g-3">
+                                        @foreach (var video in Vehicle.Videos.Take(6))
                                         {
-                                            <div class="d-flex align-items-center gap-2">
-                                                @if (!string.IsNullOrEmpty(video.ThumbnailUrl))
-                                                {
-                                                    <img src="@video.ThumbnailUrl" alt="Video" style="height: 40px; width: 60px; object-fit: cover;" class="rounded" />
-                                                }
-                                                <div class="small">@(video.FileUrl?.Length > 50 ? video.FileUrl.Substring(0, 50) + "..." : video.FileUrl)</div>
+                                            <div class="col-md-4 col-lg-3">
+                                                <div class="card shadow-sm border-0" style="cursor: pointer;" @onclick="() => PlayVideo(video.FileUrl, Video)">
+                                                    @if (!string.IsNullOrEmpty(video.ThumbnailUrl))
+                                                    {
+                                                        <img src="@video.ThumbnailUrl" alt="Video" class="card-img-top rounded" style="height: 100px; object-fit: cover;" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="bg-dark d-flex align-items-center justify-content-center rounded-top" style="height: 100px;">
+                                                            <i class="bi bi-play-circle-fill text-white fs-2"></i>
+                                                        </div>
+                                                    }
+                                                    <div class="card-body p-2">
+                                                        <small class="text-muted text-truncate d-block">@(video.FileUrl?.Length > 35 ? video.FileUrl.Substring(0, 35) + "..." : video.FileUrl)</small>
+                                                    </div>
+                                                </div>
                                             </div>
                                         }
-                                        @if (Vehicle.Videos.Count > 3)
+                                        @if (Vehicle.Videos.Count > 6)
                                         {
-                                            <small class="text-muted">+ @(Vehicle.Videos.Count - 3) more videos</small>
+                                            <div class="col-12">
+                                                <small class="text-muted">+ @(Vehicle.Videos.Count - 6) more videos</small>
+                                            </div>
                                         }
                                     </div>
                                 }
@@ -475,12 +506,12 @@
                         <h6 class="mb-0 fw-bold">
                             <i class="bi bi-calendar-range me-2"></i>Arrival Settings
                         </h6>
-                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(ArrivalSettings)">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(ArrivalSettingsSection)">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </button>
                     </div>
                     <div class="card-body">
-                        @if (EditingSections.Contains(ArrivalSettings))
+                        @if (EditingSections.Contains(ArrivalSettingsSection))
                         {
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -500,10 +531,10 @@
                                     <input type="number" class="form-control" @bind="EditModel.ReviewCount" />
                                 </div>
                                 <div class="col-12">
-                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(ArrivalSettings)">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(ArrivalSettingsSection)">
                                         <i class="bi bi-check-circle me-1"></i>Save Section
                                     </button>
-                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(ArrivalSettings)">
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(ArrivalSettingsSection)">
                                         Cancel
                                     </button>
                                 </div>
@@ -546,12 +577,12 @@
                         <h6 class="mb-0 fw-bold">
                             <i class="bi bi-layers me-2"></i>Variants
                         </h6>
-                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(Variants)">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(VariantsSection)">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </button>
                     </div>
                     <div class="card-body">
-                        @if (EditingSections.Contains(Variants))
+                        @if (EditingSections.Contains(VariantsSection))
                         {
                             <div class="row g-3">
                                 <div class="col-12">
@@ -633,10 +664,10 @@
                                     }
                                 </div>
                                 <div class="col-12">
-                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(Variants)">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(VariantsSection)">
                                         <i class="bi bi-check-circle me-1"></i>Save Section
                                     </button>
-                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(Variants)">
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(VariantsSection)">
                                         Cancel
                                     </button>
                                 </div>
@@ -690,12 +721,12 @@
                         <h6 class="mb-0 fw-bold">
                             <i class="bi bi-search me-2"></i>SEO Information
                         </h6>
-                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(Seo)">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(SeoSection)">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </button>
                     </div>
                     <div class="card-body">
-                        @if (EditingSections.Contains(Seo))
+                        @if (EditingSections.Contains(SeoSection))
                         {
                             <div class="row g-3">
                                 <div class="col-12">
@@ -707,10 +738,10 @@
                                     <textarea class="form-control" rows="2" @bind="EditModel.DescriptionText"></textarea>
                                 </div>
                                 <div class="col-12">
-                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(Seo)">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(SeoSection)">
                                         <i class="bi bi-check-circle me-1"></i>Save Section
                                     </button>
-                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(Seo)">
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(SeoSection)">
                                         Cancel
                                     </button>
                                 </div>
@@ -735,6 +766,34 @@
         </div>
     }
 </div>
+
+<!-- Video Player Modal -->
+@if (ShowVideoModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.95)" @onclick="CloseVideoModal">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-body p-0">
+                    <button class="btn btn-light rounded-circle position-absolute top-0 end-0 m-3"
+                            style="width: 40px; height: 40px; z-index: 1060; background: white; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"
+                            @onclick="CloseVideoModal">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                    <div class="ratio ratio-16x9">
+                        <iframe id="videoPlayer"
+                                src="@GetYouTubeEmbedUrl(SelectedVideoUrl)"
+                                title="YouTube video player"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowfullscreen
+                                sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation">
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- Save Confirmation Modal -->
 @if (ShowSaveConfirmation)
@@ -783,5 +842,13 @@
 
     .badge {
         font-weight: 500;
+    }
+
+    .modal.fade.show {
+        background-color: rgba(0,0,0,0.5);
+    }
+
+    .ratio-16x9 {
+        aspect-ratio: 16/9;
     }
 </style>
