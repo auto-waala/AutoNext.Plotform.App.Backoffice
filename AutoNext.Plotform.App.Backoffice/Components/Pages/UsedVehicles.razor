@@ -1,0 +1,469 @@
+﻿@page "/used-vehicles"
+@inherits UsedVehiclesBase
+
+<div class="container-fluid px-0">
+    <div class="row mx-0">
+        <div class="col px-0">
+            <div class="card border-0 shadow-sm">
+
+                <!-- Header -->
+                <div class="card-header bg-white border-bottom px-4 py-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0 fw-bold">
+                                <i class="bi bi-car-front text-primary me-2"></i>Used Cars
+                            </h5>
+                            <span class="badge bg-light text-dark border">
+                                <span class="text-primary fw-bold">@TotalCount</span> vehicles
+                            </span>
+                            <span class="badge bg-success text-white">
+                                <i class="bi bi-check-circle-fill me-1"></i>@ActiveCount active
+                            </span>
+                            @if (SelectedVehicles.Any())
+                            {
+                                <span class="badge bg-primary">@SelectedVehicles.Count selected</span>
+                            }
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            @if (SelectedVehicles.Any())
+                            {
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                                        @onclick="BulkDelete">
+                                    <i class="bi bi-trash"></i>
+                                    <span class="d-none d-sm-inline">Delete (@SelectedVehicles.Count)</span>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card-body border-bottom bg-light px-4 py-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted mb-1">Search</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Brand, model, type..."
+                                       value="@SearchTerm" @oninput="e => { SearchTerm = e.Value?.ToString() ?? string.Empty; ApplyFilters(); }" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Status</label>
+                            <select class="form-select form-select-sm" value="@StatusFilter"
+                                    @onchange="e => { StatusFilter = e.Value?.ToString() ?? string.Empty; ApplyFilters(); }">
+                                <option value="">All</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Vehicle Type</label>
+                            <select class="form-select form-select-sm" value="@VehicleTypeFilter"
+                                    @onchange="e => { VehicleTypeFilter = e.Value?.ToString() ?? string.Empty; ApplyFilters(); }">
+                                <option value="">All Types</option>
+                                @foreach (var type in UniqueVehicleTypes)
+                                {
+                                    <option value="@type">@type</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Min Price (₹)</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   placeholder="Min" value="@MinPriceFilter"
+                                   @oninput="e => { MinPriceFilter = decimal.TryParse(e.Value?.ToString(), out var val) ? val : 0; ApplyFilters(); }" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Max Price (₹)</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   placeholder="Max" value="@MaxPriceFilter"
+                                   @oninput="e => { MaxPriceFilter = decimal.TryParse(e.Value?.ToString(), out var val) ? val : 0; ApplyFilters(); }" />
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-sm btn-outline-secondary w-100" @onclick="ClearFilters">
+                                <i class="bi bi-eraser"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-md-2">
+                            <select class="form-select form-select-sm" value="@SortBy"
+                                    @onchange="e => { SortBy = e.Value?.ToString() ?? string.Empty; ApplyFilters(); }">
+                                <option value="newest">Newest First</option>
+                                <option value="price_asc">Price: Low to High</option>
+                                <option value="price_desc">Price: High to Low</option>
+                                <option value="year_desc">Year: Newest First</option>
+                                <option value="rating">Top Rated</option>
+                                <option value="views">Most Viewed</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Grid Body -->
+                <div class="card-body p-4">
+                    @if (IsLoading)
+                    {
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-3 small">Loading used cars...</p>
+                        </div>
+                    }
+                    else if (!PaginatedVehicles.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            @if (!string.IsNullOrEmpty(SearchTerm) || !string.IsNullOrEmpty(StatusFilter) || !string.IsNullOrEmpty(VehicleTypeFilter))
+                            {
+                                <div>
+                                    <i class="bi bi-filter-circle fs-1"></i>
+                                    <p class="mt-2">No used cars match your filters</p>
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="ClearFilters">Clear Filters</button>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-4">
+                            @foreach (var vehicle in PaginatedVehicles)
+                            {
+                                var v = vehicle;
+                                <div class="col">
+                                    <div class="used-car-card h-100 @(SelectedVehicles.Contains(v) ? "card-selected" : "")
+                                        @(!v.IsActive ? "card-inactive" : "")">
+
+                                        <!-- Selection checkbox -->
+                                        <div class="card-check">
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   checked="@SelectedVehicles.Contains(v)"
+                                                   @onchange="e => OnVehicleSelectionChanged(v, (bool)e.Value!)" />
+                                        </div>
+
+                                        <!-- Status badge -->
+                                        <div class="status-badge">
+                                            @if (!v.IsActive)
+                                            {
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                        </div>
+
+                                        <!-- Year badge -->
+                                        @if (!string.IsNullOrEmpty(v.KeySpecifications?.YearOfManufacture))
+                                        {
+                                            <div class="year-badge">
+                                                <span class="badge bg-dark">@v.KeySpecifications.YearOfManufacture</span>
+                                            </div>
+                                        }
+
+                                        <!-- Image -->
+                                        <div class="card-image">
+                                            <img src="@GetThumbnail(v)"
+                                                 alt="@v.BrandName @v.ModelName"
+                                                 onerror="this.src='https://placehold.co/400x220?text=No+Image'" />
+                                        </div>
+
+                                        <!-- Body -->
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                                <div>
+                                                    <p class="car-brand text-muted mb-0">@v.BrandName</p>
+                                                    <h6 class="car-model mb-0">@v.ModelName</h6>
+                                                </div>
+                                                <span class="badge bg-light text-secondary border small">@v.BodyType</span>
+                                            </div>
+
+                                            <!-- Specs -->
+                                            <div class="car-specs d-flex flex-wrap gap-2 mt-2 small text-muted">
+                                                @if (!string.IsNullOrEmpty(v.KeySpecifications?.FuelType))
+                                                {
+                                                    <span><i class="bi bi-fuel-pump"></i> @v.KeySpecifications.FuelType</span>
+                                                }
+                                                @if (!string.IsNullOrEmpty(v.KeySpecifications?.Transmission))
+                                                {
+                                                    <span><i class="bi bi-gear"></i> @v.KeySpecifications.Transmission</span>
+                                                }
+                                                @if (!string.IsNullOrEmpty(v.KeySpecifications?.Mileage))
+                                                {
+                                                    <span><i class="bi bi-speedometer2"></i> @v.KeySpecifications.Mileage km/l</span>
+                                                }
+                                            </div>
+
+                                            <!-- Rating -->
+                                            @if (v.Rating > 0)
+                                            {
+                                                <div class="d-flex align-items-center gap-1 my-1">
+                                                    <span class="car-stars text-warning">@GetStarHtml(v.Rating)</span>
+                                                    <span class="small text-muted">@v.Rating.ToString("F1")</span>
+                                                </div>
+                                            }
+
+                                            <!-- Price -->
+                                            <div class="car-price mt-2">
+                                                @FormatPrice(v.Price?.Amount ?? 0)
+                                                @if (v.Price?.Negotiable == true)
+                                                {
+                                                    <span class="badge bg-info text-white ms-1">Negotiable</span>
+                                                }
+                                            </div>
+
+                                            <!-- Location -->
+                                            @if (!string.IsNullOrEmpty(v.Location?.City))
+                                            {
+                                                <div class="car-location small text-muted mt-1">
+                                                    <i class="bi bi-geo-alt"></i> @v.Location.City, @v.Location.State
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <div class="card-actions">
+                                            <button class="btn btn-sm btn-outline-primary flex-fill" title="Edit" @onclick="() => EditVehicle(v)">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            @if (v.IsActive)
+                                            {
+                                                <button class="btn btn-sm btn-outline-warning flex-fill"
+                                                        title="Deactivate"
+                                                        @onclick="() => DeactivateVehicle(v)">
+                                                    <i class="bi bi-pause-circle"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-outline-success flex-fill"
+                                                        title="Activate"
+                                                        @onclick="() => ActivateVehicle(v)">
+                                                    <i class="bi bi-play-circle"></i>
+                                                </button>
+                                            }
+                                            <button class="btn btn-sm btn-outline-danger flex-fill"
+                                                    title="Delete"
+                                                    @onclick="() => DeleteVehicle(v)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Pagination -->
+                        @if (TotalPages > 1)
+                        {
+                            <div class="d-flex justify-content-center mt-4">
+                                <nav>
+                                    <ul class="pagination pagination-sm mb-0">
+                                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage - 1)">Previous</button>
+                                        </li>
+                                        @for (int i = 1; i <= TotalPages; i++)
+                                        {
+                                            var pageNum = i;
+                                            if (pageNum == 1 || pageNum == TotalPages || (pageNum >= CurrentPage - 2 && pageNum <= CurrentPage + 2))
+                                            {
+                                                <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                                    <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                                                </li>
+                                            }
+                                            else if (pageNum == CurrentPage - 3 || pageNum == CurrentPage + 3)
+                                            {
+                                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                                            }
+                                        }
+                                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)">Next</button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Footer -->
+                @if (!IsLoading && AllVehicles.Any())
+                {
+                    <div class="card-footer bg-white border-top px-4 py-2">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <small class="text-muted"><span class="fw-medium">@TotalCount</span> total</small>
+                                <small class="text-muted">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                    <span class="fw-medium">@ActiveCount</span> active
+                                </small>
+                                <small class="text-muted">
+                                    Showing @(((CurrentPage - 1) * ItemsPerPage) + 1)–@(Math.Min(CurrentPage * ItemsPerPage, FilteredVehicles.Count)) of @FilteredVehicles.Count
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Per page:</small>
+                                <select class="form-select form-select-sm" style="width:auto" @onchange="OnPageSizeChanged">
+                                    @foreach (var size in PageSizeOptions)
+                                    {
+                                        <option value="@size" selected="@(size == ItemsPerPage)">@size</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activate Modal -->
+@if (ShowActivateModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-play-circle me-2 text-success"></i>
+                        Activate Used Car
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseActivateModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Activate <strong>@ActivateVehicleModel?.BrandName @ActivateVehicleModel?.ModelName</strong>?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="CloseActivateModal">Cancel</button>
+                    <button class="btn btn-sm btn-success" @onclick="ConfirmActivate">Activate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .used-car-card {
+        border: 1.5px solid #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+        transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+        .used-car-card:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            border-color: #0d6efd40;
+        }
+
+    .card-selected {
+        border-color: #0d6efd !important;
+        box-shadow: 0 0 0 3px rgba(13,110,253,0.15);
+    }
+
+    .card-inactive {
+        opacity: 0.75;
+        background: #f8f9fa;
+    }
+
+    .card-check {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+        background: white;
+        border-radius: 4px;
+        padding: 1px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+
+    .status-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+    }
+
+    .year-badge {
+        position: absolute;
+        top: 42px;
+        right: 10px;
+        z-index: 10;
+    }
+
+    .card-image {
+        width: 100%;
+        height: 180px;
+        overflow: hidden;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+    .used-car-card:hover .card-image img {
+        transform: scale(1.04);
+    }
+
+    .card-body {
+        padding: 12px 14px 8px;
+        flex: 1;
+    }
+
+    .car-brand {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    .car-model {
+        font-size: 15px;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .car-specs {
+        font-size: 11px;
+    }
+
+    .car-price {
+        font-size: 15px;
+        font-weight: 700;
+        color: #0d6efd;
+        margin-top: 4px;
+    }
+
+    .car-location {
+        font-size: 11px;
+    }
+
+    .car-stars {
+        font-size: 13px;
+        letter-spacing: 1px;
+    }
+
+    .card-actions {
+        display: flex;
+        border-top: 1px solid #f0f0f0;
+        padding: 8px 10px;
+        gap: 6px;
+    }
+
+        .card-actions .btn {
+            font-size: 13px;
+            padding: 4px 0;
+        }
+</style>
