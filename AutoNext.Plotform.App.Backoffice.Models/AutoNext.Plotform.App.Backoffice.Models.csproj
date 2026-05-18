@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Folder Include="Mapers\AccessControle\" />
-    <Folder Include="Listings\" />
   </ItemGroup>
 
   <ItemGroup>

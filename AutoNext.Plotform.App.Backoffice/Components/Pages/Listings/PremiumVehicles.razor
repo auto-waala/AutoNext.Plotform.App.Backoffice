@@ -1,0 +1,866 @@
+﻿@page "/premium-vehicles"
+@inherits PremiumVehiclesBase
+
+<div class="container-fluid px-0">
+    <div class="row mx-0">
+        <div class="col px-0">
+            <div class="card pv-card border-0 shadow-sm">
+
+                <!-- Header -->
+                <div class="card-header bg-white border-bottom px-4 py-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <h5 class="mb-0 fw-bold">
+                                <i class="bi bi-gem text-primary me-2"></i>Premium Vehicles
+                            </h5>
+                            <span class="badge bg-light text-dark border">
+                                <span class="text-primary fw-bold">@TotalCount</span> vehicles
+                            </span>
+                            <span class="badge bg-success text-white">
+                                <i class="bi bi-check-circle-fill me-1"></i>@ActiveCount active
+                            </span>
+                            @if (SelectedVehicles.Any())
+                            {
+                                <span class="badge bg-primary">@SelectedVehicles.Count selected</span>
+                            }
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            @if (SelectedVehicles.Any())
+                            {
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                                        @onclick="BulkDelete">
+                                    <i class="bi bi-trash"></i>
+                                    <span class="d-none d-sm-inline">Delete (@SelectedVehicles.Count)</span>
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                                        @onclick="BulkUpdatePriority">
+                                    <i class="bi bi-sort-numeric-up"></i>
+                                    <span class="d-none d-sm-inline">Update Priority</span>
+                                </button>
+                            }
+                            <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                                    @onclick="OpenAddModal">
+                                <i class="bi bi-plus-circle"></i>
+                                <span class="d-none d-sm-inline">Add Premium Vehicle</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="card-body border-bottom bg-light px-4 py-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted mb-1">Search</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Brand, model, type..."
+                                       value="@SearchTerm" @oninput="e => { SearchTerm = e.Value?.ToString() ?? string.Empty; ApplyFilters(); }" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Status</label>
+                            <select class="form-select form-select-sm" value="@StatusFilter"
+                                    @onchange="e => { StatusFilter = e.Value?.ToString() ?? string.Empty; ApplyFilters(); }">
+                                <option value="">All</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="expired">Expired</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Vehicle Type</label>
+                            <select class="form-select form-select-sm" value="@VehicleTypeFilter"
+                                    @onchange="e => { VehicleTypeFilter = e.Value?.ToString() ?? string.Empty; ApplyFilters(); }">
+                                <option value="">All Types</option>
+                                @foreach (var type in UniqueVehicleTypes)
+                                {
+                                    <option value="@type">@type</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Min Priority</label>
+                            <input type="number" class="form-control form-control-sm"
+                                   value="@MinPriorityFilter"
+                                   @oninput="e => { MinPriorityFilter = int.TryParse(e.Value?.ToString(), out var val) ? val : 0; ApplyFilters(); }" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-1">Sort By</label>
+                            <select class="form-select form-select-sm" value="@SortBy"
+                                    @onchange="e => { SortBy = e.Value?.ToString() ?? PriorityDesc; ApplyFilters(); }">
+                                <option value="priority_desc">Priority: High to Low</option>
+                                <option value="priority_asc">Priority: Low to High</option>
+                                <option value="newest">Newest First</option>
+                                <option value="price_asc">Price: Low to High</option>
+                                <option value="price_desc">Price: High to Low</option>
+                                <option value="rating">Top Rated</option>
+                                <option value="views">Most Viewed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-sm btn-outline-secondary w-100" @onclick="ClearFilters">
+                                <i class="bi bi-eraser"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Grid Body -->
+                <div class="card-body p-4">
+                    @if (IsLoading)
+                    {
+                        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-3 small">Loading premium vehicles...</p>
+                        </div>
+                    }
+                    else if (!PaginatedVehicles.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            @if (!string.IsNullOrEmpty(SearchTerm) || !string.IsNullOrEmpty(StatusFilter) || !string.IsNullOrEmpty(VehicleTypeFilter))
+                            {
+                                <div>
+                                    <i class="bi bi-filter-circle fs-1"></i>
+                                    <p class="mt-2">No premium vehicles match your filters</p>
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="ClearFilters">Clear Filters</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div>
+                                    <i class="bi bi-gem fs-1 text-primary"></i>
+                                    <p class="mt-2">No premium vehicles yet</p>
+                                    <button class="btn btn-sm btn-primary" @onclick="OpenAddModal">
+                                        <i class="bi bi-plus-circle me-1"></i>Add First Vehicle
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-4">
+                            @foreach (var vehicle in PaginatedVehicles)
+                            {
+                                var v = vehicle;
+                                <div class="col">
+                                    <div class="pv-vehicle-card h-100 @(SelectedVehicles.Contains(v) ? "pv-card-selected" : "")
+                                        @(v.IsExpired ? "pv-expired" : "")">
+
+                                        <!-- Selection checkbox -->
+                                        <div class="pv-card-check">
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   checked="@SelectedVehicles.Contains(v)"
+                                                   @onchange="e => OnVehicleSelectionChanged(v, (bool)e.Value!)" />
+                                        </div>
+
+                                        <!-- Priority badge -->
+                                        <div class="pv-priority-badge" style="background: @GetPriorityColor(v.Priority)">
+                                            <i class="bi bi-star-fill me-1"></i>P@(v.Priority)
+                                        </div>
+
+                                        <!-- Status badge -->
+                                        <div class="pv-status-badge">
+                                            @if (!v.IsActive)
+                                            {
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            }
+                                            else if (v.IsExpired)
+                                            {
+                                                <span class="badge bg-danger">Expired</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                        </div>
+
+                                        <!-- Premium Badge -->
+                                        @if (v.IsPremium)
+                                        {
+                                            <div class="pv-premium-badge">
+                                                <span class="badge bg-gradient bg-warning text-dark">
+                                                    <i class="bi bi-gem-fill me-1"></i>PREMIUM
+                                                </span>
+                                            </div>
+                                        }
+
+                                        <!-- Image -->
+                                        <div class="pv-card-image">
+                                            <img src="@GetThumbnail(v)"
+                                                 alt="@v.BrandName @v.ModelName"
+                                                 onerror="this.src='https://placehold.co/400x220?text=No+Image'" />
+                                        </div>
+
+                                        <!-- Body -->
+                                        <div class="pv-card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                                <div>
+                                                    <p class="pv-brand text-muted mb-0">@v.BrandName</p>
+                                                    <h6 class="pv-model mb-0">@v.ModelName</h6>
+                                                </div>
+                                                <span class="badge bg-light text-secondary border small">@v.VehicleType</span>
+                                            </div>
+
+                                            <!-- Rating -->
+                                            @if (v.Rating > 0)
+                                            {
+                                                <div class="d-flex align-items-center gap-1 my-1">
+                                                    <span class="pv-stars text-warning">@GetStarHtml(v.Rating)</span>
+                                                    <span class="small text-muted">@v.Rating.ToString("F1") (@v.ReviewCount)</span>
+                                                </div>
+                                            }
+
+                                            <!-- Engagement -->
+                                            <div class="d-flex gap-2 mt-1 small text-muted">
+                                                <span><i class="bi bi-eye"></i> @FormatNumber(v.Engagement?.Views ?? 0)</span>
+                                                <span><i class="bi bi-heart"></i> @FormatNumber(v.Engagement?.Likes ?? 0)</span>
+                                                <span><i class="bi bi-share"></i> @FormatNumber(v.Engagement?.Shares ?? 0)</span>
+                                            </div>
+
+                                            <!-- Price -->
+                                            <div class="pv-price mt-2">
+                                                @FormatPrice(v.Price?.Amount ?? 0)
+                                            </div>
+
+                                            <!-- Active Period -->
+                                            <div class="pv-period small text-muted mt-1">
+                                                <i class="bi bi-calendar-check me-1"></i>
+                                                @v.StartDate.ToString("dd MMM")
+                                                @if (v.EndDate.HasValue)
+                                                {
+                                                    <span>- @v.EndDate.Value.ToString("dd MMM yyyy")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>- No end date</span>
+                                                }
+                                            </div>
+
+                                            <!-- Badges -->
+                                            @if (v.Badges.Any())
+                                            {
+                                                <div class="pv-badges mt-2">
+                                                    @foreach (var badge in v.Badges.Take(2))
+                                                    {
+                                                        <span class="badge bg-info bg-opacity-10 text-dark me-1 small">@badge</span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <div class="pv-card-actions">
+                                            <button class="btn btn-sm btn-outline-primary flex-fill"
+                                                    title="Edit"
+                                                    @onclick="() => OpenEditModal(v)">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            @if (v.IsActive && !v.IsExpired)
+                                            {
+                                                <button class="btn btn-sm btn-outline-warning flex-fill"
+                                                        title="Deactivate"
+                                                        @onclick="() => DeactivateVehicle(v)">
+                                                    <i class="bi bi-pause-circle"></i>
+                                                </button>
+                                            }
+                                            else if (!v.IsExpired)
+                                            {
+                                                <button class="btn btn-sm btn-outline-success flex-fill"
+                                                        title="Activate"
+                                                        @onclick="() => ActivateVehicle(v)">
+                                                    <i class="bi bi-play-circle"></i>
+                                                </button>
+                                            }
+                                            <button class="btn btn-sm btn-outline-danger flex-fill"
+                                                    title="Delete"
+                                                    @onclick="() => DeleteVehicle(v)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Pagination -->
+                        @if (TotalPages > 1)
+                        {
+                            <div class="d-flex justify-content-center mt-4">
+                                <nav>
+                                    <ul class="pagination pagination-sm mb-0">
+                                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage - 1)">Previous</button>
+                                        </li>
+                                        @for (int i = 1; i <= TotalPages; i++)
+                                        {
+                                            var pageNum = i;
+                                            if (pageNum == 1 || pageNum == TotalPages || (pageNum >= CurrentPage - 2 && pageNum <= CurrentPage + 2))
+                                            {
+                                                <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                                    <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                                                </li>
+                                            }
+                                            else if (pageNum == CurrentPage - 3 || pageNum == CurrentPage + 3)
+                                            {
+                                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                                            }
+                                        }
+                                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(CurrentPage + 1)">Next</button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Footer -->
+                @if (!IsLoading && AllVehicles.Any())
+                {
+                    <div class="card-footer bg-white border-top px-4 py-2">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <small class="text-muted"><span class="fw-medium">@TotalCount</span> total</small>
+                                <small class="text-muted">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                    <span class="fw-medium">@ActiveCount</span> active
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-hourglass-split text-danger me-1"></i>
+                                    <span class="fw-medium">@ExpiredCount</span> expired
+                                </small>
+                                <small class="text-muted">
+                                    Showing @(((CurrentPage - 1) * ItemsPerPage) + 1)–@(Math.Min(CurrentPage * ItemsPerPage, FilteredVehicles.Count)) of @FilteredVehicles.Count
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Per page:</small>
+                                <select class="form-select form-select-sm" style="width:auto" @onchange="OnPageSizeChanged">
+                                    @foreach (var size in PageSizeOptions)
+                                    {
+                                        <option value="@size" selected="@(size == ItemsPerPage)">@size</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal (Similar structure, condensed for brevity) -->
+@if (ShowAddEditModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-@(IsEditMode ? "pencil-square" : "gem") me-2 text-primary"></i>
+                        @(IsEditMode ? "Edit Premium Vehicle" : "Add Premium Vehicle")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <!-- Basic Information -->
+                        <div class="col-12">
+                            <h6 class="fw-bold border-bottom pb-2">Basic Information</h6>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Brand Name <span class="text-danger">*</span></label>
+                            <select class="form-select" @bind="FormModel.BrandName">
+                                <option value="">Select Brand</option>
+                                @foreach (var brand in Brands)
+                                {
+                                    <option value="@brand.Name">@brand.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Model Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" @bind="FormModel.ModelName" placeholder="e.g. Swift" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Model Slug</label>
+                            <input type="text" class="form-control" @bind="FormModel.ModelSlug" placeholder="auto-generated" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Vehicle Type</label>
+                            <select class="form-select" @bind="FormModel.VehicleType">
+                                <option value="">Select Type</option>
+                                @foreach (var vehicleType in VehicleTypes)
+                                {
+                                    <option value="@vehicleType.Name">@vehicleType.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Body Type</label>
+                            <input type="text" class="form-control" @bind="FormModel.BodyType" placeholder="e.g. Hatchback, SUV" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Slug</label>
+                            <input type="text" class="form-control" @bind="FormModel.Slug" placeholder="URL friendly slug" />
+                        </div>
+
+                        <!-- Title & Description -->
+                        <div class="col-12 mt-2">
+                            <label class="form-label small fw-medium">Title</label>
+                            <input type="text" class="form-control" @bind="FormModel.Title" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-medium">Description</label>
+                            <textarea class="form-control" rows="3" @bind="FormModel.Descriptions"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Meta Title</label>
+                            <input type="text" class="form-control" @bind="FormModel.MetaTitle" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Meta Description</label>
+                            <input type="text" class="form-control" @bind="FormModel.MetaDescription" />
+                        </div>
+
+                        <!-- Pricing -->
+                        <div class="col-12 mt-2">
+                            <h6 class="fw-bold border-bottom pb-2">Pricing Information</h6>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Price Amount (₹)</label>
+                            <input type="number" class="form-control" @bind="FormModel.Price.Amount" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">On-Road Price (₹)</label>
+                            <input type="number" class="form-control" @bind="FormModel.Price.OnRoadPrice" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Price Range From</label>
+                            <input type="text" class="form-control" @bind="FormModel.PriceRangeFrom" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Price Range To</label>
+                            <input type="text" class="form-control" @bind="FormModel.PriceRangeTo" />
+                        </div>
+                        <div class="col-md-3 form-check mt-3">
+                            <input class="form-check-input" type="checkbox" @bind="FormModel.Price.Negotiable" />
+                            <label class="form-check-label small fw-medium">Negotiable</label>
+                        </div>
+
+                        <!-- Premium Settings -->
+                        <div class="col-12 mt-2">
+                            <h6 class="fw-bold border-bottom pb-2">Premium Settings</h6>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Priority</label>
+                            <input type="number" class="form-control" @bind="FormModel.Priority" min="1" max="100" />
+                            <small class="text-muted">Higher priority = Better position</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Start Date</label>
+                            <input type="datetime-local" class="form-control" @bind="FormModel.StartDate" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">End Date</label>
+                            <input type="datetime-local" class="form-control" @bind="FormModel.EndDate" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Status</label>
+                            <select class="form-select" @bind="FormModel.IsActive">
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+
+                        <!-- Location -->
+                        <div class="col-12 mt-2">
+                            <h6 class="fw-bold border-bottom pb-2">Location</h6>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">City</label>
+                            <input type="text" class="form-control" @bind="FormModel.Location.City" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">State</label>
+                            <input type="text" class="form-control" @bind="FormModel.Location.State" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Pincode</label>
+                            <input type="text" class="form-control" @bind="FormModel.Location.Pincode" />
+                        </div>
+
+                        <!-- Seller Information -->
+                        <div class="col-12 mt-2">
+                            <h6 class="fw-bold border-bottom pb-2">Seller Information</h6>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Seller Name</label>
+                            <input type="text" class="form-control" @bind="FormModel.Seller.Name" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Email</label>
+                            <input type="text" class="form-control" @bind="FormModel.Seller.Email" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Phone</label>
+                            <input type="text" class="form-control" @bind="FormModel.Seller.Phone" />
+                        </div>
+
+                        <!-- Key Specifications -->
+                        <div class="col-12 mt-2">
+                            <h6 class="fw-bold border-bottom pb-2">Key Specifications</h6>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Engine</label>
+                            <input type="text" class="form-control" @bind="FormModel.KeySpecifications.Engine" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Transmission</label>
+                            <input type="text" class="form-control" @bind="FormModel.KeySpecifications.Transmission" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Fuel Type</label>
+                            <input type="text" class="form-control" @bind="FormModel.KeySpecifications.FuelType" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Mileage</label>
+                            <input type="text" class="form-control" @bind="FormModel.KeySpecifications.Mileage" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Max Power</label>
+                            <input type="text" class="form-control" @bind="FormModel.KeySpecifications.MaxPower" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Max Torque</label>
+                            <input type="text" class="form-control" @bind="FormModel.KeySpecifications.MaxTorque" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Seating Capacity</label>
+                            <input type="text" class="form-control" @bind="FormModel.KeySpecifications.SeatingCapacity" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Year of Manufacture</label>
+                            <input type="text" class="form-control" @bind="FormModel.KeySpecifications.YearOfManufacture" />
+                        </div>
+
+                        <!-- Condition -->
+                        <div class="col-12 mt-2">
+                            <h6 class="fw-bold border-bottom pb-2">Vehicle Condition</h6>
+                        </div>
+                        <div class="col-md-3 form-check">
+                            <input class="form-check-input" type="checkbox" @bind="FormModel.Condition.IsNew" />
+                            <label class="form-check-label small fw-medium">Is New</label>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">Owner Count</label>
+                            <input type="number" class="form-control" @bind="FormModel.Condition.OwnerCount" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-medium">KM Driven</label>
+                            <input type="number" class="form-control" @bind="FormModel.Condition.KMDriven" />
+                        </div>
+                        <div class="col-md-3 form-check">
+                            <input class="form-check-input" type="checkbox" @bind="FormModel.Condition.Accidental" />
+                            <label class="form-check-label small fw-medium">Accidental</label>
+                        </div>
+
+                        <!-- Badges & Highlight -->
+                        <div class="col-12 mt-2">
+                            <h6 class="fw-bold border-bottom pb-2">Badges & Highlight</h6>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Badges (comma separated)</label>
+                            <input type="text" class="form-control"
+                                   value="@(string.Join(", ", FormModel.Badges))"
+                                   @onchange="e => FormModel.Badges = e.Value?.ToString()?.Split(',').Select(x => x.Trim()).ToList() ?? new List<string>()" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Highlight</label>
+                            <input type="text" class="form-control" @bind="FormModel.Highlight" />
+                        </div>
+
+                        <!-- Test Drive -->
+                        <div class="col-12 mt-2">
+                            <h6 class="fw-bold border-bottom pb-2">Test Drive</h6>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" @bind="FormModel.TestDrive.Available" />
+                                <label class="form-check-label small fw-medium">Test Drive Available</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Booking Amount (₹)</label>
+                            <input type="number" class="form-control" @bind="FormModel.TestDrive.BookingAmount" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-medium">Booking URL</label>
+                            <input type="text" class="form-control" @bind="FormModel.TestDrive.BookingUrl" />
+                        </div>
+
+                        <!-- Pros & Cons -->
+                        <div class="col-12 mt-2">
+                            <h6 class="fw-bold border-bottom pb-2">Pros & Cons</h6>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Pros</label>
+                            <div id="pros-container">
+                                @for (int i = 0; i < FormModel.Pros.Count; i++)
+                                {
+                                    var index = i;
+                                    <div class="input-group input-group-sm mb-2">
+                                        <input type="text" class="form-control" @bind="FormModel.Pros[index].Pro" />
+                                        <button class="btn btn-outline-danger" type="button"
+                                                @onclick="() => RemovePro(index)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary mt-1" @onclick="AddPro">
+                                <i class="bi bi-plus"></i> Add Pro
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-medium">Cons</label>
+                            <div id="cons-container">
+                                @for (int i = 0; i < FormModel.Cons.Count; i++)
+                                {
+                                    var index = i;
+                                    <div class="input-group input-group-sm mb-2">
+                                        <input type="text" class="form-control" @bind="FormModel.Cons[index].Con" />
+                                        <button class="btn btn-outline-danger" type="button"
+                                                @onclick="() => RemoveCon(index)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary mt-1" @onclick="AddCon">
+                                <i class="bi bi-plus"></i> Add Con
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="CloseModal">Cancel</button>
+                    <button class="btn btn-sm btn-primary" @onclick="SaveVehicle">
+                        <i class="bi bi-check-circle me-1"></i>@(IsEditMode ? "Update" : "Create")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Bulk Priority Update Modal -->
+@if (ShowBulkPriorityModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-sort-numeric-up me-2"></i>
+                        Bulk Update Priority
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseBulkPriorityModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Update priority for <strong>@SelectedVehicles.Count</strong> selected premium vehicles</p>
+                    <div class="mb-3">
+                        <label class="form-label">Priority Value</label>
+                        <input type="number" class="form-control" @bind="BulkPriorityValue" min="1" max="100" />
+                    </div>
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Vehicles with higher priority appear first in premium listings.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="CloseBulkPriorityModal">Cancel</button>
+                    <button class="btn btn-sm btn-primary" @onclick="ExecuteBulkPriorityUpdate">
+                        Update Priorities
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Activate Modal -->
+@if (ShowActivateModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-play-circle me-2 text-success"></i>
+                        Activate Premium Vehicle
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseActivateModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Activate <strong>@ActivateVehicleModel?.BrandName @ActivateVehicleModel?.ModelName</strong>?</p>
+                    <div class="mb-3">
+                        <label class="form-label">End Date (Optional)</label>
+                        <input type="datetime-local" class="form-control" @bind="ActivateEndDate" />
+                        <small class="text-muted">Leave empty for no expiration</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="CloseActivateModal">Cancel</button>
+                    <button class="btn btn-sm btn-success" @onclick="ConfirmActivate">
+                        Activate
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .pv-vehicle-card {
+        border: 1.5px solid #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+        transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+        .pv-vehicle-card:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            border-color: #0d6efd40;
+        }
+
+    .pv-card-selected {
+        border-color: #0d6efd !important;
+        box-shadow: 0 0 0 3px rgba(13,110,253,0.15);
+    }
+
+    .pv-expired {
+        opacity: 0.75;
+        background: #f8f9fa;
+    }
+
+    .pv-card-check {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+        background: white;
+        border-radius: 4px;
+        padding: 1px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+
+    .pv-priority-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        color: white;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 20px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .pv-status-badge {
+        position: absolute;
+        top: 42px;
+        right: 10px;
+        z-index: 10;
+    }
+
+    .pv-premium-badge {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        z-index: 10;
+    }
+
+    .pv-card-image {
+        width: 100%;
+        height: 180px;
+        overflow: hidden;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .pv-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+    .pv-vehicle-card:hover .pv-card-image img {
+        transform: scale(1.04);
+    }
+
+    .pv-card-body {
+        padding: 12px 14px 8px;
+        flex: 1;
+    }
+
+    .pv-brand {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    .pv-model {
+        font-size: 15px;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .pv-price {
+        font-size: 15px;
+        font-weight: 700;
+        color: #0d6efd;
+        margin-top: 4px;
+    }
+
+    .pv-period {
+        font-size: 11px;
+    }
+
+    .pv-stars {
+        font-size: 13px;
+        letter-spacing: 1px;
+    }
+
+    .pv-badges {
+        font-size: 10px;
+        line-height: 1.2;
+    }
+
+    .pv-card-actions {
+        display: flex;
+        border-top: 1px solid #f0f0f0;
+        padding: 8px 10px;
+        gap: 6px;
+    }
+
+        .pv-card-actions .btn {
+            font-size: 13px;
+            padding: 4px 0;
+        }
+</style>
