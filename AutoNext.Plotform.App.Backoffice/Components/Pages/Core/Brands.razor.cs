@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Radzen;
 
-namespace AutoNext.Plotform.App.Backoffice.Components.Pages;
+namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Core;
 
 [Authorize]
 public class BrandsBase : ComponentBase

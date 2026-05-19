@@ -1,12 +1,14 @@
 ﻿using AutoNext.Plotform.App.Backoffice.Integrations.Core;
 using AutoNext.Plotform.App.Backoffice.Integrations.Listings;
 using AutoNext.Plotform.App.Backoffice.Models.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Radzen;
 
-namespace AutoNext.Plotform.App.Backoffice.Components.Pages
+namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
 {
+    [Authorize]
     public class NewlyArrivedVehiclesBase : ComponentBase
     {
         [Inject] protected INewlyArrivedService NewlyArrivedService { get; set; } = default!;

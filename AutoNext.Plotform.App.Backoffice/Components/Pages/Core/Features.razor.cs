@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Radzen;
 
-namespace AutoNext.Plotform.App.Backoffice.Components.Pages;
+namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Core;
 
 [Authorize]
 public class FeaturesBase : ComponentBase
@@ -31,7 +31,7 @@ public class FeaturesBase : ComponentBase
 
     protected bool showSidebar = false;
 
-    protected AutoNext.Plotform.App.Backoffice.Models.Core.Feature? selectedFeature = null;
+    protected Feature? selectedFeature = null;
 
     // Filter properties
     protected string SearchTerm { get; set; } = string.Empty;
@@ -169,7 +169,7 @@ public class FeaturesBase : ComponentBase
 
     protected void OpenAddFeatureSidebar()
     {
-        selectedFeature = new AutoNext.Plotform.App.Backoffice.Models.Core.Feature
+        selectedFeature = new Feature
         {
 
             Id = Guid.NewGuid(),

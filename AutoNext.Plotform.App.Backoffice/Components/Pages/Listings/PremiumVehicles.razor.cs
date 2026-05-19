@@ -2,12 +2,14 @@
 using AutoNext.Plotform.App.Backoffice.Integrations.Listings;
 using AutoNext.Plotform.App.Backoffice.Models.DTO;
 using AutoNext.Plotform.App.Backoffice.Models.Listings;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Radzen;
 
 namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
 {
+    [Authorize]
     public class PremiumVehiclesBase : ComponentBase
     {
         [Inject] protected IPremiumVehicleService PremiumVehicleService { get; set; } = default!;
