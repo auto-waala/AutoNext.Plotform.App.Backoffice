@@ -40,7 +40,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                     (outcome, timespan, retryCount, context) =>
                     {
                         _logger.LogWarning(outcome.Exception,
-                            "Retry {RetryCount} after {Delay}s due to {StatusCode} for {Url}",
+                            "Retry {RetryCount} after {Delay:F1}s due to {StatusCode} for {Url}",
                             retryCount, timespan.TotalSeconds, outcome.Result?.StatusCode,
                             outcome.Result?.RequestMessage?.RequestUri);
                     });
@@ -57,10 +57,14 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         {
             var content = await response.Content.ReadAsStringAsync();
 
+            _logger.LogDebug("Response Status: {StatusCode}, Content Preview: {ContentPreview}",
+                response.StatusCode,
+                content?.Length > 500 ? content.Substring(0, 500) : content);
+
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("API request failed with status {StatusCode}: {Content}",
-                    response.StatusCode, content);
+                _logger.LogError("API request failed with status {StatusCode}. URL: {Url}, Content: {Content}",
+                    response.StatusCode, response.RequestMessage?.RequestUri, content);
                 return default;
             }
 
@@ -70,7 +74,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
                 if (apiResponse == null)
                 {
-                    _logger.LogWarning("Failed to deserialize API response");
+                    _logger.LogWarning("Failed to deserialize API response. Content: {Content}", content);
                     return default;
                 }
 
@@ -92,8 +96,6 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         private void InvalidateAllCaches()
         {
             _logger.LogDebug("Invalidating all used vehicle caches");
-            // Note: IMemoryCache doesn't support pattern removal directly.
-            // For production, consider using IDistributedCache with Redis.
         }
 
         private void InvalidateVehicleCache(string id)
@@ -121,12 +123,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out UsedVehiclesResponseDto? cached))
                 return cached;
 
+            var fullUrl = $"{BASE_PATH}/{Uri.EscapeDataString(id)}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to get used vehicle by ID {Id}. Status: {StatusCode}", id, response.StatusCode);
                 return null;
+            }
 
             var item = await ReadApiResponseAsync<UsedVehiclesResponseDto>(response);
 
@@ -153,12 +161,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out UsedVehiclesResponseDto? cached))
                 return cached;
 
+            var fullUrl = $"{BASE_PATH}/slug/{Uri.EscapeDataString(slug)}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/slug/{Uri.EscapeDataString(slug)}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to get used vehicle by slug {Slug}. Status: {StatusCode}", slug, response.StatusCode);
                 return null;
+            }
 
             var item = await ReadApiResponseAsync<UsedVehiclesResponseDto>(response);
 
@@ -184,12 +198,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out UsedVehiclesResponseDto? cached))
                 return cached;
 
+            var fullUrl = $"{BASE_PATH}/model/{Uri.EscapeDataString(modelSlug)}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/model/{Uri.EscapeDataString(modelSlug)}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to get used vehicle by model slug {ModelSlug}. Status: {StatusCode}", modelSlug, response.StatusCode);
                 return null;
+            }
 
             var item = await ReadApiResponseAsync<UsedVehiclesResponseDto>(response);
 
@@ -222,12 +242,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                     return cached!;
 
                 var queryString = BuildQueryString(page, pageSize, sortBy, sortOrder);
+                var fullUrl = $"{BASE_PATH}{queryString}";
+                _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
                 var response = await _retryPolicy.ExecuteAsync(() =>
-                    _httpClient.GetAsync($"{BASE_PATH}{queryString}")
+                    _httpClient.GetAsync(fullUrl)
                 );
 
                 if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Failed to get used vehicles. Status: {StatusCode}", response.StatusCode);
                     return new PagedResult<UsedVehiclesResponseDto>();
+                }
 
                 var result = await ReadApiResponseAsync<PagedResult<UsedVehiclesResponseDto>>(response)
                              ?? new PagedResult<UsedVehiclesResponseDto>();
@@ -271,12 +297,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/active?limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/active?limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get active used vehicles. Status: {StatusCode}", response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -297,12 +329,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/top-priority?limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/top-priority?limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get top priority used vehicles. Status: {StatusCode}", response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -323,12 +361,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/recent?days={days}&limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/recent?days={days}&limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get recently posted used vehicles. Status: {StatusCode}", response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -354,12 +398,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/brand/{Uri.EscapeDataString(brandName)}?limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/brand/{Uri.EscapeDataString(brandName)}?limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get used vehicles by brand {BrandName}. Status: {StatusCode}", brandName, response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -383,12 +433,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/type/{Uri.EscapeDataString(vehicleType)}?limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/type/{Uri.EscapeDataString(vehicleType)}?limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get used vehicles by type {VehicleType}. Status: {StatusCode}", vehicleType, response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -409,12 +465,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/price-range?minPrice={minPrice}&maxPrice={maxPrice}&limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/price-range?minPrice={minPrice}&maxPrice={maxPrice}&limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get used vehicles by price range {MinPrice}-{MaxPrice}. Status: {StatusCode}", minPrice, maxPrice, response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -438,12 +500,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/city/{Uri.EscapeDataString(city)}?limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/city/{Uri.EscapeDataString(city)}?limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get used vehicles by city {City}. Status: {StatusCode}", city, response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -467,12 +535,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/fuel-type/{Uri.EscapeDataString(fuelType)}?limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/fuel-type/{Uri.EscapeDataString(fuelType)}?limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get used vehicles by fuel type {FuelType}. Status: {StatusCode}", fuelType, response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -496,12 +570,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/transmission/{Uri.EscapeDataString(transmission)}?limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/transmission/{Uri.EscapeDataString(transmission)}?limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get used vehicles by transmission {Transmission}. Status: {StatusCode}", transmission, response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -522,12 +602,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/year-range?minYear={minYear}&maxYear={maxYear}&limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/year-range?minYear={minYear}&maxYear={maxYear}&limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get used vehicles by year range {MinYear}-{MaxYear}. Status: {StatusCode}", minYear, maxYear, response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -551,12 +637,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/seller-type/{Uri.EscapeDataString(sellerType)}?limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/seller-type/{Uri.EscapeDataString(sellerType)}?limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get used vehicles by seller type {SellerType}. Status: {StatusCode}", sellerType, response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -580,12 +672,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/seller/{Uri.EscapeDataString(sellerId)}?limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/seller/{Uri.EscapeDataString(sellerId)}?limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get used vehicles by seller {SellerId}. Status: {StatusCode}", sellerId, response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -611,12 +709,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<UsedVehiclesResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/search?q={Uri.EscapeDataString(searchTerm)}&limit={limit}";
+            _logger.LogInformation("Calling UsedVehicles API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"{BASE_PATH}/search?q={Uri.EscapeDataString(searchTerm)}&limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to search used vehicles with term {SearchTerm}. Status: {StatusCode}", searchTerm, response.StatusCode);
                 return Enumerable.Empty<UsedVehiclesResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<UsedVehiclesResponseDto>>(response)
                         ?? Enumerable.Empty<UsedVehiclesResponseDto>();
@@ -635,12 +739,17 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (criteria == null)
                 return new PagedResult<UsedVehiclesResponseDto>();
 
+            _logger.LogInformation("Performing advanced search with criteria: {@Criteria}", criteria);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.PostAsJsonAsync($"{BASE_PATH}/advanced-search", criteria)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to perform advanced search. Status: {StatusCode}", response.StatusCode);
                 return new PagedResult<UsedVehiclesResponseDto>();
+            }
 
             return await ReadApiResponseAsync<PagedResult<UsedVehiclesResponseDto>>(response)
                    ?? new PagedResult<UsedVehiclesResponseDto>();
@@ -652,6 +761,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
+
+            _logger.LogInformation("Creating new used vehicle with model slug: {ModelSlug}", request.ModelSlug);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.PostAsJsonAsync(BASE_PATH, request)
@@ -678,12 +789,17 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
+            _logger.LogInformation("Updating used vehicle {Id}", id);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.PutAsJsonAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}", request)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to update used vehicle {Id}. Status: {StatusCode}", id, response.StatusCode);
                 return null;
+            }
 
             var result = await ReadApiResponseAsync<UsedVehiclesResponseDto>(response);
 
@@ -701,6 +817,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (string.IsNullOrWhiteSpace(id))
                 return false;
 
+            _logger.LogInformation("Deleting used vehicle {Id}", id);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.DeleteAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}")
             );
@@ -712,6 +830,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return true;
             }
 
+            _logger.LogWarning("Failed to delete used vehicle {Id}. Status: {StatusCode}", id, response.StatusCode);
             return false;
         }
 
@@ -724,6 +843,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (priority < 0)
                 throw new ArgumentException("Priority must be non-negative", nameof(priority));
+
+            _logger.LogInformation("Updating priority for used vehicle {Id} to {Priority}", id, priority);
 
             var request = new UpdatePriorityRequest { Priority = priority };
 
@@ -738,14 +859,16 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return true;
             }
 
+            _logger.LogWarning("Failed to update priority for used vehicle {Id}. Status: {StatusCode}", id, response.StatusCode);
             return false;
         }
 
-      
         public async Task<bool> DeactivateAsync(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
                 return false;
+
+            _logger.LogInformation("Deactivating used vehicle {Id}", id);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/deactivate", null)
@@ -758,6 +881,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return true;
             }
 
+            _logger.LogWarning("Failed to deactivate used vehicle {Id}. Status: {StatusCode}", id, response.StatusCode);
             return false;
         }
 
@@ -765,6 +889,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         {
             if (string.IsNullOrWhiteSpace(id))
                 return false;
+
+            _logger.LogInformation("Marking used vehicle {Id} as sold", id);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/mark-as-sold", null)
@@ -777,6 +903,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return true;
             }
 
+            _logger.LogWarning("Failed to mark used vehicle {Id} as sold. Status: {StatusCode}", id, response.StatusCode);
             return false;
         }
 
@@ -784,6 +911,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         {
             if (priorityUpdates == null || priorityUpdates.Count == 0)
                 return false;
+
+            _logger.LogInformation("Bulk updating priorities for {Count} vehicles", priorityUpdates.Count);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.PostAsJsonAsync($"{BASE_PATH}/bulk/priority", priorityUpdates)
@@ -795,6 +924,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return true;
             }
 
+            _logger.LogWarning("Failed to bulk update priorities. Status: {StatusCode}", response.StatusCode);
             return false;
         }
 
@@ -876,6 +1006,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (rating == null)
                 throw new ArgumentNullException(nameof(rating));
 
+            _logger.LogInformation("Adding rating for used vehicle {Id}", id);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.PostAsJsonAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/rating", rating)
             );
@@ -886,6 +1018,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return true;
             }
 
+            _logger.LogWarning("Failed to add rating for used vehicle {Id}. Status: {StatusCode}", id, response.StatusCode);
             return false;
         }
 
@@ -900,12 +1033,17 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (!string.IsNullOrWhiteSpace(excludeId))
                 url += $"?excludeId={Uri.EscapeDataString(excludeId)}";
 
+            _logger.LogDebug("Checking slug uniqueness: {Url}", url);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.GetAsync(url)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to check slug uniqueness. Status: {StatusCode}", response.StatusCode);
                 return false;
+            }
 
             return await ReadApiResponseAsync<bool>(response);
         }
@@ -919,12 +1057,17 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (!string.IsNullOrWhiteSpace(excludeId))
                 url += $"?excludeId={Uri.EscapeDataString(excludeId)}";
 
+            _logger.LogDebug("Checking model slug uniqueness: {Url}", url);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
                 _httpClient.GetAsync(url)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to check model slug uniqueness. Status: {StatusCode}", response.StatusCode);
                 return false;
+            }
 
             return await ReadApiResponseAsync<bool>(response);
         }
@@ -943,7 +1086,10 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get total count. Status: {StatusCode}", response.StatusCode);
                 return 0;
+            }
 
             var stats = await ReadApiResponseAsync<VehicleStatisticsDto>(response);
             var total = stats?.Total ?? 0;
@@ -968,7 +1114,10 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get active count. Status: {StatusCode}", response.StatusCode);
                 return 0;
+            }
 
             var stats = await ReadApiResponseAsync<VehicleStatisticsDto>(response);
             var active = stats?.Active ?? 0;
@@ -993,7 +1142,10 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get sold count. Status: {StatusCode}", response.StatusCode);
                 return 0;
+            }
 
             var stats = await ReadApiResponseAsync<VehicleStatisticsDto>(response);
             var sold = stats?.Sold ?? 0;

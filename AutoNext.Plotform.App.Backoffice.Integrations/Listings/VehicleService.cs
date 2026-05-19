@@ -306,7 +306,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Core
             }
         }
 
-        public async Task<bool> DeleteAsync(string id, string deletedBy = null)
+        public async Task<bool> DeleteAsync(string id, string deletedBy = "")
         {
             try
             {
