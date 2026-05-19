@@ -4,9 +4,7 @@ using AutoNext.Plotform.App.Backoffice.Models.DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.Http;
 using Radzen;
-using System.IO;
 using System.Text.RegularExpressions;
 
 namespace AutoNext.Plotform.App.Backoffice.Components.Pages

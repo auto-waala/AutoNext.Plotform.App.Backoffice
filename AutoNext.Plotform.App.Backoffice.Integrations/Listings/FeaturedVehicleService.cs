@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Polly;
 using Polly.Retry;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.RegularExpressions;
@@ -18,6 +19,11 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         private readonly ILogger<FeaturedVehicleService> _logger;
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
         private readonly SemaphoreSlim _cacheLock = new SemaphoreSlim(1, 1);
+
+        // Track all cache keys for this service instance
+        private readonly ConcurrentDictionary<string, byte> _trackedCacheKeys = new ConcurrentDictionary<string, byte>();
+        private readonly SemaphoreSlim _trackedKeysLock = new SemaphoreSlim(1, 1);
+
         private const string BASE_PATH = "api/v1/FeaturedVehicle";
         private const string CACHE_KEY_PREFIX = "featured_vehicle_";
 
@@ -58,7 +64,6 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         {
             var content = await response.Content.ReadAsStringAsync();
 
-            // Log response for debugging
             _logger.LogDebug("Response Status: {StatusCode}, Content Preview: {ContentPreview}",
                 response.StatusCode,
                 content?.Length > 500 ? content.Substring(0, 500) : content);
@@ -96,27 +101,72 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         }
 
         /// <summary>
-        /// Invalidates all cache entries related to featured vehicles
+        /// Invalidates all cache entries tracked by this service instance
         /// </summary>
-        private void InvalidateAllCaches()
+        private async Task InvalidateAllCachesAsync()
         {
-            _logger.LogDebug("Invalidating all featured vehicle caches");
-            // Note: IMemoryCache doesn't support pattern removal directly
-            // We'll rely on individual key removal and short expiration times
-            // For production, consider using IDistributedCache with Redis
+            _logger.LogInformation("Invalidating all featured vehicle caches. Total tracked keys: {Count}", _trackedCacheKeys.Count);
+
+            await _trackedKeysLock.WaitAsync();
+            try
+            {
+                foreach (var key in _trackedCacheKeys.Keys)
+                {
+                    _cache.Remove(key);
+                }
+                _trackedCacheKeys.Clear();
+            }
+            finally
+            {
+                _trackedKeysLock.Release();
+            }
         }
 
         /// <summary>
-        /// Invalidates cache for a specific vehicle by ID
+        /// Invalidates cache for a specific vehicle by ID and all related caches
         /// </summary>
-        private void InvalidateVehicleCache(string id)
+        private async Task InvalidateVehicleCachesAsync(string id)
         {
             if (string.IsNullOrWhiteSpace(id)) return;
 
-            _cache.Remove($"{CACHE_KEY_PREFIX}{id}");
-            _cache.Remove($"{CACHE_KEY_PREFIX}slug_*");
-            _cache.Remove($"{CACHE_KEY_PREFIX}model_*");
-            _logger.LogDebug("Invalidated cache for vehicle: {Id}", id);
+            _logger.LogDebug("Invalidating all caches for vehicle: {Id}", id);
+
+            await _trackedKeysLock.WaitAsync();
+            try
+            {
+                var keysToRemove = _trackedCacheKeys.Keys
+                    .Where(key => key.Contains(id) ||
+                                  key.StartsWith(CACHE_KEY_PREFIX) && (
+                                      key.Contains("all_") ||
+                                      key.Contains("active_") ||
+                                      key.Contains("top_priority_") ||
+                                      key.Contains("brand_") ||
+                                      key.Contains("type_") ||
+                                      key.Contains("price_") ||
+                                      key.Contains("city_") ||
+                                      key.Contains("search_")
+                                  ))
+                    .ToList();
+
+                foreach (var key in keysToRemove)
+                {
+                    _cache.Remove(key);
+                    _trackedCacheKeys.TryRemove(key, out _);
+                }
+            }
+            finally
+            {
+                _trackedKeysLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Adds a cache key to tracking and sets the cache entry
+        /// </summary>
+        private void SetCacheEntry<T>(string key, T value, MemoryCacheEntryOptions options)
+        {
+            _cache.Set(key, value, options);
+            _trackedCacheKeys.TryAdd(key, 0);
         }
 
         private string GetPagedCacheKey(int page, int pageSize, string? sortBy, string? sortOrder) =>
@@ -156,12 +206,14 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 var result = await ReadApiResponseAsync<PagedResult<FeaturedVehicleResponseDto>>(response)
                              ?? new PagedResult<FeaturedVehicleResponseDto>();
 
-                _cache.Set(cacheKey, result, new MemoryCacheEntryOptions
+                var cacheOptions = new MemoryCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
                     SlidingExpiration = TimeSpan.FromMinutes(2),
                     Priority = CacheItemPriority.Normal
-                });
+                };
+
+                SetCacheEntry(cacheKey, result, cacheOptions);
 
                 return result;
             }
@@ -215,12 +267,14 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (item != null)
             {
-                _cache.Set(cacheKey, item, new MemoryCacheEntryOptions
+                var cacheOptions = new MemoryCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
                     SlidingExpiration = TimeSpan.FromMinutes(3),
                     Priority = CacheItemPriority.High
-                });
+                };
+
+                SetCacheEntry(cacheKey, item, cacheOptions);
             }
 
             return item;
@@ -253,11 +307,13 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (item != null)
             {
-                _cache.Set(cacheKey, item, new MemoryCacheEntryOptions
+                var cacheOptions = new MemoryCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
                     SlidingExpiration = TimeSpan.FromMinutes(3)
-                });
+                };
+
+                SetCacheEntry(cacheKey, item, cacheOptions);
             }
 
             return item;
@@ -290,11 +346,13 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (item != null)
             {
-                _cache.Set(cacheKey, item, new MemoryCacheEntryOptions
+                var cacheOptions = new MemoryCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
                     SlidingExpiration = TimeSpan.FromMinutes(3)
-                });
+                };
+
+                SetCacheEntry(cacheKey, item, cacheOptions);
             }
 
             return item;
@@ -322,7 +380,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                          ?? throw new Exception("Failed to create featured vehicle: Invalid response from API");
 
             // Invalidate all caches on create
-            InvalidateAllCaches();
+            await InvalidateAllCachesAsync();
 
             return result;
         }
@@ -351,10 +409,10 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (result != null)
             {
-                // Invalidate specific vehicle cache
-                InvalidateVehicleCache(id);
-                // Invalidate list caches
-                InvalidateAllCaches();
+                // Invalidate specific vehicle caches
+                await InvalidateVehicleCachesAsync(id);
+                // Also invalidate all list caches since ordering might change
+                await InvalidateAllCachesAsync();
             }
 
             return result;
@@ -373,8 +431,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateVehicleCache(id);
-                InvalidateAllCaches();
+                await InvalidateVehicleCachesAsync(id);
+                await InvalidateAllCachesAsync();
                 return true;
             }
 
@@ -402,8 +460,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateVehicleCache(id);
-                InvalidateAllCaches();
+                await InvalidateVehicleCachesAsync(id);
+                await InvalidateAllCachesAsync();
                 return true;
             }
 
@@ -424,7 +482,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateAllCaches();
+                await InvalidateAllCachesAsync();
                 return true;
             }
 
@@ -453,8 +511,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateVehicleCache(id);
-                InvalidateAllCaches();
+                await InvalidateVehicleCachesAsync(id);
+                await InvalidateAllCachesAsync();
                 return true;
             }
 
@@ -475,8 +533,8 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateVehicleCache(id);
-                InvalidateAllCaches();
+                await InvalidateVehicleCachesAsync(id);
+                await InvalidateAllCachesAsync();
                 return true;
             }
 
@@ -509,11 +567,13 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
                         ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
 
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            var cacheOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2),
                 SlidingExpiration = TimeSpan.FromMinutes(1)
-            });
+            };
+
+            SetCacheEntry(cacheKey, items, cacheOptions);
 
             return items;
         }
@@ -541,16 +601,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
                         ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
 
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            var cacheOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2),
                 SlidingExpiration = TimeSpan.FromMinutes(1)
-            });
+            };
+
+            SetCacheEntry(cacheKey, items, cacheOptions);
 
             return items;
         }
 
-        // ── Engagement Operations (no cache invalidation needed) ─────────────────
+        // ── Engagement Operations (with selective cache invalidation) ─────────────────
 
         public async Task<bool> IncrementViewsAsync(string id)
         {
@@ -561,6 +623,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/view", null)
             );
 
+            // Views don't typically require cache invalidation
             return response.IsSuccessStatusCode;
         }
 
@@ -575,7 +638,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateVehicleCache(id);
+                await InvalidateVehicleCachesAsync(id);
                 return true;
             }
 
@@ -593,7 +656,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateVehicleCache(id);
+                await InvalidateVehicleCachesAsync(id);
                 return true;
             }
 
@@ -611,7 +674,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateVehicleCache(id);
+                await InvalidateVehicleCachesAsync(id);
                 return true;
             }
 
@@ -632,7 +695,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (response.IsSuccessStatusCode)
             {
-                InvalidateVehicleCache(id);
+                await InvalidateVehicleCachesAsync(id);
                 return true;
             }
 
@@ -665,11 +728,13 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
                         ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
 
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            var cacheOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
                 SlidingExpiration = TimeSpan.FromMinutes(2)
-            });
+            };
+
+            SetCacheEntry(cacheKey, items, cacheOptions);
 
             return items;
         }
@@ -700,11 +765,13 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
                         ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
 
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            var cacheOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
                 SlidingExpiration = TimeSpan.FromMinutes(2)
-            });
+            };
+
+            SetCacheEntry(cacheKey, items, cacheOptions);
 
             return items;
         }
@@ -732,11 +799,13 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
                         ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
 
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            var cacheOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
                 SlidingExpiration = TimeSpan.FromMinutes(2)
-            });
+            };
+
+            SetCacheEntry(cacheKey, items, cacheOptions);
 
             return items;
         }
@@ -767,11 +836,13 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
                         ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
 
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            var cacheOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
                 SlidingExpiration = TimeSpan.FromMinutes(2)
-            });
+            };
+
+            SetCacheEntry(cacheKey, items, cacheOptions);
 
             return items;
         }
@@ -802,11 +873,13 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
                         ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
 
-            _cache.Set(cacheKey, items, new MemoryCacheEntryOptions
+            var cacheOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
                 SlidingExpiration = TimeSpan.FromMinutes(2)
-            });
+            };
+
+            SetCacheEntry(cacheKey, items, cacheOptions);
 
             return items;
         }
