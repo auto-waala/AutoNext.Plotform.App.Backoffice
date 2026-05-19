@@ -19,6 +19,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         private readonly ILogger<NewlyArrivedService> _logger;
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
         private readonly SemaphoreSlim _cacheLock = new SemaphoreSlim(1, 1);
+        private const string BASE_PATH = "api/v1/newlyarrived";
         private const string CACHE_KEY_PREFIX = "newly_arrived_";
 
         public NewlyArrivedService(
@@ -41,8 +42,9 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                     (outcome, timespan, retryCount, context) =>
                     {
                         _logger.LogWarning(outcome.Exception,
-                            "Retry {RetryCount} after {Delay}s due to {StatusCode}",
-                            retryCount, timespan.TotalSeconds, outcome.Result?.StatusCode);
+                            "Retry {RetryCount} after {Delay:F1}s due to {StatusCode} for {Url}",
+                            retryCount, timespan.TotalSeconds, outcome.Result?.StatusCode,
+                            outcome.Result?.RequestMessage?.RequestUri);
                     });
         }
 
@@ -57,10 +59,14 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
         {
             var content = await response.Content.ReadAsStringAsync();
 
+            _logger.LogDebug("Response Status: {StatusCode}, Content Preview: {ContentPreview}",
+                response.StatusCode,
+                content?.Length > 500 ? content.Substring(0, 500) : content);
+
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("API request failed with status {StatusCode}: {Content}",
-                    response.StatusCode, content);
+                _logger.LogError("API request failed with status {StatusCode}. URL: {Url}, Content: {Content}",
+                    response.StatusCode, response.RequestMessage?.RequestUri, content);
                 return default;
             }
 
@@ -70,7 +76,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
                 if (apiResponse == null)
                 {
-                    _logger.LogWarning("Failed to deserialize API response");
+                    _logger.LogWarning("Failed to deserialize API response. Content: {Content}", content);
                     return default;
                 }
 
@@ -119,12 +125,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 if (_cache.TryGetValue(cacheKey, out cached))
                     return cached!;
 
+                var fullUrl = $"{BASE_PATH}?page={page}&pageSize={pageSize}";
+                _logger.LogInformation("Calling NewlyArrived API: {Url}", fullUrl);
+
                 var response = await _retryPolicy.ExecuteAsync(() =>
-                    _httpClient.GetAsync($"api/v1/newlyarrived?page={page}&pageSize={pageSize}")
+                    _httpClient.GetAsync(fullUrl)
                 );
 
                 if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Failed to get newly arrived vehicles. Status: {StatusCode}", response.StatusCode);
                     return new PagedResult<NewlyArrivedResponseDto>();
+                }
 
                 var result = await ReadApiResponseAsync<PagedResult<NewlyArrivedResponseDto>>(response)
                              ?? new PagedResult<NewlyArrivedResponseDto>();
@@ -154,12 +166,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out NewlyArrivedResponseDto? cached))
                 return cached;
 
+            var fullUrl = $"{BASE_PATH}/{id}";
+            _logger.LogInformation("Calling NewlyArrived API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"api/v1/newlyarrived/{id}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to get newly arrived vehicle by ID {Id}. Status: {StatusCode}", id, response.StatusCode);
                 return null;
+            }
 
             var item = await ReadApiResponseAsync<NewlyArrivedResponseDto>(response);
 
@@ -186,12 +204,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out NewlyArrivedResponseDto? cached))
                 return cached;
 
+            var fullUrl = $"{BASE_PATH}/slug/{Uri.EscapeDataString(modelSlug)}";
+            _logger.LogInformation("Calling NewlyArrived API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"api/v1/newlyarrived/slug/{modelSlug}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to get newly arrived vehicle by model slug {ModelSlug}. Status: {StatusCode}", modelSlug, response.StatusCode);
                 return null;
+            }
 
             var item = await ReadApiResponseAsync<NewlyArrivedResponseDto>(response);
 
@@ -214,12 +238,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/featured?limit={limit}";
+            _logger.LogInformation("Calling NewlyArrived API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"api/v1/newlyarrived/featured?limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get featured arrivals. Status: {StatusCode}", response.StatusCode);
                 return Enumerable.Empty<NewlyArrivedResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<NewlyArrivedResponseDto>>(response)
                         ?? Enumerable.Empty<NewlyArrivedResponseDto>();
@@ -240,12 +270,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/weekly?limit={limit}";
+            _logger.LogInformation("Calling NewlyArrived API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"api/v1/newlyarrived/weekly?limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get weekly arrivals. Status: {StatusCode}", response.StatusCode);
                 return Enumerable.Empty<NewlyArrivedResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<NewlyArrivedResponseDto>>(response)
                         ?? Enumerable.Empty<NewlyArrivedResponseDto>();
@@ -266,12 +302,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/monthly?month={month}&year={year}&limit={limit}";
+            _logger.LogInformation("Calling NewlyArrived API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"api/v1/newlyarrived/monthly?month={month}&year={year}&limit={limit}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get monthly arrivals for {Month}/{Year}. Status: {StatusCode}", month, year, response.StatusCode);
                 return Enumerable.Empty<NewlyArrivedResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<NewlyArrivedResponseDto>>(response)
                         ?? Enumerable.Empty<NewlyArrivedResponseDto>();
@@ -292,12 +334,18 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (_cache.TryGetValue(cacheKey, out IEnumerable<NewlyArrivedResponseDto>? cached))
                 return cached!;
 
+            var fullUrl = $"{BASE_PATH}/yearly?year={year}";
+            _logger.LogInformation("Calling NewlyArrived API: {Url}", fullUrl);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync($"api/v1/newlyarrived/yearly?year={year}")
+                _httpClient.GetAsync(fullUrl)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get yearly arrivals for {Year}. Status: {StatusCode}", year, response.StatusCode);
                 return Enumerable.Empty<NewlyArrivedResponseDto>();
+            }
 
             var items = await ReadApiResponseAsync<IEnumerable<NewlyArrivedResponseDto>>(response)
                         ?? Enumerable.Empty<NewlyArrivedResponseDto>();
@@ -316,17 +364,19 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
+            _logger.LogInformation("Creating new newly arrived vehicle by {PublishedBy}", publishedBy);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PostAsJsonAsync("api/v1/newlyarrived", request)
+                _httpClient.PostAsJsonAsync(BASE_PATH, request)
             );
 
             if (response.StatusCode == HttpStatusCode.Conflict)
-                throw new InvalidOperationException("Duplicate entry");
+                throw new InvalidOperationException("Duplicate entry - A vehicle with this model slug already exists");
 
             response.EnsureSuccessStatusCode();
 
             var result = await ReadApiResponseAsync<NewlyArrivedResponseDto>(response)
-                         ?? throw new Exception("Invalid response");
+                         ?? throw new Exception("Invalid response from API");
 
             InvalidateAllCaches();
 
@@ -341,12 +391,17 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
+            _logger.LogInformation("Updating newly arrived vehicle {Id}", id);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PutAsJsonAsync($"api/v1/newlyarrived/{id}", request)
+                _httpClient.PutAsJsonAsync($"{BASE_PATH}/{id}", request)
             );
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to update newly arrived vehicle {Id}. Status: {StatusCode}", id, response.StatusCode);
                 return null;
+            }
 
             var result = await ReadApiResponseAsync<NewlyArrivedResponseDto>(response);
 
@@ -364,8 +419,10 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (string.IsNullOrWhiteSpace(id))
                 return false;
 
+            _logger.LogInformation("Publishing newly arrived vehicle {Id} by {PublishedBy}", id, publishedBy);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PatchAsync($"api/v1/newlyarrived/{id}/publish",
+                _httpClient.PatchAsync($"{BASE_PATH}/{id}/publish",
                     JsonContent.Create(new { publishedBy }))
             );
 
@@ -376,6 +433,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return true;
             }
 
+            _logger.LogWarning("Failed to publish newly arrived vehicle {Id}. Status: {StatusCode}", id, response.StatusCode);
             return false;
         }
 
@@ -384,8 +442,10 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (string.IsNullOrWhiteSpace(id))
                 return false;
 
+            _logger.LogInformation("Unpublishing newly arrived vehicle {Id}", id);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PatchAsync($"api/v1/newlyarrived/{id}/unpublish", null)
+                _httpClient.PatchAsync($"{BASE_PATH}/{id}/unpublish", null)
             );
 
             if (response.IsSuccessStatusCode)
@@ -395,6 +455,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return true;
             }
 
+            _logger.LogWarning("Failed to unpublish newly arrived vehicle {Id}. Status: {StatusCode}", id, response.StatusCode);
             return false;
         }
 
@@ -403,8 +464,10 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             if (string.IsNullOrWhiteSpace(id))
                 return false;
 
+            _logger.LogInformation("Deleting newly arrived vehicle {Id}", id);
+
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.DeleteAsync($"api/v1/newlyarrived/{id}")
+                _httpClient.DeleteAsync($"{BASE_PATH}/{id}")
             );
 
             if (response.IsSuccessStatusCode)
@@ -414,6 +477,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return true;
             }
 
+            _logger.LogWarning("Failed to delete newly arrived vehicle {Id}. Status: {StatusCode}", id, response.StatusCode);
             return false;
         }
     }

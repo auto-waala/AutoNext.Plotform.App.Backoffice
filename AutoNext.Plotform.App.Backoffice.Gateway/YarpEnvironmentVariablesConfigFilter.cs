@@ -3,9 +3,16 @@ using Yarp.ReverseProxy.Configuration;
 
 namespace AutoNext.Plotform.App.Backoffice.Gateway
 {
+    // ============ YARP ENVIRONMENT VARIABLES CONFIG FILTER ============
     public class YarpEnvironmentVariablesConfigFilter : IProxyConfigFilter
     {
         private static readonly Regex _envPattern = new(@"\${([^}]+)}", RegexOptions.Compiled);
+        private readonly ILogger<YarpEnvironmentVariablesConfigFilter>? _logger;
+
+        public YarpEnvironmentVariablesConfigFilter(ILogger<YarpEnvironmentVariablesConfigFilter>? logger = null)
+        {
+            _logger = logger;
+        }
 
         public ValueTask<ClusterConfig> ConfigureClusterAsync(ClusterConfig cluster, CancellationToken cancellationToken)
         {
@@ -25,9 +32,15 @@ namespace AutoNext.Plotform.App.Backoffice.Gateway
 
                     if (string.IsNullOrWhiteSpace(resolvedAddress))
                     {
+                        _logger?.LogError("Environment variable '{EnvVarName}' not found for destination '{DestKey}' in cluster '{ClusterId}'",
+                            envVarName, dest.Key, cluster.ClusterId);
+
                         throw new InvalidOperationException(
-                            $"Environment variable '{envVarName}' not found for destination '{dest.Key}'");
+                            $"Environment variable '{envVarName}' not found for destination '{dest.Key}' in cluster '{cluster.ClusterId}'");
                     }
+
+                    _logger?.LogInformation("Resolved address for destination '{DestKey}' from '{OriginalAddress}' to '{ResolvedAddress}'",
+                        dest.Key, originalAddress, resolvedAddress);
 
                     var modifiedDest = dest.Value with { Address = resolvedAddress };
                     newDestinations.Add(dest.Key, modifiedDest);
