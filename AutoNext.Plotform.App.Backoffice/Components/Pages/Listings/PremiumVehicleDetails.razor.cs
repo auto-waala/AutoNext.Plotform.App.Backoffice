@@ -2,6 +2,7 @@
 using AutoNext.Plotform.App.Backoffice.Integrations.Listings;
 using AutoNext.Plotform.App.Backoffice.Models.DTO;
 using AutoNext.Plotform.App.Backoffice.Models.Listings;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Http;
@@ -11,6 +12,7 @@ using System.Text.RegularExpressions;
 
 namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
 {
+    [Authorize]
     public class PremiumVehicleDetailsBase : ComponentBase
     {
         [Parameter] public string VehicleId { get; set; } = string.Empty;

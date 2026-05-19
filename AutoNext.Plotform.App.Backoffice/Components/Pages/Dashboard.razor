@@ -1,0 +1,587 @@
+﻿@page "/dashboard"
+@inherits DashboardBase
+
+<div class="container-fluid px-0">
+    <div class="row mx-0">
+        <div class="col px-0">
+            <div class="card border-0 shadow-sm rounded-0">
+
+                <!-- Dashboard Header -->
+                <div class="card-header bg-white border-bottom px-4 py-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h4 class="mb-1 fw-bold">
+                                <i class="bi bi-speedometer2 text-primary me-2"></i>Inventory Dashboard
+                            </h4>
+                            <p class="text-muted small mb-0">Real-time overview of vehicle ecosystem & audience insights</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-light text-dark border px-3 py-2">
+                                <i class="bi bi-calendar3 me-1"></i> @CurrentDate
+                            </span>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="RefreshAllData">
+                                <i class="bi bi-arrow-repeat me-1"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI Stats Row (6 Cards) -->
+                <div class="card-body px-4 pt-4 pb-2">
+                    <div class="row g-3">
+                        <!-- Total Vehicles KPI -->
+                        <div class="col-xl-2 col-md-4 col-sm-6">
+                            <div class="dashboard-kpi-card p-3 rounded-3 bg-gradient-blue text-white h-100">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="small text-white-50 text-uppercase">Total Fleet</span>
+                                        <h2 class="mb-0 fw-bold mt-1">@TotalVehicles</h2>
+                                        <small class="text-white-70"><i class="bi bi-plus-circle"></i> +@NewThisMonth this month</small>
+                                    </div>
+                                    <i class="bi bi-car-front-fill fs-1 opacity-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Active Listings KPI -->
+                        <div class="col-xl-2 col-md-4 col-sm-6">
+                            <div class="dashboard-kpi-card p-3 rounded-3 bg-gradient-success text-white h-100">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="small text-white-50 text-uppercase">Active Listings</span>
+                                        <h2 class="mb-0 fw-bold mt-1">@ActiveListings</h2>
+                                        <small class="text-white-70"><i class="bi bi-check-circle"></i> @ActivePercentage% of total</small>
+                                    </div>
+                                    <i class="bi bi-check2-circle fs-1 opacity-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Featured Vehicles KPI -->
+                        <div class="col-xl-2 col-md-4 col-sm-6">
+                            <div class="dashboard-kpi-card p-3 rounded-3 bg-gradient-warning text-dark h-100">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="small text-dark-50 text-uppercase">Featured</span>
+                                        <h2 class="mb-0 fw-bold mt-1">@FeaturedCount</h2>
+                                        <small class="text-dark-70"><i class="bi bi-star-fill text-warning"></i> Priority avg: @AvgPriority</small>
+                                    </div>
+                                    <i class="bi bi-star-fill fs-1 opacity-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Premium Vehicles KPI -->
+                        <div class="col-xl-2 col-md-4 col-sm-6">
+                            <div class="dashboard-kpi-card p-3 rounded-3 bg-gradient-premium text-white h-100">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="small text-white-50 text-uppercase">Premium</span>
+                                        <h2 class="mb-0 fw-bold mt-1">@PremiumCount</h2>
+                                        <small class="text-white-70"><i class="bi bi-gem"></i> High value</small>
+                                    </div>
+                                    <i class="bi bi-gem fs-1 opacity-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Sellers KPI -->
+                        <div class="col-xl-2 col-md-4 col-sm-6">
+                            <div class="dashboard-kpi-card p-3 rounded-3 bg-gradient-info text-white h-100">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="small text-white-50 text-uppercase">Sellers</span>
+                                        <h2 class="mb-0 fw-bold mt-1">@TotalSellers</h2>
+                                        <small class="text-white-70"><i class="bi bi-person-badge"></i> Active sellers</small>
+                                    </div>
+                                    <i class="bi bi-people fs-1 opacity-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Used Vehicles KPI -->
+                        <div class="col-xl-2 col-md-4 col-sm-6">
+                            <div class="dashboard-kpi-card p-3 rounded-3 bg-gradient-secondary text-white h-100">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="small text-white-50 text-uppercase">Used Stock</span>
+                                        <h2 class="mb-0 fw-bold mt-1">@UsedVehiclesCount</h2>
+                                        <small class="text-white-70"><i class="bi bi-clock-history"></i> Pre-owned</small>
+                                    </div>
+                                    <i class="bi bi-clock-history fs-1 opacity-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Grid: 6 Core Sections + New Audience Metrics Section -->
+                <div class="card-body px-4 pt-2 pb-4">
+                    <div class="row g-4">
+
+                        <!-- Section 1: NEWLY ARRIVED VEHICLES -->
+                        <div class="col-lg-6 col-xl-4">
+                            <div class="dashboard-section-card h-100 border-0 shadow-sm rounded-3">
+                                <div class="section-header p-3 border-bottom bg-white rounded-top-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history text-success me-2"></i>Newly Arrived</h6>
+                                    <span class="badge bg-success rounded-pill">@NewArrivals.Count</span>
+                                </div>
+                                <div class="section-body p-0" style="max-height: 340px; overflow-y: auto;">
+                                    @if (NewArrivals.Any())
+                                    {
+                                        @foreach (var vehicle in NewArrivals)
+                                        {
+                                            <div class="list-item d-flex align-items-center p-3 border-bottom">
+                                                <div class="flex-shrink-0 me-3">
+                                                    <div class="rounded bg-light p-1" style="width: 55px; height: 55px; overflow: hidden;">
+                                                        <img src="@GetThumb(vehicle.ImageUrl)" class="w-100 h-100 object-fit-cover" alt="@vehicle.Model" onerror="this.src='https://placehold.co/55x55?text=Car'" />
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <div class="fw-semibold">@vehicle.Brand @vehicle.Model</div>
+                                                    <div class="small text-muted">@vehicle.Type · @vehicle.Year</div>
+                                                    <div class="small text-primary fw-bold">@FormatCurrency(vehicle.Price)</div>
+                                                </div>
+                                                <div><span class="badge bg-light text-dark">@vehicle.AddedDays days ago</span></div>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="text-center py-4 text-muted"><i class="bi bi-inbox"></i> No new arrivals</div>
+                                    }
+                                </div>
+                                <div class="card-footer bg-white border-0 pt-0 pb-2 text-center">
+                                    <a href="#" class="small text-decoration-none">View all →</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: FEATURED VEHICLES (Priority) -->
+                        <div class="col-lg-6 col-xl-4">
+                            <div class="dashboard-section-card h-100 border-0 shadow-sm rounded-3">
+                                <div class="section-header p-3 border-bottom bg-white rounded-top-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0 fw-bold"><i class="bi bi-star text-warning me-2"></i>Featured Vehicles</h6>
+                                    <span class="badge bg-warning text-dark">Priority @FeaturedCount</span>
+                                </div>
+                                <div class="section-body p-0" style="max-height: 340px; overflow-y: auto;">
+                                    @if (FeaturedVehicles.Any())
+                                    {
+                                        @foreach (var vehicle in FeaturedVehicles)
+                                        {
+                                            <div class="list-item d-flex align-items-center p-3 border-bottom">
+                                                <div class="flex-shrink-0 me-3 position-relative">
+                                                    <div class="rounded bg-light p-1" style="width: 55px; height: 55px;">
+                                                        <img src="@GetThumb(vehicle.ImageUrl)" class="w-100 h-100 object-fit-cover" />
+                                                    </div>
+                                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" style="font-size: 9px;">P@(vehicle.Priority)</span>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <div class="fw-semibold">@vehicle.Brand @vehicle.Model</div>
+                                                    <div class="small text-muted"><i class="bi bi-eye"></i> @vehicle.Views views · <i class="bi bi-heart"></i> @vehicle.Likes</div>
+                                                    <div class="small fw-bold @(vehicle.IsActive ? "text-success" : "text-secondary")">@(vehicle.IsActive ? "Active" : "Expired")</div>
+                                                </div>
+                                                <div><i class="bi bi-star-fill text-warning"></i></div>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="text-center py-4 text-muted">No featured vehicles</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 3: PREMIUM VEHICLES -->
+                        <div class="col-lg-6 col-xl-4">
+                            <div class="dashboard-section-card h-100 border-0 shadow-sm rounded-3">
+                                <div class="section-header p-3 border-bottom bg-white rounded-top-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0 fw-bold"><i class="bi bi-gem text-primary me-2"></i>Premium Collection</h6>
+                                    <span class="badge bg-primary">Luxury</span>
+                                </div>
+                                <div class="section-body p-0" style="max-height: 340px; overflow-y: auto;">
+                                    @if (PremiumVehicles.Any())
+                                    {
+                                        @foreach (var vehicle in PremiumVehicles)
+                                        {
+                                            <div class="list-item d-flex align-items-center p-3 border-bottom">
+                                                <div class="flex-shrink-0 me-3">
+                                                    <div class="rounded bg-light p-1" style="width: 55px; height: 55px;">
+                                                        <img src="@GetThumb(vehicle.ImageUrl)" class="w-100 h-100 object-fit-cover" />
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <div class="fw-semibold">@vehicle.Brand @vehicle.Model <i class="bi bi-patch-check-fill text-info small"></i></div>
+                                                    <div class="small text-muted">@vehicle.Engine · @vehicle.Transmission</div>
+                                                    <div class="small fw-bold text-dark">@FormatCurrency(vehicle.Price)</div>
+                                                </div>
+                                                <div><span class="badge bg-light">⭐ @vehicle.Rating</span></div>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="text-center py-4 text-muted">No premium vehicles</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 4: USED VEHICLES -->
+                        <div class="col-lg-6 col-xl-4">
+                            <div class="dashboard-section-card h-100 border-0 shadow-sm rounded-3">
+                                <div class="section-header p-3 border-bottom bg-white rounded-top-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0 fw-bold"><i class="bi bi-arrow-repeat text-secondary me-2"></i>Used / Pre-owned</h6>
+                                    <span class="badge bg-secondary">@UsedVehiclesCount units</span>
+                                </div>
+                                <div class="section-body p-0" style="max-height: 340px; overflow-y: auto;">
+                                    @if (UsedVehicles.Any())
+                                    {
+                                        @foreach (var vehicle in UsedVehicles)
+                                        {
+                                            <div class="list-item d-flex align-items-center p-3 border-bottom">
+                                                <div class="flex-shrink-0 me-3">
+                                                    <div class="rounded bg-light p-1" style="width: 55px; height: 55px;">
+                                                        <img src="@GetThumb(vehicle.ImageUrl)" class="w-100 h-100 object-fit-cover" />
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <div class="fw-semibold">@vehicle.Brand @vehicle.Model</div>
+                                                    <div class="small text-muted"><i class="bi bi-speedometer2"></i> @vehicle.Mileage km · @vehicle.Year</div>
+                                                    <div class="small fw-bold text-success">@FormatCurrency(vehicle.Price)</div>
+                                                </div>
+                                                <div><i class="bi bi-check-circle-fill text-secondary"></i></div>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="text-center py-4 text-muted">No used vehicles listed</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 5: TOP SELLERS + BUYERS INSIGHTS -->
+                        <div class="col-lg-6 col-xl-4">
+                            <div class="dashboard-section-card h-100 border-0 shadow-sm rounded-3">
+                                <div class="section-header p-3 border-bottom bg-white rounded-top-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0 fw-bold"><i class="bi bi-people-fill text-info me-2"></i>Sellers & Buyer Interest</h6>
+                                    <span class="badge bg-info text-dark">Top @TopSellers.Count sellers</span>
+                                </div>
+                                <div class="section-body p-0" style="max-height: 340px; overflow-y: auto;">
+                                    <div class="p-2 bg-light border-bottom">
+                                        <div class="small fw-semibold text-muted mb-1">🏆 Top Sellers (by volume)</div>
+                                        @foreach (var seller in TopSellers)
+                                        {
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span><i class="bi bi-person-circle"></i> @seller.Name</span>
+                                                <span class="badge bg-primary rounded-pill">@seller.Listings listings</span>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="p-2">
+                                        <div class="small fw-semibold text-muted mb-1">🔥 Buyer Activity (last 7d)</div>
+                                        <div class="d-flex gap-3 mt-2">
+                                            <div><i class="bi bi-chat-dots text-success"></i> Inquiries: <strong>@BuyerInquiries</strong></div>
+                                            <div><i class="bi bi-calendar-check"></i> Test drives: <strong>@TestDriveRequests</strong></div>
+                                        </div>
+                                        <div class="progress mt-2" style="height: 6px;">
+                                            <div class="progress-bar bg-success" style="width: @BuyerConversion%"></div>
+                                        </div>
+                                        <div class="small text-muted mt-1">Conversion rate: @BuyerConversion% from leads</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 6: CURRENT ACTIVE VEHICLES -->
+                        <div class="col-lg-6 col-xl-4">
+                            <div class="dashboard-section-card h-100 border-0 shadow-sm rounded-3">
+                                <div class="section-header p-3 border-bottom bg-white rounded-top-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0 fw-bold"><i class="bi bi-play-circle-fill text-success me-2"></i>Current Active Vehicles</h6>
+                                    <span class="badge bg-success">@ActiveListings live</span>
+                                </div>
+                                <div class="section-body p-0" style="max-height: 340px; overflow-y: auto;">
+                                    @if (ActiveVehiclesList.Any())
+                                    {
+                                        @foreach (var vehicle in ActiveVehiclesList.Take(6))
+                                        {
+                                            <div class="list-item d-flex justify-content-between align-items-center p-2 border-bottom">
+                                                <div>
+                                                    <span class="fw-semibold">@vehicle.Brand @vehicle.Model</span>
+                                                    <div class="small text-muted">expires @vehicle.EndDateString</div>
+                                                </div>
+                                                <span class="badge @(vehicle.DaysLeft <= 3 ? "bg-danger" : "bg-secondary")">@vehicle.DaysLeft days left</span>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="text-center py-4 text-muted">No active vehicles at the moment</div>
+                                    }
+                                    @if (ActiveVehiclesList.Count() > 6)
+                                    {
+                                        <div class="text-center small p-2 text-muted">+ @(ActiveVehiclesList.Count() - 6) more active</div>
+                                    }
+                                </div>
+                                <div class="card-footer bg-white border-0 pt-0 pb-2 text-center">
+                                    <span class="small text-muted"><i class="bi bi-clock"></i> Auto-refresh every 5 min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NEW: Audience Metrics & Social Media Section -->
+                    <div class="row mt-4 g-4">
+                        <div class="col-12">
+                            <div class="audience-metrics-card rounded-3 border-0 shadow-sm overflow-hidden">
+                                <div class="audience-header p-3 bg-gradient-audience text-white">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <h6 class="mb-0 fw-bold"><i class="bi bi-graph-up me-2"></i>Audience & Social Metrics</h6>
+                                        <span class="badge bg-light text-dark">Live @CurrentDate</span>
+                                    </div>
+                                </div>
+                                <div class="p-4 bg-white">
+                                    <!-- Social Media Row -->
+                                    <div class="row g-4 mb-4">
+                                        <div class="col-md-6 col-lg-3">
+                                            <div class="social-stat-card p-3 rounded-3 text-center bg-gradient-facebook">
+                                                <i class="bi bi-facebook fs-1 text-white"></i>
+                                                <h3 class="fw-bold text-white mt-2 mb-0">@FacebookEngagement.ToString("N0")</h3>
+                                                <small class="text-white-70">Engagement</small>
+                                                <div class="mt-2"><span class="badge bg-white text-dark">↑ @FacebookTrend% trend</span></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-lg-3">
+                                            <div class="social-stat-card p-3 rounded-3 text-center bg-gradient-instagram">
+                                                <i class="bi bi-instagram fs-1 text-white"></i>
+                                                <h3 class="fw-bold text-white mt-2 mb-0">@InstagramClicks.ToString("N0")</h3>
+                                                <small class="text-white-70">Profile Clicks</small>
+                                                <div class="mt-2"><span class="badge bg-white text-dark">↑ @InstagramTrend% vs last week</span></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-lg-3">
+                                            <div class="social-stat-card p-3 rounded-3 text-center bg-gradient-twitter">
+                                                <i class="bi bi-twitter-x fs-1 text-white"></i>
+                                                <h3 class="fw-bold text-white mt-2 mb-0">@TwitterClicks.ToString("N0")</h3>
+                                                <small class="text-white-70">Clicks / Mentions</small>
+                                                <div class="mt-2"><span class="badge bg-white text-dark">@TwitterTrend% change</span></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-lg-3">
+                                            <div class="social-stat-card p-3 rounded-3 text-center bg-gradient-youtube">
+                                                <i class="bi bi-youtube fs-1 text-white"></i>
+                                                <h3 class="fw-bold text-white mt-2 mb-0">@YoutubeViews.ToString("N0")</h3>
+                                                <small class="text-white-70">Video Views</small>
+                                                <div class="mt-2"><span class="badge bg-white text-dark">@YoutubeTrend% growth</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Traffic & Trends Row -->
+                                    <div class="row g-4">
+                                        <div class="col-md-6">
+                                            <div class="trend-card p-3 border rounded-3 h-100">
+                                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                                    <h6 class="fw-bold mb-0"><i class="bi bi-globe2 text-primary me-1"></i>Traffic Sources</h6>
+                                                    <i class="bi bi-arrow-repeat text-muted small" @onclick="RefreshMetrics" style="cursor:pointer;"> refresh</i>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <div class="d-flex justify-content-between small mb-1">
+                                                        <span>Organic Search</span>
+                                                        <span class="fw-bold">@TrafficOrganic%</span>
+                                                    </div>
+                                                    <div class="progress" style="height: 6px;"><div class="progress-bar bg-success" style="width: @TrafficOrganic%"></div></div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <div class="d-flex justify-content-between small mb-1">
+                                                        <span>Social Media</span>
+                                                        <span class="fw-bold">@TrafficSocial%</span>
+                                                    </div>
+                                                    <div class="progress" style="height: 6px;"><div class="progress-bar bg-primary" style="width: @TrafficSocial%"></div></div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <div class="d-flex justify-content-between small mb-1">
+                                                        <span>Direct / Referral</span>
+                                                        <span class="fw-bold">@TrafficDirect%</span>
+                                                    </div>
+                                                    <div class="progress" style="height: 6px;"><div class="progress-bar bg-info" style="width: @TrafficDirect%"></div></div>
+                                                </div>
+                                                <hr />
+                                                <div class="row text-center">
+                                                    <div class="col-4"><small class="text-muted">Total Visits</small><br /><strong class="fs-5">@TotalVisits.ToString("N0")</strong></div>
+                                                    <div class="col-4"><small class="text-muted">Bounce Rate</small><br /><strong class="fs-5">@BounceRate%</strong></div>
+                                                    <div class="col-4"><small class="text-muted">Avg Session</small><br /><strong class="fs-5">@AvgSessionTime min</strong></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="trend-card p-3 border rounded-3 h-100">
+                                                <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line text-warning me-1"></i>Trending Now</h6>
+                                                <div class="mb-3">
+                                                    @foreach (var trend in TrendingTopics)
+                                                    {
+                                                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                                                            <div>
+                                                                <i class="bi bi-fire text-danger me-1"></i>
+                                                                <strong>@trend.Topic</strong>
+                                                                <div class="small text-muted">@trend.Volume posts</div>
+                                                            </div>
+                                                            <span class="badge @(trend.TrendDirection == "up" ? "bg-success" : "bg-secondary")">@trend.TrendIcon @trend.PercentChange%</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div class="alert alert-info small mb-0 mt-2">
+                                                    <i class="bi bi-lightbulb"></i> Top performing campaign: "#DriveElectric" with 12.4K impressions
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Additional Post Metrics Row -->
+                                    <div class="row mt-4 g-3">
+                                        <div class="col-md-4">
+                                            <div class="bg-light rounded-3 p-3 text-center">
+                                                <i class="bi bi-file-post fs-3 text-primary"></i>
+                                                <div class="fw-bold mt-1">@TotalPosts</div>
+                                                <small class="text-muted">Social Posts (30d)</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="bg-light rounded-3 p-3 text-center">
+                                                <i class="bi bi-share fs-3 text-success"></i>
+                                                <div class="fw-bold mt-1">@TotalSharesSocial.ToString("N0")</div>
+                                                <small class="text-muted">Total Shares</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="bg-light rounded-3 p-3 text-center">
+                                                <i class="bi bi-chat-heart fs-3 text-danger"></i>
+                                                <div class="fw-bold mt-1">@TotalReactions.ToString("N0")</div>
+                                                <small class="text-muted">Likes + Comments</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Engagement Snapshot (combined metrics) -->
+                    <div class="row mt-4 g-3">
+                        <div class="col-12">
+                            <div class="bg-white rounded-3 border p-3">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                    <div><i class="bi bi-bar-chart-steps fs-5 text-primary"></i> <strong>Market Pulse</strong> <span class="text-muted small">last 30 days</span></div>
+                                    <div class="d-flex gap-3 flex-wrap">
+                                        <div><i class="bi bi-eye text-secondary"></i> Total Views: <span class="fw-bold">@TotalViews</span></div>
+                                        <div><i class="bi bi-hand-thumbs-up text-primary"></i> Likes: <span class="fw-bold">@TotalLikes</span></div>
+                                        <div><i class="bi bi-share text-info"></i> Shares: <span class="fw-bold">@TotalShares</span></div>
+                                        <div><i class="bi bi-envelope text-warning"></i> Leads: <span class="fw-bold">@TotalLeads</span></div>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="RefreshMetrics"><i class="bi bi-graph-up"></i> Refresh insights</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Gradients & colors */
+    .bg-gradient-blue {
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+    }
+
+    .bg-gradient-success {
+        background: linear-gradient(135deg, #198754 0%, #157347 100%);
+    }
+
+    .bg-gradient-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #ffca2c 100%);
+    }
+
+    .bg-gradient-premium {
+        background: linear-gradient(135deg, #6f42c1 0%, #5e37a6 100%);
+    }
+
+    .bg-gradient-info {
+        background: linear-gradient(135deg, #0dcaf0 0%, #0bb4d4 100%);
+    }
+
+    .bg-gradient-secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #5c636a 100%);
+    }
+
+    .bg-gradient-audience {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+
+    .bg-gradient-facebook {
+        background: linear-gradient(135deg, #1877f2 0%, #0d65d9 100%);
+    }
+
+    .bg-gradient-instagram {
+        background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%);
+    }
+
+    .bg-gradient-twitter {
+        background: linear-gradient(135deg, #000000 0%, #1da1f2 100%);
+    }
+
+    .bg-gradient-youtube {
+        background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+    }
+
+    .dashboard-kpi-card, .social-stat-card, .trend-card, .audience-metrics-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+        .dashboard-kpi-card:hover, .social-stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+    .dashboard-section-card {
+        transition: all 0.2s;
+        background: white;
+        overflow: hidden;
+    }
+
+        .dashboard-section-card:hover {
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important;
+        }
+
+    .list-item {
+        transition: background 0.1s;
+    }
+
+        .list-item:hover {
+            background-color: #f8f9fa;
+        }
+
+    .object-fit-cover {
+        object-fit: cover;
+    }
+
+    .section-body::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .section-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .section-body::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 6px;
+    }
+
+    .text-white-70 {
+        color: rgba(255,255,255,0.85);
+    }
+
+    .text-dark-50 {
+        color: rgba(0,0,0,0.6);
+    }
+</style>

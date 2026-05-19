@@ -1,27 +1,27 @@
 ﻿using AutoNext.Plotform.App.Backoffice.Integrations.Blob;
 using AutoNext.Plotform.App.Backoffice.Integrations.Listings;
 using AutoNext.Plotform.App.Backoffice.Models.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.Http;
 using Radzen;
-using System.IO;
 using System.Text.RegularExpressions;
 
-namespace AutoNext.Plotform.App.Backoffice.Components.Pages
+namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
 {
-    public class FeaturedVehicleEditBase : ComponentBase
+    [Authorize]
+    public class NewlyArrivedVehiclesDetailsBase : ComponentBase
     {
         [Parameter] public string VehicleId { get; set; } = string.Empty;
 
-        [Inject] protected IFeaturedVehicleService FeaturedVehicleService { get; set; } = default!;
+        [Inject] protected INewlyArrivedService NewlyArrivedService { get; set; } = default!;
         [Inject] protected IBlobService BlobService { get; set; } = default!;
         [Inject] protected NavigationManager Navigation { get; set; } = default!;
-        [Inject] protected ILogger<FeaturedVehicleEditBase> Logger { get; set; } = default!;
+        [Inject] protected ILogger<NewlyArrivedVehiclesDetailsBase> Logger { get; set; } = default!;
         [Inject] protected NotificationService NotificationService { get; set; } = default!;
 
-        protected FeaturedVehicleResponseDto? Vehicle { get; set; }
-        protected FeaturedVehicleRequestDto EditModel { get; set; } = new();
+        protected NewlyArrivedResponseDto? Vehicle { get; set; }
+        protected NewlyArrivedRequestDto EditModel { get; set; } = new();
         protected bool IsLoading { get; set; } = true;
         protected bool IsSaving { get; set; } = false;
         protected bool ShowSaveConfirmation { get; set; } = false;
@@ -34,16 +34,11 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
         // Section identifiers
         protected string BasicSection { get; set; } = "basic";
         protected string PricingSection { get; set; } = "pricing";
-        protected string SpecsSection { get; set; } = "specs";
         protected string ImagesSection { get; set; } = "images";
-        protected string FeaturesSection { get; set; } = "features";
-        protected string FeaturedSection { get; set; } = "featured";
         protected string VideosSection { get; set; } = "videos";
-        protected string ShortsSection { get; set; } = "shorts";
-        protected string ProsConsSection { get; set; } = "proscons";
-        protected string SellerSection { get; set; } = "seller";
-        protected string BadgesSection { get; set; } = "badges";
-        protected string TestDriveSection { get; set; } = "testdrive";
+        protected string ArrivalSettingsSection { get; set; } = "arrivalsettings";
+        protected string VariantsSection { get; set; } = "variants";
+        protected string SeoSection { get; set; } = "seo";
         protected string Video { get; set; } = "video";
         protected string Short { get; set; } = "short";
 
@@ -54,15 +49,11 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
 
         // Video management
         protected VideoDto NewVideo { get; set; } = new();
-        protected VideoDto NewShort { get; set; } = new();
         protected bool IsAddingVideo { get; set; } = false;
-        protected bool IsAddingShort { get; set; } = false;
 
         // Video Player properties
         protected string SelectedVideoUrl { get; set; } = string.Empty;
-        protected string SelectedShortUrl { get; set; } = string.Empty;
         protected bool ShowVideoModal { get; set; } = false;
-        protected bool ShowShortModal { get; set; } = false;
         protected string VideoTitle { get; set; } = string.Empty;
 
         protected override async Task OnInitializedAsync()
@@ -77,7 +68,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
                 IsLoading = true;
                 StateHasChanged();
 
-                Vehicle = await FeaturedVehicleService.GetByIdAsync(VehicleId);
+                Vehicle = await NewlyArrivedService.GetByIdAsync(VehicleId);
 
                 if (Vehicle != null)
                 {
@@ -86,7 +77,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error loading featured vehicle for editing: {VehicleId}", VehicleId);
+                Logger.LogError(ex, "Error loading vehicle for editing: {VehicleId}", VehicleId);
                 NotificationService.Notify(NotificationSeverity.Error, "Error", "Failed to load vehicle details.");
             }
             finally
@@ -100,21 +91,16 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
         {
             if (Vehicle == null) return;
 
-            EditModel = new FeaturedVehicleRequestDto
+            EditModel = new NewlyArrivedRequestDto
             {
-                Title = Vehicle.Title,
-                Descriptions = Vehicle.Descriptions,
-                Slug = Vehicle.Slug,
-                MetaTitle = Vehicle.MetaTitle,
-                MetaDescription = Vehicle.MetaDescription,
                 BrandName = Vehicle.BrandName,
                 ModelName = Vehicle.ModelName,
-                ModelSlug = Vehicle.ModelSlug,
                 VehicleType = Vehicle.VehicleType,
                 BodyType = Vehicle.BodyType,
-                Price = Vehicle.Price ?? new PriceInfoDto(),
-                PriceRangeFrom = Vehicle.PriceRangeFrom,
-                PriceRangeTo = Vehicle.PriceRangeTo,
+                MinPrice = Vehicle.MinPrice,
+                MaxPrice = Vehicle.MaxPrice,
+                ArrivalPeriod = Vehicle.ArrivalPeriod,
+                Emi = Vehicle.Emi ?? new EmiDto(),
                 Images = Vehicle.Images?.Select(img => new ImageDto
                 {
                     FileId = img.FileId,
@@ -127,30 +113,29 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
                     ThumbnailUrl = vid.ThumbnailUrl,
                     Duration = vid.Duration
                 }).ToList() ?? new List<VideoDto>(),
-                Shorts = Vehicle.Shorts?.Select(shortVideo => new VideoDto
+                Variants = Vehicle.Variants?.Select(v => new VariantDetailDto
                 {
-                    FileUrl = shortVideo.FileUrl,
-                    ThumbnailUrl = shortVideo.ThumbnailUrl,
-                    Duration = shortVideo.Duration
-                }).ToList() ?? new List<VideoDto>(),
-                Variants = Vehicle.Variants,
-                KeySpecifications = Vehicle.KeySpecifications ?? new KeySpecificationsDto(),
-                TopFeatures = Vehicle.TopFeatures,
-                StandOutFeatures = Vehicle.StandOutFeatures,
-                Pros = Vehicle.Pros,
-                Cons = Vehicle.Cons,
-                Tags = Vehicle.Tags,
-                Seller = Vehicle.Seller ?? new SellerInfoDto(),
-                Location = Vehicle.Location ?? new LocationInfoDto(),
-                Condition = Vehicle.Condition ?? new VehicleConditionDto(),
-                ListingDetails = Vehicle.ListingDetails ?? new ListingDetailsDto(),
-                Badges = Vehicle.Badges,
-                Highlight = Vehicle.Highlight,
-                TestDrive = Vehicle.TestDrive ?? new TestDriveInfoDto(),
-                Priority = Vehicle.Priority,
-                IsActive = Vehicle.IsActive,
-                StartDate = Vehicle.StartDate,
-                EndDate = Vehicle.EndDate
+                    VariantId = v.VariantId,
+                    VariantName = v.VariantName,
+                    VariantShortName = v.VariantShortName,
+                    VariantSlug = v.VariantSlug,
+                    ExShowRoomPrice = v.ExShowRoomPrice,
+                    OnRoadPrice = v.OnRoadPrice,
+                    OnRoadPriceValue = v.OnRoadPriceValue,
+                    FuelType = v.FuelType,
+                    Transmission = v.Transmission,
+                    Mileage = v.Mileage,
+                    EngineCc = v.EngineCc,
+                    Emi = v.Emi,
+                    Tag = v.Tag,
+                    IsRecentLaunch = v.IsRecentLaunch,
+                    IsTopSelling = v.IsTopSelling,
+                    PriceBreakup = v.PriceBreakup
+                }).ToList() ?? new List<VariantDetailDto>(),
+                Rating = Vehicle.Rating,
+                ReviewCount = Vehicle.ReviewCount,
+                PageTitle = Vehicle.PageTitle,
+                DescriptionText = Vehicle.DescriptionText
             };
         }
 
@@ -161,49 +146,17 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             switch (section)
             {
                 case "basic":
-                    Vehicle.Title = EditModel.Title;
-                    Vehicle.Descriptions = EditModel.Descriptions;
-                    Vehicle.Slug = EditModel.Slug;
-                    Vehicle.MetaTitle = EditModel.MetaTitle;
-                    Vehicle.MetaDescription = EditModel.MetaDescription;
                     Vehicle.BrandName = EditModel.BrandName;
                     Vehicle.ModelName = EditModel.ModelName;
-                    Vehicle.ModelSlug = EditModel.ModelSlug;
                     Vehicle.VehicleType = EditModel.VehicleType;
                     Vehicle.BodyType = EditModel.BodyType;
+                    Vehicle.PageTitle = EditModel.PageTitle;
+                    Vehicle.DescriptionText = EditModel.DescriptionText;
                     break;
                 case "pricing":
-                    Vehicle.Price = EditModel.Price;
-                    Vehicle.PriceRangeFrom = EditModel.PriceRangeFrom;
-                    Vehicle.PriceRangeTo = EditModel.PriceRangeTo;
-                    break;
-                case "specs":
-                    Vehicle.KeySpecifications = EditModel.KeySpecifications;
-                    break;
-                case "features":
-                    Vehicle.TopFeatures = EditModel.TopFeatures;
-                    Vehicle.StandOutFeatures = EditModel.StandOutFeatures;
-                    break;
-                case "featured":
-                    Vehicle.Priority = EditModel.Priority;
-                    Vehicle.IsActive = EditModel.IsActive;
-                    Vehicle.StartDate = EditModel.StartDate;
-                    Vehicle.EndDate = EditModel.EndDate;
-                    break;
-                case "proscons":
-                    Vehicle.Pros = EditModel.Pros;
-                    Vehicle.Cons = EditModel.Cons;
-                    break;
-                case "seller":
-                    Vehicle.Seller = EditModel.Seller;
-                    Vehicle.Location = EditModel.Location;
-                    break;
-                case "badges":
-                    Vehicle.Badges = EditModel.Badges;
-                    Vehicle.Highlight = EditModel.Highlight;
-                    break;
-                case "testdrive":
-                    Vehicle.TestDrive = EditModel.TestDrive;
+                    Vehicle.MinPrice = EditModel.MinPrice;
+                    Vehicle.MaxPrice = EditModel.MaxPrice;
+                    Vehicle.Emi = EditModel.Emi;
                     break;
                 case "images":
                     Vehicle.Images = EditModel.Images.Select(img => new ImageDto
@@ -221,13 +174,35 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
                         Duration = v.Duration
                     }).ToList();
                     break;
-                case "shorts":
-                    Vehicle.Shorts = EditModel.Shorts.Select(s => new VideoDto
+                case "arrivalsettings":
+                    Vehicle.ArrivalPeriod = EditModel.ArrivalPeriod;
+                    Vehicle.Rating = EditModel.Rating;
+                    Vehicle.ReviewCount = EditModel.ReviewCount;
+                    break;
+                case "variants":
+                    Vehicle.Variants = EditModel.Variants.Select(v => new VariantDetailDto
                     {
-                        FileUrl = s.FileUrl,
-                        ThumbnailUrl = s.ThumbnailUrl,
-                        Duration = s.Duration
+                        VariantId = v.VariantId,
+                        VariantName = v.VariantName,
+                        VariantShortName = v.VariantShortName,
+                        VariantSlug = v.VariantSlug,
+                        ExShowRoomPrice = v.ExShowRoomPrice,
+                        OnRoadPrice = v.OnRoadPrice,
+                        OnRoadPriceValue = v.OnRoadPriceValue,
+                        FuelType = v.FuelType,
+                        Transmission = v.Transmission,
+                        Mileage = v.Mileage,
+                        EngineCc = v.EngineCc,
+                        Emi = v.Emi,
+                        Tag = v.Tag,
+                        IsRecentLaunch = v.IsRecentLaunch,
+                        IsTopSelling = v.IsTopSelling,
+                        PriceBreakup = v.PriceBreakup
                     }).ToList();
+                    break;
+                case "seo":
+                    Vehicle.PageTitle = EditModel.PageTitle;
+                    Vehicle.DescriptionText = EditModel.DescriptionText;
                     break;
             }
         }
@@ -253,45 +228,13 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
                         EditModel.ModelName = Vehicle.ModelName;
                         EditModel.VehicleType = Vehicle.VehicleType;
                         EditModel.BodyType = Vehicle.BodyType;
-                        EditModel.ModelSlug = Vehicle.ModelSlug;
-                        EditModel.Slug = Vehicle.Slug;
-                        EditModel.Title = Vehicle.Title;
-                        EditModel.Descriptions = Vehicle.Descriptions;
-                        EditModel.MetaTitle = Vehicle.MetaTitle;
-                        EditModel.MetaDescription = Vehicle.MetaDescription;
+                        EditModel.PageTitle = Vehicle.PageTitle;
+                        EditModel.DescriptionText = Vehicle.DescriptionText;
                         break;
                     case "pricing":
-                        EditModel.Price = Vehicle.Price ?? new PriceInfoDto();
-                        EditModel.PriceRangeFrom = Vehicle.PriceRangeFrom;
-                        EditModel.PriceRangeTo = Vehicle.PriceRangeTo;
-                        break;
-                    case "specs":
-                        EditModel.KeySpecifications = Vehicle.KeySpecifications ?? new KeySpecificationsDto();
-                        break;
-                    case "features":
-                        EditModel.TopFeatures = Vehicle.TopFeatures;
-                        EditModel.StandOutFeatures = Vehicle.StandOutFeatures;
-                        break;
-                    case "featured":
-                        EditModel.Priority = Vehicle.Priority;
-                        EditModel.IsActive = Vehicle.IsActive;
-                        EditModel.StartDate = Vehicle.StartDate;
-                        EditModel.EndDate = Vehicle.EndDate;
-                        break;
-                    case "proscons":
-                        EditModel.Pros = Vehicle.Pros;
-                        EditModel.Cons = Vehicle.Cons;
-                        break;
-                    case "seller":
-                        EditModel.Seller = Vehicle.Seller ?? new SellerInfoDto();
-                        EditModel.Location = Vehicle.Location ?? new LocationInfoDto();
-                        break;
-                    case "badges":
-                        EditModel.Badges = Vehicle.Badges;
-                        EditModel.Highlight = Vehicle.Highlight;
-                        break;
-                    case "testdrive":
-                        EditModel.TestDrive = Vehicle.TestDrive ?? new TestDriveInfoDto();
+                        EditModel.MinPrice = Vehicle.MinPrice;
+                        EditModel.MaxPrice = Vehicle.MaxPrice;
+                        EditModel.Emi = Vehicle.Emi ?? new EmiDto();
                         break;
                     case "images":
                         EditModel.Images = Vehicle.Images?.Select(img => new ImageDto
@@ -310,13 +253,35 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
                             Duration = vid.Duration
                         }).ToList() ?? new List<VideoDto>();
                         break;
-                    case "shorts":
-                        EditModel.Shorts = Vehicle.Shorts?.Select(shortVideo => new VideoDto
+                    case "arrivalsettings":
+                        EditModel.ArrivalPeriod = Vehicle.ArrivalPeriod;
+                        EditModel.Rating = Vehicle.Rating;
+                        EditModel.ReviewCount = Vehicle.ReviewCount;
+                        break;
+                    case "variants":
+                        EditModel.Variants = Vehicle.Variants?.Select(v => new VariantDetailDto
                         {
-                            FileUrl = shortVideo.FileUrl,
-                            ThumbnailUrl = shortVideo.ThumbnailUrl,
-                            Duration = shortVideo.Duration
-                        }).ToList() ?? new List<VideoDto>();
+                            VariantId = v.VariantId,
+                            VariantName = v.VariantName,
+                            VariantShortName = v.VariantShortName,
+                            VariantSlug = v.VariantSlug,
+                            ExShowRoomPrice = v.ExShowRoomPrice,
+                            OnRoadPrice = v.OnRoadPrice,
+                            OnRoadPriceValue = v.OnRoadPriceValue,
+                            FuelType = v.FuelType,
+                            Transmission = v.Transmission,
+                            Mileage = v.Mileage,
+                            EngineCc = v.EngineCc,
+                            Emi = v.Emi,
+                            Tag = v.Tag,
+                            IsRecentLaunch = v.IsRecentLaunch,
+                            IsTopSelling = v.IsTopSelling,
+                            PriceBreakup = v.PriceBreakup
+                        }).ToList() ?? new List<VariantDetailDto>();
+                        break;
+                    case "seo":
+                        EditModel.PageTitle = Vehicle.PageTitle;
+                        EditModel.DescriptionText = Vehicle.DescriptionText;
                         break;
                 }
             }
@@ -374,7 +339,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
                 IsSaving = true;
                 StateHasChanged();
 
-                var updatedVehicle = await FeaturedVehicleService.UpdateAsync(VehicleId, EditModel);
+                var updatedVehicle = await NewlyArrivedService.UpdateAsync(VehicleId, EditModel);
 
                 if (updatedVehicle != null)
                 {
@@ -383,14 +348,14 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
                     ChangedSections.Clear();
 
                     NotificationService.Notify(NotificationSeverity.Success, "Success",
-                        "Featured vehicle updated successfully!");
+                        "Vehicle updated successfully!");
 
-                    Navigation.NavigateTo($"/featured-vehicles/{VehicleId}");
+                    Navigation.NavigateTo($"/newly-arrived-vehicles/{VehicleId}");
                 }
                 else
                 {
                     NotificationService.Notify(NotificationSeverity.Error, "Error",
-                        "Failed to update featured vehicle.");
+                        "Failed to update vehicle.");
                 }
             }
             catch (Exception ex)
@@ -424,7 +389,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
         {
             try
             {
-                var partialUpdate = new FeaturedVehicleRequestDto();
+                var partialUpdate = new NewlyArrivedRequestDto();
 
                 switch (section)
                 {
@@ -434,57 +399,34 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
                     case "videos":
                         partialUpdate.Videos = EditModel.Videos;
                         break;
-                    case "shorts":
-                        partialUpdate.Shorts = EditModel.Shorts;
-                        break;
                     case "basic":
                         partialUpdate.BrandName = EditModel.BrandName;
                         partialUpdate.ModelName = EditModel.ModelName;
                         partialUpdate.VehicleType = EditModel.VehicleType;
                         partialUpdate.BodyType = EditModel.BodyType;
-                        partialUpdate.ModelSlug = EditModel.ModelSlug;
-                        partialUpdate.Slug = EditModel.Slug;
-                        partialUpdate.Title = EditModel.Title;
-                        partialUpdate.Descriptions = EditModel.Descriptions;
-                        partialUpdate.MetaTitle = EditModel.MetaTitle;
-                        partialUpdate.MetaDescription = EditModel.MetaDescription;
+                        partialUpdate.PageTitle = EditModel.PageTitle;
+                        partialUpdate.DescriptionText = EditModel.DescriptionText;
                         break;
                     case "pricing":
-                        partialUpdate.Price = EditModel.Price;
-                        partialUpdate.PriceRangeFrom = EditModel.PriceRangeFrom;
-                        partialUpdate.PriceRangeTo = EditModel.PriceRangeTo;
+                        partialUpdate.MinPrice = EditModel.MinPrice;
+                        partialUpdate.MaxPrice = EditModel.MaxPrice;
+                        partialUpdate.Emi = EditModel.Emi;
                         break;
-                    case "specs":
-                        partialUpdate.KeySpecifications = EditModel.KeySpecifications;
+                    case "arrivalsettings":
+                        partialUpdate.ArrivalPeriod = EditModel.ArrivalPeriod;
+                        partialUpdate.Rating = EditModel.Rating;
+                        partialUpdate.ReviewCount = EditModel.ReviewCount;
                         break;
-                    case "features":
-                        partialUpdate.TopFeatures = EditModel.TopFeatures;
-                        partialUpdate.StandOutFeatures = EditModel.StandOutFeatures;
+                    case "variants":
+                        partialUpdate.Variants = EditModel.Variants;
                         break;
-                    case "featured":
-                        partialUpdate.Priority = EditModel.Priority;
-                        partialUpdate.IsActive = EditModel.IsActive;
-                        partialUpdate.StartDate = EditModel.StartDate;
-                        partialUpdate.EndDate = EditModel.EndDate;
-                        break;
-                    case "proscons":
-                        partialUpdate.Pros = EditModel.Pros;
-                        partialUpdate.Cons = EditModel.Cons;
-                        break;
-                    case "seller":
-                        partialUpdate.Seller = EditModel.Seller;
-                        partialUpdate.Location = EditModel.Location;
-                        break;
-                    case "badges":
-                        partialUpdate.Badges = EditModel.Badges;
-                        partialUpdate.Highlight = EditModel.Highlight;
-                        break;
-                    case "testdrive":
-                        partialUpdate.TestDrive = EditModel.TestDrive;
+                    case "seo":
+                        partialUpdate.PageTitle = EditModel.PageTitle;
+                        partialUpdate.DescriptionText = EditModel.DescriptionText;
                         break;
                 }
 
-                var updatedVehicle = await FeaturedVehicleService.UpdateAsync(VehicleId, partialUpdate);
+                var updatedVehicle = await NewlyArrivedService.UpdateAsync(VehicleId, partialUpdate);
 
                 if (updatedVehicle != null)
                 {
@@ -747,90 +689,12 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             StateHasChanged();
         }
 
-        // Shorts Management Methods
-        protected void CancelShort()
-        {
-            NewShort = new VideoDto();
-            IsAddingShort = false;
-            StateHasChanged();
-        }
-
-        protected async Task AddShort()
-        {
-            if (string.IsNullOrWhiteSpace(NewShort.FileUrl))
-                return;
-
-            EditModel.Shorts.Add(new VideoDto
-            {
-                FileUrl = NewShort.FileUrl,
-                ThumbnailUrl = NewShort.ThumbnailUrl,
-                Duration = NewShort.Duration
-            });
-
-            NewShort = new VideoDto();
-            IsAddingShort = false;
-
-            try
-            {
-                await SaveSectionToDatabase("shorts");
-                SyncVehicleFromEditModel("shorts");
-                ChangedSections.Remove(ShortsSection);
-
-                NotificationService.Notify(NotificationSeverity.Success, "Short Added",
-                    "Short saved successfully.");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error saving short to database");
-                ChangedSections.Add(ShortsSection);
-                NotificationService.Notify(NotificationSeverity.Warning, "Save Failed",
-                    "Short added but not saved to database. Please save manually.");
-            }
-
-            StateHasChanged();
-        }
-
-        protected async Task RemoveShort(int index)
-        {
-            if (index < 0 || index >= EditModel.Shorts.Count)
-                return;
-
-            EditModel.Shorts.RemoveAt(index);
-
-            try
-            {
-                await SaveSectionToDatabase("shorts");
-                SyncVehicleFromEditModel("shorts");
-                ChangedSections.Remove(ShortsSection);
-
-                NotificationService.Notify(NotificationSeverity.Success, "Short Removed",
-                    "Short removed and saved successfully.");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error saving short removal to database");
-                ChangedSections.Add(ShortsSection);
-                NotificationService.Notify(NotificationSeverity.Warning, "Save Failed",
-                    "Short removed but not saved to database. Please save manually.");
-            }
-
-            StateHasChanged();
-        }
-
         // Video Player Methods
         protected void PlayVideo(string url, string title)
         {
             SelectedVideoUrl = url;
             VideoTitle = title;
             ShowVideoModal = true;
-            StateHasChanged();
-        }
-
-        protected void PlayShort(string url, string title)
-        {
-            SelectedShortUrl = url;
-            VideoTitle = title;
-            ShowShortModal = true;
             StateHasChanged();
         }
 
@@ -841,13 +705,6 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             StateHasChanged();
         }
 
-        protected void CloseShortModal()
-        {
-            ShowShortModal = false;
-            SelectedShortUrl = string.Empty;
-            StateHasChanged();
-        }
-
         protected string GetYouTubeEmbedUrl(string url)
         {
             if (string.IsNullOrEmpty(url)) return string.Empty;
@@ -855,27 +712,25 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             var videoId = ExtractYouTubeVideoId(url);
             if (string.IsNullOrEmpty(videoId)) return string.Empty;
 
-            // Common parameters to improve playback and remove permissions errors
             var parameters = new List<string>
             {
                 "autoplay=1",
-                "rel=0",           // Don't show related videos
-                "modestbranding=1", // Minimal YouTube branding
-                "controls=1",       // Show controls
-                "showinfo=0",       // Don't show video info
-                "iv_load_policy=3", // Don't show annotations
-                "enablejsapi=0",    // Disable JS API to prevent permission errors
-                "origin=" + Uri.EscapeDataString(Navigation.BaseUri), // Set origin for security
-                "widget_referrer=" + Uri.EscapeDataString(Navigation.BaseUri) // Set referrer
+                "rel=0",
+                "modestbranding=1",
+                "controls=1",
+                "showinfo=0",
+                "iv_load_policy=3",
+                "enablejsapi=0"
             };
 
-            // Check if it's a short
-            if (url.Contains("/shorts/"))
-            {
-                return $"https://www.youtube.com/embed/{videoId}?{string.Join("&", parameters)}";
-            }
+            return $"https://www.youtube-nocookie.com/embed/{videoId}?{string.Join("&", parameters)}";
+        }
 
-            return $"https://www.youtube.com/embed/{videoId}?{string.Join("&", parameters)}";
+        protected void OnVideoUrlChanged(string url)
+        {
+            NewVideo.FileUrl = url;
+            NewVideo.ThumbnailUrl = ExtractYouTubeThumbnail(url);
+            StateHasChanged();
         }
 
         protected string ExtractYouTubeThumbnail(string url)
@@ -895,18 +750,35 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             return match.Success ? match.Groups[1].Value : string.Empty;
         }
 
-        protected void OnVideoUrlChanged(string url)
+        // Variant Management Methods
+        protected void AddVariant()
         {
-            NewVideo.FileUrl = url;
-            NewVideo.ThumbnailUrl = ExtractYouTubeThumbnail(url);
+            EditModel.Variants.Add(new VariantDetailDto
+            {
+                VariantId = Guid.NewGuid().ToString(),
+                VariantName = string.Empty,
+                VariantShortName = string.Empty,
+                ExShowRoomPrice = string.Empty,
+                OnRoadPrice = string.Empty,
+                FuelType = string.Empty,
+                Transmission = string.Empty
+            });
+
+            if (!ChangedSections.Contains(VariantsSection))
+                ChangedSections.Add(VariantsSection);
+
             StateHasChanged();
         }
 
-        protected void OnShortUrlChanged(string url)
+        protected void RemoveVariant(int index)
         {
-            NewShort.FileUrl = url;
-            NewShort.ThumbnailUrl = ExtractYouTubeThumbnail(url);
-            StateHasChanged();
+            if (index >= 0 && index < EditModel.Variants.Count)
+            {
+                EditModel.Variants.RemoveAt(index);
+                if (!ChangedSections.Contains(VariantsSection))
+                    ChangedSections.Add(VariantsSection);
+                StateHasChanged();
+            }
         }
 
         // Helper Methods
@@ -917,13 +789,23 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             return $"₹{price:N0}";
         }
 
-        protected string GetPriorityColor(int priority)
+        protected string FormatPriceString(string price)
         {
-            if (priority >= 8) return "#dc3545";
-            if (priority >= 5) return "#fd7e14";
-            if (priority >= 3) return "#ffc107";
-            return "#6c757d";
+            if (string.IsNullOrEmpty(price)) return "₹0";
+            if (decimal.TryParse(price.Replace("₹", "").Replace(",", ""), out decimal value))
+            {
+                return FormatPrice(value);
+            }
+            return price;
         }
+
+        protected string GetArrivalPeriodBadgeClass(string period) => period?.ToLower() switch
+        {
+            "weekly" => "bg-success",
+            "monthly" => "bg-primary",
+            "yearly" => "bg-warning text-dark",
+            _ => "bg-secondary"
+        };
 
         protected void GoBack()
         {
@@ -934,76 +816,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             }
             else
             {
-                Navigation.NavigateTo($"/featured-vehicles/{VehicleId}");
-            }
-        }
-
-        // Feature management methods
-        protected void AddTopFeature()
-        {
-            EditModel.TopFeatures.Add(new FeatureItemDto { Feature = string.Empty });
-            if (!ChangedSections.Contains(FeaturesSection)) ChangedSections.Add(FeaturesSection);
-            StateHasChanged();
-        }
-
-        protected void RemoveTopFeature(int index)
-        {
-            if (index >= 0 && index < EditModel.TopFeatures.Count)
-            {
-                EditModel.TopFeatures.RemoveAt(index);
-                if (!ChangedSections.Contains(FeaturesSection)) ChangedSections.Add(FeaturesSection);
-                StateHasChanged();
-            }
-        }
-
-        protected void AddStandOutFeature()
-        {
-            EditModel.StandOutFeatures.Add(new FeatureItemDto { Feature = string.Empty });
-            if (!ChangedSections.Contains(FeaturesSection)) ChangedSections.Add(FeaturesSection);
-            StateHasChanged();
-        }
-
-        protected void RemoveStandOutFeature(int index)
-        {
-            if (index >= 0 && index < EditModel.StandOutFeatures.Count)
-            {
-                EditModel.StandOutFeatures.RemoveAt(index);
-                if (!ChangedSections.Contains(FeaturesSection)) ChangedSections.Add(FeaturesSection);
-                StateHasChanged();
-            }
-        }
-
-        protected void AddPro()
-        {
-            EditModel.Pros.Add(new ProConItemDto { Pro = string.Empty });
-            if (!ChangedSections.Contains(ProsConsSection)) ChangedSections.Add(ProsConsSection);
-            StateHasChanged();
-        }
-
-        protected void RemovePro(int index)
-        {
-            if (index >= 0 && index < EditModel.Pros.Count)
-            {
-                EditModel.Pros.RemoveAt(index);
-                if (!ChangedSections.Contains(ProsConsSection)) ChangedSections.Add(ProsConsSection);
-                StateHasChanged();
-            }
-        }
-
-        protected void AddCon()
-        {
-            EditModel.Cons.Add(new ProConItemDto { Con = string.Empty });
-            if (!ChangedSections.Contains(ProsConsSection)) ChangedSections.Add(ProsConsSection);
-            StateHasChanged();
-        }
-
-        protected void RemoveCon(int index)
-        {
-            if (index >= 0 && index < EditModel.Cons.Count)
-            {
-                EditModel.Cons.RemoveAt(index);
-                if (!ChangedSections.Contains(ProsConsSection)) ChangedSections.Add(ProsConsSection);
-                StateHasChanged();
+                Navigation.NavigateTo($"/newly-arrived-vehicles/{VehicleId}");
             }
         }
     }
