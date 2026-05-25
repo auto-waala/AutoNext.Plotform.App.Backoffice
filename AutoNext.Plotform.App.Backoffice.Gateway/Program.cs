@@ -29,7 +29,11 @@ public class Program
                     "https://localhost:5001",
                     // Local test clients
                     "http://localhost:4200",
+                    "http://localhost:8080",
                     "http://localhost:3000",
+                    // Vite / network dev server (npm run dev)
+                    "http://localhost:8080",
+                    "http://192.168.1.3:8080",
                     // Azure Dev URLs
                     "https://autonext-backoffice-dev.services.azurewebsites.betalen.in"
                 )
