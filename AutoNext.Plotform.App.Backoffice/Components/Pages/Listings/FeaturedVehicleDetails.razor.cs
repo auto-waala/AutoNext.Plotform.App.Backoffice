@@ -934,7 +934,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages
             }
             else
             {
-                Navigation.NavigateTo($"/featured-vehicles/{VehicleId}");
+                Navigation.NavigateTo($"/featured-vehicles");
             }
         }
 
