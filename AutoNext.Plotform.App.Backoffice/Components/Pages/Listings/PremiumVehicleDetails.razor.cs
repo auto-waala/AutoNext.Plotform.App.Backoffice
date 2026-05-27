@@ -1,4 +1,5 @@
-﻿using AutoNext.Plotform.App.Backoffice.Integrations.Blob;
+﻿using AutoNext.Plotform.App.Backoffice.Handlers;
+using AutoNext.Plotform.App.Backoffice.Integrations.Blob;
 using AutoNext.Plotform.App.Backoffice.Integrations.Listings;
 using AutoNext.Plotform.App.Backoffice.Models.DTO;
 using AutoNext.Plotform.App.Backoffice.Models.Listings;
@@ -22,6 +23,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
         [Inject] protected NavigationManager Navigation { get; set; } = default!;
         [Inject] protected ILogger<PremiumVehicleDetailsBase> Logger { get; set; } = default!;
         [Inject] protected NotificationService NotificationService { get; set; } = default!;
+        [Inject] protected LoaderService LoaderService { get; set; } = default!;
 
         protected PremiumVehicleResponseDto? Vehicle { get; set; }
         protected PremiumVehicleRequestDto EditModel { get; set; } = new();
@@ -90,6 +92,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             try
             {
                 IsLoading = true;
+                LoaderService.Show();
                 StateHasChanged();
 
                 Vehicle = await PremiumVehicleService.GetByIdAsync(VehicleId);
@@ -107,6 +110,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             finally
             {
                 IsLoading = false;
+                LoaderService.Hide();
                 StateHasChanged();
             }
         }
@@ -152,7 +156,8 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
                 {
                     FuelType = v.FuelType,
                     Transmission = v.Transmission,
-                    Mileage = v.Mileage
+                    Mileage = v.Mileage,
+                    VariantName = v.VariantName
                 }).ToList() ?? new List<VariantDetailDto>(),
                 KeySpecifications = Vehicle.KeySpecifications ?? new PremiumVehicleKeySpecificationsDto(),
                 TopFeatures = Vehicle.TopFeatures?.Select(f => new PremiumVehicleFeatureItemDto
@@ -189,6 +194,186 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
                 StartDate = Vehicle.StartDate,
                 EndDate = Vehicle.EndDate
             };
+        }
+
+        private void CopyAllDataToPartialUpdate(PremiumVehicleRequestDto target)
+        {
+            if (target == null) return;
+
+            // Basic Information
+            target.Title = EditModel.Title;
+            target.Descriptions = EditModel.Descriptions;
+            target.Slug = EditModel.Slug;
+            target.MetaTitle = EditModel.MetaTitle;
+            target.MetaDescription = EditModel.MetaDescription;
+            target.BrandName = EditModel.BrandName;
+            target.ModelName = EditModel.ModelName;
+            target.ModelSlug = EditModel.ModelSlug;
+            target.VehicleType = EditModel.VehicleType;
+            target.BodyType = EditModel.BodyType;
+
+            // Pricing
+            target.Price = EditModel.Price != null ? new PremiumVehiclePriceInfoDto
+            {
+                Amount = EditModel.Price.Amount,
+                Currency = EditModel.Price.Currency,
+                Negotiable = EditModel.Price.Negotiable,
+                OnRoadPrice = EditModel.Price.OnRoadPrice,
+            } : new PremiumVehiclePriceInfoDto();
+
+            target.PriceRangeFrom = EditModel.PriceRangeFrom;
+            target.PriceRangeTo = EditModel.PriceRangeTo;
+
+            // Media
+            target.Images = EditModel.Images?.Select(img => new ImageDto
+            {
+                FileId = img.FileId,
+                FileUrl = img.FileUrl,
+                IsPrimary = img.IsPrimary
+            }).ToList() ?? new List<ImageDto>();
+
+            target.Videos = EditModel.Videos?.Select(vid => new VideoDto
+            {
+                FileUrl = vid.FileUrl,
+                ThumbnailUrl = vid.ThumbnailUrl,
+                Duration = vid.Duration
+            }).ToList() ?? new List<VideoDto>();
+
+            target.Shorts = EditModel.Shorts?.Select(shortVideo => new VideoDto
+            {
+                FileUrl = shortVideo.FileUrl,
+                ThumbnailUrl = shortVideo.ThumbnailUrl,
+                Duration = shortVideo.Duration
+            }).ToList() ?? new List<VideoDto>();
+
+            // Variants
+            target.Variants = EditModel.Variants?.Select(v => new VariantDetailDto
+            {
+                VariantName = v.VariantName,
+                FuelType = v.FuelType,
+                Transmission = v.Transmission,
+                Mileage = v.Mileage,
+                EngineCc = v.EngineCc,
+                Emi = v.Emi,
+                ExShowRoomPrice = v.ExShowRoomPrice,
+                OnRoadPrice = v.OnRoadPrice,
+                OnRoadPriceValue = v.OnRoadPriceValue,
+                Tag = v.Tag,
+                VariantId = v.VariantId,
+                VariantShortName = v.VariantShortName,
+                VariantSlug = v.VariantSlug,
+                IsRecentLaunch = v.IsRecentLaunch,
+                IsTopSelling = v.IsTopSelling,
+                PriceBreakup = v.PriceBreakup
+            }).ToList() ?? new List<VariantDetailDto>();
+
+            // Specifications
+            target.KeySpecifications = EditModel.KeySpecifications != null ? new PremiumVehicleKeySpecificationsDto
+            {
+                Engine = EditModel.KeySpecifications.Engine,
+                Transmission = EditModel.KeySpecifications.Transmission,
+                FuelType = EditModel.KeySpecifications.FuelType,
+                Mileage = EditModel.KeySpecifications.Mileage,
+                YearOfManufacture = EditModel.KeySpecifications.YearOfManufacture,
+                MaxPower = EditModel.KeySpecifications.MaxPower,
+                MaxTorque = EditModel.KeySpecifications.MaxTorque,
+                SeatingCapacity = EditModel.KeySpecifications.SeatingCapacity,
+            } : new PremiumVehicleKeySpecificationsDto();
+
+            // Features
+            target.TopFeatures = EditModel.TopFeatures?.Select(f => new PremiumVehicleFeatureItemDto
+            {
+                Feature = f.Feature,
+                Icon = f.Icon
+            }).ToList() ?? new List<PremiumVehicleFeatureItemDto>();
+
+            target.StandOutFeatures = EditModel.StandOutFeatures?.Select(f => new PremiumVehicleFeatureItemDto
+            {
+                Feature = f.Feature,
+                Icon = f.Icon
+            }).ToList() ?? new List<PremiumVehicleFeatureItemDto>();
+
+            // Pros & Cons
+            target.Pros = EditModel.Pros?.Select(p => new PremiumVehicleProConItemDto
+            {
+                Pro = p.Pro
+            }).ToList() ?? new List<PremiumVehicleProConItemDto>();
+
+            target.Cons = EditModel.Cons?.Select(c => new PremiumVehicleProConItemDto
+            {
+                Con = c.Con
+            }).ToList() ?? new List<PremiumVehicleProConItemDto>();
+
+            // Tags
+            target.Tags = EditModel.Tags?.Select(t => new PremiumVehicleTagItemDto
+            {
+                TagName = t.TagName
+            }).ToList() ?? new List<PremiumVehicleTagItemDto>();
+
+            // Seller & Location
+            target.Seller = EditModel.Seller != null ? new SellerInfoDto
+            {
+                UserId = EditModel.Seller.UserId,
+                Name = EditModel.Seller.Name,
+                Phone = EditModel.Seller.Phone,
+                Email = EditModel.Seller.Email,
+                SellerType = EditModel.Seller.SellerType,
+                DealerId = EditModel.Seller.DealerId,
+                StoreId = EditModel.Seller.StoreId,
+                ChatEnabled = EditModel.Seller.ChatEnabled,
+                CallEnabled = EditModel.Seller.CallEnabled,
+                IsVerified = EditModel.Seller.IsVerified,
+                Location = EditModel.Seller.Location
+            } : new SellerInfoDto();
+
+            target.Location = EditModel.Location != null ? new PremiumVehicleLocationInfoDto
+            {
+                City = EditModel.Location.City,
+                State = EditModel.Location.State,
+                Pincode = EditModel.Location.Pincode,
+                Latitude = EditModel.Location.Latitude,
+                Longitude = EditModel.Location.Longitude,
+            } : new PremiumVehicleLocationInfoDto();
+
+            // Condition
+            target.Condition = EditModel.Condition != null ? new PremiumVehicleConditionDto
+            {
+                IsNew = EditModel.Condition.IsNew,
+                OwnerCount = EditModel.Condition.OwnerCount,
+                KMDriven = EditModel.Condition.KMDriven,
+                Accidental = EditModel.Condition.Accidental,
+                ServiceHistoryAvailable = EditModel.Condition.ServiceHistoryAvailable,
+            } : new PremiumVehicleConditionDto();
+
+            // Listing Details
+            target.ListingDetails = EditModel.ListingDetails != null ? new PremiumVehicleListingDetailsDto
+            {
+                IsAvailable = EditModel.ListingDetails.IsAvailable,
+                IsSold = EditModel.ListingDetails.IsSold,
+                PostedDate = EditModel.ListingDetails.PostedDate,
+                ExpiryDate = EditModel.ListingDetails.ExpiryDate,
+                IsVerified = EditModel.ListingDetails.IsVerified,
+                VerifiedBy = EditModel.ListingDetails.VerifiedBy,
+                VerificationDate = EditModel.ListingDetails.VerificationDate,
+            } : new PremiumVehicleListingDetailsDto();
+
+            // Badges & Highlight
+            target.Badges = EditModel.Badges?.ToList() ?? new List<string>();
+            target.Highlight = EditModel.Highlight;
+
+            // Test Drive
+            target.TestDrive = EditModel.TestDrive != null ? new PremiumVehicleTestDriveInfoDto
+            {
+                Available = EditModel.TestDrive.Available,
+                BookingAmount = EditModel.TestDrive.BookingAmount,
+                BookingUrl = EditModel.TestDrive.BookingUrl,
+            } : new PremiumVehicleTestDriveInfoDto();
+
+            // Premium Settings
+            target.Priority = EditModel.Priority;
+            target.IsActive = EditModel.IsActive;
+            target.StartDate = EditModel.StartDate;
+            target.EndDate = EditModel.EndDate;
         }
 
         private void SyncVehicleFromEditModel(string section)
@@ -389,6 +574,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             try
             {
                 IsSaving = true;
+                LoaderService.Show();
                 StateHasChanged();
 
                 await SaveSectionToDatabase(section);
@@ -397,19 +583,53 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
                 EditingSections.Remove(section);
                 ChangedSections.Remove(section);
 
+                LoaderService.Hide();
                 NotificationService.Notify(NotificationSeverity.Success, "Saved",
                     $"{section} section saved successfully.");
             }
             catch (Exception ex)
             {
+                LoaderService.Hide();
                 Logger.LogError(ex, "Error saving section: {Section}", section);
                 NotificationService.Notify(NotificationSeverity.Error, "Error",
-                    $"Failed to save {section} section.");
+                    $"Failed to save {section} section: {ex.Message}");
             }
             finally
             {
                 IsSaving = false;
                 StateHasChanged();
+            }
+        }
+
+        protected async Task SaveSectionToDatabase(string section)
+        {
+            try
+            {
+                // Create a complete DTO with all current data
+                var completeUpdate = new PremiumVehicleRequestDto();
+                CopyAllDataToPartialUpdate(completeUpdate);
+
+                // Send the complete DTO to the API
+                var updatedVehicle = await PremiumVehicleService.UpdateAsync(VehicleId, completeUpdate);
+
+                if (updatedVehicle != null)
+                {
+                    Vehicle = updatedVehicle;
+
+                    // Refresh the EditModel with the updated data from server
+                    MapVehicleToEditModel();
+
+                    Logger.LogInformation("Section {Section} saved to database successfully", section);
+                }
+                else
+                {
+                    throw new Exception($"Server returned null for section {section} update.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error saving section {Section} to database", section);
+                throw;
             }
         }
 
@@ -433,9 +653,14 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             try
             {
                 IsSaving = true;
+                LoaderService.Show();
                 StateHasChanged();
 
-                var updatedVehicle = await PremiumVehicleService.UpdateAsync(VehicleId, EditModel);
+                // Create complete DTO for full update
+                var completeUpdate = new PremiumVehicleRequestDto();
+                CopyAllDataToPartialUpdate(completeUpdate);
+
+                var updatedVehicle = await PremiumVehicleService.UpdateAsync(VehicleId, completeUpdate);
 
                 if (updatedVehicle != null)
                 {
@@ -443,6 +668,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
                     MapVehicleToEditModel();
                     ChangedSections.Clear();
 
+                    LoaderService.Hide();
                     NotificationService.Notify(NotificationSeverity.Success, "Success",
                         "Premium vehicle updated successfully!");
 
@@ -450,12 +676,14 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
                 }
                 else
                 {
+                    LoaderService.Hide();
                     NotificationService.Notify(NotificationSeverity.Error, "Error",
                         "Failed to update premium vehicle.");
                 }
             }
             catch (Exception ex)
             {
+                LoaderService.Hide();
                 Logger.LogError(ex, "Error saving all changes for vehicle: {VehicleId}", VehicleId);
                 NotificationService.Notify(NotificationSeverity.Error, "Error",
                     $"Failed to save changes: {ex.Message}");
@@ -481,112 +709,6 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             };
         }
 
-        protected async Task SaveSectionToDatabase(string section)
-        {
-            try
-            {
-                var partialUpdate = new PremiumVehicleRequestDto();
-
-                switch (section)
-                {
-                    case "images":
-                        partialUpdate.Images = EditModel.Images;
-                        break;
-                    case "videos":
-                        partialUpdate.Videos = EditModel.Videos;
-                        break;
-                    case "shorts":
-                        partialUpdate.Shorts = EditModel.Shorts;
-                        break;
-                    case "basic":
-                        partialUpdate.BrandName = EditModel.BrandName;
-                        partialUpdate.ModelName = EditModel.ModelName;
-                        partialUpdate.VehicleType = EditModel.VehicleType;
-                        partialUpdate.BodyType = EditModel.BodyType;
-                        partialUpdate.ModelSlug = EditModel.ModelSlug;
-                        partialUpdate.Slug = EditModel.Slug;
-                        partialUpdate.Title = EditModel.Title;
-                        partialUpdate.Descriptions = EditModel.Descriptions;
-                        partialUpdate.MetaTitle = EditModel.MetaTitle;
-                        partialUpdate.MetaDescription = EditModel.MetaDescription;
-                        break;
-                    case "pricing":
-                        partialUpdate.Price = EditModel.Price;
-                        partialUpdate.PriceRangeFrom = EditModel.PriceRangeFrom;
-                        partialUpdate.PriceRangeTo = EditModel.PriceRangeTo;
-                        break;
-                    case "specs":
-                        partialUpdate.KeySpecifications = EditModel.KeySpecifications;
-                        break;
-                    case "features":
-                        partialUpdate.TopFeatures = EditModel.TopFeatures;
-                        partialUpdate.StandOutFeatures = EditModel.StandOutFeatures;
-                        break;
-                    case "premium":
-                        partialUpdate.Priority = EditModel.Priority;
-                        partialUpdate.IsActive = EditModel.IsActive;
-                        partialUpdate.StartDate = EditModel.StartDate;
-                        partialUpdate.EndDate = EditModel.EndDate;
-                        break;
-                    case "proscons":
-                        partialUpdate.Pros = EditModel.Pros;
-                        partialUpdate.Cons = EditModel.Cons;
-                        break;
-                    case "seller":
-                        partialUpdate.Seller = EditModel.Seller;
-                        partialUpdate.Location = EditModel.Location;
-                        break;
-                    case "badges":
-                        partialUpdate.Badges = EditModel.Badges;
-                        partialUpdate.Highlight = EditModel.Highlight;
-                        break;
-                    case "testdrive":
-                        partialUpdate.TestDrive = EditModel.TestDrive;
-                        break;
-                    case "condition":
-                        partialUpdate.Condition = EditModel.Condition;
-                        break;
-                    case "listing":
-                        partialUpdate.ListingDetails = EditModel.ListingDetails;
-                        break;
-                    case "tags":
-                        partialUpdate.Tags = EditModel.Tags;
-                        break;
-                    case "variants":
-                        partialUpdate.Variants = EditModel.Variants;
-                        break;
-                }
-
-                var updatedVehicle = await PremiumVehicleService.UpdateAsync(VehicleId, partialUpdate);
-
-                if (updatedVehicle != null)
-                {
-                    Vehicle = updatedVehicle;
-
-                    if (section == "images")
-                    {
-                        EditModel.Images = updatedVehicle.Images?.Select(img => new ImageDto
-                        {
-                            FileId = img.FileId,
-                            FileUrl = img.FileUrl,
-                            IsPrimary = img.IsPrimary
-                        }).ToList() ?? new List<ImageDto>();
-                    }
-
-                    Logger.LogInformation("Section {Section} saved to database successfully", section);
-                }
-                else
-                {
-                    throw new Exception($"Server returned null for section {section} update.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error saving section {Section} to database", section);
-                throw;
-            }
-        }
-
         // Image Management Methods
         protected async Task HandleImageFilesSelected(InputFileChangeEventArgs e)
         {
@@ -606,6 +728,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             try
             {
                 IsUploadingImages = true;
+                LoaderService.Show();
                 ImageUploadProgress = "Uploading images...";
                 StateHasChanged();
 
@@ -645,11 +768,13 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
                     SyncVehicleFromEditModel("images");
                     ChangedSections.Remove(ImagesSection);
 
+                    LoaderService.Hide();
                     NotificationService.Notify(NotificationSeverity.Success, "Upload Complete",
                         $"{EditModel.Images.Count} image(s) uploaded and saved successfully.");
                 }
                 catch (Exception dbEx)
                 {
+                    LoaderService.Hide();
                     Logger.LogError(dbEx, "Error saving images to database");
                     NotificationService.Notify(NotificationSeverity.Error, "Save Failed",
                         "Images uploaded but failed to save to database. Please save manually.");
@@ -658,6 +783,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             }
             catch (Exception ex)
             {
+                LoaderService.Hide();
                 Logger.LogError(ex, "Error uploading images");
                 NotificationService.Notify(NotificationSeverity.Error, "Upload Failed", ex.Message);
             }
@@ -673,6 +799,8 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
         {
             try
             {
+                LoaderService.Show();
+
                 if (index < 0 || index >= EditModel.Images.Count)
                     return;
 
@@ -683,6 +811,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
                     var deleted = await BlobService.DeleteAsync(fileId);
                     if (!deleted)
                     {
+                        LoaderService.Hide();
                         NotificationService.Notify(NotificationSeverity.Error, "Delete Failed",
                             "Failed to delete image from blob storage.");
                         return;
@@ -701,11 +830,13 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
                     SyncVehicleFromEditModel("images");
                     ChangedSections.Remove(ImagesSection);
 
+                    LoaderService.Hide();
                     NotificationService.Notify(NotificationSeverity.Success, "Image Removed",
                         "Image deleted and saved successfully.");
                 }
                 catch (Exception dbEx)
                 {
+                    LoaderService.Hide();
                     Logger.LogError(dbEx, "Error saving image removal to database");
                     NotificationService.Notify(NotificationSeverity.Warning, "Save Failed",
                         "Image removed but changes not saved to database. Please save manually.");
@@ -716,6 +847,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             }
             catch (Exception ex)
             {
+                LoaderService.Hide();
                 Logger.LogError(ex, "Error removing image");
                 NotificationService.Notify(NotificationSeverity.Error, "Delete Failed", ex.Message);
             }
@@ -725,22 +857,26 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
         {
             if (index < 0 || index >= EditModel.Images.Count) return;
 
-            foreach (var img in EditModel.Images)
-                img.IsPrimary = false;
-
-            EditModel.Images[index].IsPrimary = true;
-
             try
             {
+                LoaderService.Show();
+
+                foreach (var img in EditModel.Images)
+                    img.IsPrimary = false;
+
+                EditModel.Images[index].IsPrimary = true;
+
                 await SaveSectionToDatabase("images");
                 SyncVehicleFromEditModel("images");
                 ChangedSections.Remove(ImagesSection);
 
+                LoaderService.Hide();
                 NotificationService.Notify(NotificationSeverity.Success, "Primary Image Updated",
                     "Primary image saved successfully.");
             }
             catch (Exception dbEx)
             {
+                LoaderService.Hide();
                 Logger.LogError(dbEx, "Error saving primary image to database");
                 NotificationService.Notify(NotificationSeverity.Warning, "Save Failed",
                     "Primary image updated but not saved to database. Please save manually.");
@@ -761,29 +897,36 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
         protected async Task AddVideo()
         {
             if (string.IsNullOrWhiteSpace(NewVideo.FileUrl))
-                return;
-
-            EditModel.Videos.Add(new VideoDto
             {
-                FileUrl = NewVideo.FileUrl,
-                ThumbnailUrl = NewVideo.ThumbnailUrl,
-                Duration = NewVideo.Duration
-            });
-
-            NewVideo = new VideoDto();
-            IsAddingVideo = false;
+                NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Please enter a valid YouTube URL.");
+                return;
+            }
 
             try
             {
+                LoaderService.Show();
+
+                EditModel.Videos.Add(new VideoDto
+                {
+                    FileUrl = NewVideo.FileUrl,
+                    ThumbnailUrl = NewVideo.ThumbnailUrl,
+                    Duration = NewVideo.Duration
+                });
+
+                NewVideo = new VideoDto();
+                IsAddingVideo = false;
+
                 await SaveSectionToDatabase("videos");
                 SyncVehicleFromEditModel("videos");
                 ChangedSections.Remove(VideosSection);
 
+                LoaderService.Hide();
                 NotificationService.Notify(NotificationSeverity.Success, "Video Added",
                     "Video saved successfully.");
             }
             catch (Exception ex)
             {
+                LoaderService.Hide();
                 Logger.LogError(ex, "Error saving video to database");
                 ChangedSections.Add(VideosSection);
                 NotificationService.Notify(NotificationSeverity.Warning, "Save Failed",
@@ -798,19 +941,23 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             if (index < 0 || index >= EditModel.Videos.Count)
                 return;
 
-            EditModel.Videos.RemoveAt(index);
-
             try
             {
+                LoaderService.Show();
+
+                EditModel.Videos.RemoveAt(index);
+
                 await SaveSectionToDatabase("videos");
                 SyncVehicleFromEditModel("videos");
                 ChangedSections.Remove(VideosSection);
 
+                LoaderService.Hide();
                 NotificationService.Notify(NotificationSeverity.Success, "Video Removed",
                     "Video removed and saved successfully.");
             }
             catch (Exception ex)
             {
+                LoaderService.Hide();
                 Logger.LogError(ex, "Error saving video removal to database");
                 ChangedSections.Add(VideosSection);
                 NotificationService.Notify(NotificationSeverity.Warning, "Save Failed",
@@ -831,29 +978,36 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
         protected async Task AddShort()
         {
             if (string.IsNullOrWhiteSpace(NewShort.FileUrl))
-                return;
-
-            EditModel.Shorts.Add(new VideoDto
             {
-                FileUrl = NewShort.FileUrl,
-                ThumbnailUrl = NewShort.ThumbnailUrl,
-                Duration = NewShort.Duration
-            });
-
-            NewShort = new VideoDto();
-            IsAddingShort = false;
+                NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Please enter a valid YouTube Shorts URL.");
+                return;
+            }
 
             try
             {
+                LoaderService.Show();
+
+                EditModel.Shorts.Add(new VideoDto
+                {
+                    FileUrl = NewShort.FileUrl,
+                    ThumbnailUrl = NewShort.ThumbnailUrl,
+                    Duration = NewShort.Duration
+                });
+
+                NewShort = new VideoDto();
+                IsAddingShort = false;
+
                 await SaveSectionToDatabase("shorts");
                 SyncVehicleFromEditModel("shorts");
                 ChangedSections.Remove(ShortsSection);
 
+                LoaderService.Hide();
                 NotificationService.Notify(NotificationSeverity.Success, "Short Added",
                     "Short saved successfully.");
             }
             catch (Exception ex)
             {
+                LoaderService.Hide();
                 Logger.LogError(ex, "Error saving short to database");
                 ChangedSections.Add(ShortsSection);
                 NotificationService.Notify(NotificationSeverity.Warning, "Save Failed",
@@ -868,19 +1022,23 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             if (index < 0 || index >= EditModel.Shorts.Count)
                 return;
 
-            EditModel.Shorts.RemoveAt(index);
-
             try
             {
+                LoaderService.Show();
+
+                EditModel.Shorts.RemoveAt(index);
+
                 await SaveSectionToDatabase("shorts");
                 SyncVehicleFromEditModel("shorts");
                 ChangedSections.Remove(ShortsSection);
 
+                LoaderService.Hide();
                 NotificationService.Notify(NotificationSeverity.Success, "Short Removed",
                     "Short removed and saved successfully.");
             }
             catch (Exception ex)
             {
+                LoaderService.Hide();
                 Logger.LogError(ex, "Error saving short removal to database");
                 ChangedSections.Add(ShortsSection);
                 NotificationService.Notify(NotificationSeverity.Warning, "Save Failed",
@@ -1131,7 +1289,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             }
             else
             {
-                Navigation.NavigateTo($"/premium-vehicles");
+                Navigation.NavigateTo("/premium-vehicles");
             }
         }
 
