@@ -8,7 +8,6 @@ using Polly.Retry;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.RegularExpressions;
 
 namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 {
@@ -22,7 +21,6 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
         // Track all cache keys for this service instance
         private readonly ConcurrentDictionary<string, byte> _trackedCacheKeys = new ConcurrentDictionary<string, byte>();
-        private readonly SemaphoreSlim _trackedKeysLock = new SemaphoreSlim(1, 1);
 
         private const string BASE_PATH = "api/v1/FeaturedVehicle";
         private const string CACHE_KEY_PREFIX = "featured_vehicle_";
@@ -100,68 +98,27 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             }
         }
 
-        /// <summary>
-        /// Invalidates all cache entries tracked by this service instance
-        /// </summary>
-        private async Task InvalidateAllCachesAsync()
-        {
-            _logger.LogInformation("Invalidating all featured vehicle caches. Total tracked keys: {Count}", _trackedCacheKeys.Count);
+        // ── Cache Helpers ───────────────────────────────────────────────────────────
 
-            await _trackedKeysLock.WaitAsync();
-            try
-            {
-                foreach (var key in _trackedCacheKeys.Keys)
-                {
-                    _cache.Remove(key);
-                }
-                _trackedCacheKeys.Clear();
-            }
-            finally
-            {
-                _trackedKeysLock.Release();
-            }
+        /// <summary>
+        /// Removes every cache key tracked by this service instance.
+        /// Called on any create / update / delete / mutation operation.
+        /// </summary>
+        private void InvalidateAllCaches()
+        {
+            _logger.LogInformation(
+                "Invalidating all featured vehicle caches. Total tracked keys: {Count}",
+                _trackedCacheKeys.Count);
+
+            foreach (var key in _trackedCacheKeys.Keys)
+                _cache.Remove(key);
+
+            _trackedCacheKeys.Clear();
         }
 
         /// <summary>
-        /// Invalidates cache for a specific vehicle by ID and all related caches
-        /// </summary>
-        private async Task InvalidateVehicleCachesAsync(string id)
-        {
-            if (string.IsNullOrWhiteSpace(id)) return;
-
-            _logger.LogDebug("Invalidating all caches for vehicle: {Id}", id);
-
-            await _trackedKeysLock.WaitAsync();
-            try
-            {
-                var keysToRemove = _trackedCacheKeys.Keys
-                    .Where(key => key.Contains(id) ||
-                                  key.StartsWith(CACHE_KEY_PREFIX) && (
-                                      key.Contains("all_") ||
-                                      key.Contains("active_") ||
-                                      key.Contains("top_priority_") ||
-                                      key.Contains("brand_") ||
-                                      key.Contains("type_") ||
-                                      key.Contains("price_") ||
-                                      key.Contains("city_") ||
-                                      key.Contains("search_")
-                                  ))
-                    .ToList();
-
-                foreach (var key in keysToRemove)
-                {
-                    _cache.Remove(key);
-                    _trackedCacheKeys.TryRemove(key, out _);
-                }
-            }
-            finally
-            {
-                _trackedKeysLock.Release();
-            }
-        }
-
-        /// <summary>
-        /// Adds a cache key to tracking and sets the cache entry
+        /// Writes a value to IMemoryCache and registers the key so it can be
+        /// bulk-invalidated by InvalidateAllCaches().
         /// </summary>
         private void SetCacheEntry<T>(string key, T value, MemoryCacheEntryOptions options)
         {
@@ -171,57 +128,6 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
         private string GetPagedCacheKey(int page, int pageSize, string? sortBy, string? sortOrder) =>
             $"{CACHE_KEY_PREFIX}all_{page}_{pageSize}_{sortBy ?? "none"}_{sortOrder ?? "none"}";
-
-        // ── GET Operations ─────────────────────────────────────────────────────────
-
-        public async Task<PagedResult<FeaturedVehicleResponseDto>> GetAllAsync(
-            int page, int pageSize, string? sortBy = null, string? sortOrder = null)
-        {
-            string cacheKey = GetPagedCacheKey(page, pageSize, sortBy, sortOrder);
-
-            if (_cache.TryGetValue(cacheKey, out PagedResult<FeaturedVehicleResponseDto>? cached))
-                return cached!;
-
-            await _cacheLock.WaitAsync();
-            try
-            {
-                if (_cache.TryGetValue(cacheKey, out cached))
-                    return cached!;
-
-                var queryString = BuildQueryString(page, pageSize, sortBy, sortOrder);
-                var fullUrl = $"{BASE_PATH}{queryString}";
-
-                _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
-
-                var response = await _retryPolicy.ExecuteAsync(() =>
-                    _httpClient.GetAsync(fullUrl)
-                );
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogError("Failed to get featured vehicles. Status: {StatusCode}", response.StatusCode);
-                    return new PagedResult<FeaturedVehicleResponseDto>();
-                }
-
-                var result = await ReadApiResponseAsync<PagedResult<FeaturedVehicleResponseDto>>(response)
-                             ?? new PagedResult<FeaturedVehicleResponseDto>();
-
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                    SlidingExpiration = TimeSpan.FromMinutes(2),
-                    Priority = CacheItemPriority.Normal
-                };
-
-                SetCacheEntry(cacheKey, result, cacheOptions);
-
-                return result;
-            }
-            finally
-            {
-                _cacheLock.Release();
-            }
-        }
 
         private string BuildQueryString(int page, int pageSize, string? sortBy, string? sortOrder)
         {
@@ -240,6 +146,55 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             return $"?{string.Join("&", queryParams)}";
         }
 
+        // ── GET Operations ──────────────────────────────────────────────────────────
+
+        public async Task<PagedResult<FeaturedVehicleResponseDto>> GetAllAsync(
+            int page, int pageSize, string? sortBy = null, string? sortOrder = null)
+        {
+            string cacheKey = GetPagedCacheKey(page, pageSize, sortBy, sortOrder);
+
+            if (_cache.TryGetValue(cacheKey, out PagedResult<FeaturedVehicleResponseDto>? cached))
+                return cached!;
+
+            // Double-checked lock prevents a cache stampede
+            await _cacheLock.WaitAsync();
+            try
+            {
+                if (_cache.TryGetValue(cacheKey, out cached))
+                    return cached!;
+
+                var queryString = BuildQueryString(page, pageSize, sortBy, sortOrder);
+                var fullUrl = $"{BASE_PATH}{queryString}";
+
+                _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
+
+                var response = await _retryPolicy.ExecuteAsync(() =>
+                    _httpClient.GetAsync(fullUrl));
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Failed to get featured vehicles. Status: {StatusCode}", response.StatusCode);
+                    return new PagedResult<FeaturedVehicleResponseDto>();
+                }
+
+                var result = await ReadApiResponseAsync<PagedResult<FeaturedVehicleResponseDto>>(response)
+                             ?? new PagedResult<FeaturedVehicleResponseDto>();
+
+                SetCacheEntry(cacheKey, result, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                    SlidingExpiration = TimeSpan.FromMinutes(2),
+                    Priority = CacheItemPriority.Normal
+                });
+
+                return result;
+            }
+            finally
+            {
+                _cacheLock.Release();
+            }
+        }
+
         public async Task<FeaturedVehicleResponseDto?> GetByIdAsync(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -254,8 +209,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync(fullUrl)
-            );
+                _httpClient.GetAsync(fullUrl));
 
             if (!response.IsSuccessStatusCode)
             {
@@ -267,14 +221,12 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (item != null)
             {
-                var cacheOptions = new MemoryCacheEntryOptions
+                SetCacheEntry(cacheKey, item, new MemoryCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
                     SlidingExpiration = TimeSpan.FromMinutes(3),
                     Priority = CacheItemPriority.High
-                };
-
-                SetCacheEntry(cacheKey, item, cacheOptions);
+                });
             }
 
             return item;
@@ -294,8 +246,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync(fullUrl)
-            );
+                _httpClient.GetAsync(fullUrl));
 
             if (!response.IsSuccessStatusCode)
             {
@@ -307,13 +258,11 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (item != null)
             {
-                var cacheOptions = new MemoryCacheEntryOptions
+                SetCacheEntry(cacheKey, item, new MemoryCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
                     SlidingExpiration = TimeSpan.FromMinutes(3)
-                };
-
-                SetCacheEntry(cacheKey, item, cacheOptions);
+                });
             }
 
             return item;
@@ -333,8 +282,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync(fullUrl)
-            );
+                _httpClient.GetAsync(fullUrl));
 
             if (!response.IsSuccessStatusCode)
             {
@@ -346,19 +294,246 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
 
             if (item != null)
             {
-                var cacheOptions = new MemoryCacheEntryOptions
+                SetCacheEntry(cacheKey, item, new MemoryCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
                     SlidingExpiration = TimeSpan.FromMinutes(3)
-                };
-
-                SetCacheEntry(cacheKey, item, cacheOptions);
+                });
             }
 
             return item;
         }
 
-        // ── CRUD Operations with Cache Invalidation ─────────────────────────────────
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetActiveFeaturedVehiclesAsync(int limit = 50)
+        {
+            string cacheKey = $"{CACHE_KEY_PREFIX}active_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var fullUrl = $"{BASE_PATH}/active?limit={limit}";
+            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync(fullUrl));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get active featured vehicles. Status: {StatusCode}", response.StatusCode);
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+            }
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            SetCacheEntry(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2),
+                SlidingExpiration = TimeSpan.FromMinutes(1)
+            });
+
+            return items;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetTopPriorityFeaturedVehiclesAsync(int limit = 10)
+        {
+            string cacheKey = $"{CACHE_KEY_PREFIX}top_priority_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var fullUrl = $"{BASE_PATH}/top-priority?limit={limit}";
+            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync(fullUrl));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get top priority featured vehicles. Status: {StatusCode}", response.StatusCode);
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+            }
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            SetCacheEntry(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2),
+                SlidingExpiration = TimeSpan.FromMinutes(1)
+            });
+
+            return items;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByBrandAsync(string brandName, int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(brandName))
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            string cacheKey = $"{CACHE_KEY_PREFIX}brand_{brandName}_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var fullUrl = $"{BASE_PATH}/brand/{Uri.EscapeDataString(brandName)}?limit={limit}";
+            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync(fullUrl));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get featured vehicles by brand {BrandName}. Status: {StatusCode}", brandName, response.StatusCode);
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+            }
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            SetCacheEntry(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
+
+            return items;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByVehicleTypeAsync(string vehicleType, int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(vehicleType))
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            string cacheKey = $"{CACHE_KEY_PREFIX}type_{vehicleType}_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var fullUrl = $"{BASE_PATH}/type/{Uri.EscapeDataString(vehicleType)}?limit={limit}";
+            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync(fullUrl));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get featured vehicles by type {VehicleType}. Status: {StatusCode}", vehicleType, response.StatusCode);
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+            }
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            SetCacheEntry(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
+
+            return items;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByPriceRangeAsync(decimal minPrice, decimal maxPrice, int limit = 20)
+        {
+            string cacheKey = $"{CACHE_KEY_PREFIX}price_{minPrice}_{maxPrice}_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var fullUrl = $"{BASE_PATH}/price-range?minPrice={minPrice}&maxPrice={maxPrice}&limit={limit}";
+            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync(fullUrl));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get featured vehicles by price range {MinPrice}-{MaxPrice}. Status: {StatusCode}", minPrice, maxPrice, response.StatusCode);
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+            }
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            SetCacheEntry(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
+
+            return items;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByCityAsync(string city, int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(city))
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            string cacheKey = $"{CACHE_KEY_PREFIX}city_{city}_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var fullUrl = $"{BASE_PATH}/city/{Uri.EscapeDataString(city)}?limit={limit}";
+            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync(fullUrl));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to get featured vehicles by city {City}. Status: {StatusCode}", city, response.StatusCode);
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+            }
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            SetCacheEntry(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
+
+            return items;
+        }
+
+        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> SearchAsync(string searchTerm, int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            string cacheKey = $"{CACHE_KEY_PREFIX}search_{searchTerm}_{limit}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
+                return cached!;
+
+            var fullUrl = $"{BASE_PATH}/search?q={Uri.EscapeDataString(searchTerm)}&limit={limit}";
+            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
+
+            var response = await _retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync(fullUrl));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to search featured vehicles with term {SearchTerm}. Status: {StatusCode}", searchTerm, response.StatusCode);
+                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
+            }
+
+            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
+                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
+
+            SetCacheEntry(cacheKey, items, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            });
+
+            return items;
+        }
+
+        // ── CRUD Operations ─────────────────────────────────────────────────────────
 
         public async Task<FeaturedVehicleResponseDto> CreateAsync(FeaturedVehicleRequestDto request)
         {
@@ -368,8 +543,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             _logger.LogInformation("Creating new featured vehicle");
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PostAsJsonAsync(BASE_PATH, request)
-            );
+                _httpClient.PostAsJsonAsync(BASE_PATH, request));
 
             if (response.StatusCode == HttpStatusCode.Conflict)
                 throw new InvalidOperationException("A featured vehicle with this model already exists");
@@ -379,9 +553,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var result = await ReadApiResponseAsync<FeaturedVehicleResponseDto>(response)
                          ?? throw new Exception("Failed to create featured vehicle: Invalid response from API");
 
-            // Invalidate all caches on create
-            await InvalidateAllCachesAsync();
-
+            InvalidateAllCaches();
             return result;
         }
 
@@ -396,8 +568,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             _logger.LogInformation("Updating featured vehicle {Id}", id);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PutAsJsonAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}", request)
-            );
+                _httpClient.PutAsJsonAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}", request));
 
             if (!response.IsSuccessStatusCode)
             {
@@ -408,12 +579,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             var result = await ReadApiResponseAsync<FeaturedVehicleResponseDto>(response);
 
             if (result != null)
-            {
-                // Invalidate specific vehicle caches
-                await InvalidateVehicleCachesAsync(id);
-                // Also invalidate all list caches since ordering might change
-                await InvalidateAllCachesAsync();
-            }
+                InvalidateAllCaches();
 
             return result;
         }
@@ -426,13 +592,11 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             _logger.LogInformation("Deleting featured vehicle {Id}", id);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.DeleteAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}")
-            );
+                _httpClient.DeleteAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}"));
 
             if (response.IsSuccessStatusCode)
             {
-                await InvalidateVehicleCachesAsync(id);
-                await InvalidateAllCachesAsync();
+                InvalidateAllCaches();
                 return true;
             }
 
@@ -440,7 +604,7 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             return false;
         }
 
-        // ── Featured-specific Operations with Cache Invalidation ─────────────────
+        // ── Featured-specific Operations ─────────────────────────────────────────────
 
         public async Task<bool> UpdatePriorityAsync(string id, int priority)
         {
@@ -455,13 +619,11 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             _logger.LogInformation("Updating priority for featured vehicle {Id} to {Priority}", id, priority);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PatchAsJsonAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/priority", request)
-            );
+                _httpClient.PatchAsJsonAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/priority", request));
 
             if (response.IsSuccessStatusCode)
             {
-                await InvalidateVehicleCachesAsync(id);
-                await InvalidateAllCachesAsync();
+                InvalidateAllCaches();
                 return true;
             }
 
@@ -477,12 +639,11 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             _logger.LogInformation("Bulk updating priorities for {Count} vehicles", priorityUpdates.Count);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PostAsJsonAsync($"{BASE_PATH}/bulk/priority", priorityUpdates)
-            );
+                _httpClient.PostAsJsonAsync($"{BASE_PATH}/bulk/priority", priorityUpdates));
 
             if (response.IsSuccessStatusCode)
             {
-                await InvalidateAllCachesAsync();
+                InvalidateAllCaches();
                 return true;
             }
 
@@ -506,13 +667,11 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             _logger.LogInformation("Activating featured vehicle {Id}", id);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/activate", content)
-            );
+                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/activate", content));
 
             if (response.IsSuccessStatusCode)
             {
-                await InvalidateVehicleCachesAsync(id);
-                await InvalidateAllCachesAsync();
+                InvalidateAllCaches();
                 return true;
             }
 
@@ -528,13 +687,11 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             _logger.LogInformation("Deactivating featured vehicle {Id}", id);
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/deactivate", null)
-            );
+                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/deactivate", null));
 
             if (response.IsSuccessStatusCode)
             {
-                await InvalidateVehicleCachesAsync(id);
-                await InvalidateAllCachesAsync();
+                InvalidateAllCaches();
                 return true;
             }
 
@@ -542,88 +699,17 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
             return false;
         }
 
-        // ── Filtered Collections (with shorter cache durations) ─────────────────
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetActiveFeaturedVehiclesAsync(int limit = 50)
-        {
-            string cacheKey = $"{CACHE_KEY_PREFIX}active_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var fullUrl = $"{BASE_PATH}/active?limit={limit}";
-            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync(fullUrl)
-            );
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get active featured vehicles. Status: {StatusCode}", response.StatusCode);
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-            }
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var cacheOptions = new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2),
-                SlidingExpiration = TimeSpan.FromMinutes(1)
-            };
-
-            SetCacheEntry(cacheKey, items, cacheOptions);
-
-            return items;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetTopPriorityFeaturedVehiclesAsync(int limit = 10)
-        {
-            string cacheKey = $"{CACHE_KEY_PREFIX}top_priority_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var fullUrl = $"{BASE_PATH}/top-priority?limit={limit}";
-            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync(fullUrl)
-            );
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get top priority featured vehicles. Status: {StatusCode}", response.StatusCode);
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-            }
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var cacheOptions = new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2),
-                SlidingExpiration = TimeSpan.FromMinutes(1)
-            };
-
-            SetCacheEntry(cacheKey, items, cacheOptions);
-
-            return items;
-        }
-
-        // ── Engagement Operations (with selective cache invalidation) ─────────────────
+        // ── Engagement Operations ────────────────────────────────────────────────────
 
         public async Task<bool> IncrementViewsAsync(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
                 return false;
 
+            // Views are fire-and-forget counters; no cache invalidation needed
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/view", null)
-            );
+                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/view", null));
 
-            // Views don't typically require cache invalidation
             return response.IsSuccessStatusCode;
         }
 
@@ -633,12 +719,11 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return false;
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/like", null)
-            );
+                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/like", null));
 
             if (response.IsSuccessStatusCode)
             {
-                await InvalidateVehicleCachesAsync(id);
+                InvalidateAllCaches();
                 return true;
             }
 
@@ -651,12 +736,11 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return false;
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/share", null)
-            );
+                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/share", null));
 
             if (response.IsSuccessStatusCode)
             {
-                await InvalidateVehicleCachesAsync(id);
+                InvalidateAllCaches();
                 return true;
             }
 
@@ -669,12 +753,11 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 return false;
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/enquire", null)
-            );
+                _httpClient.PostAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/enquire", null));
 
             if (response.IsSuccessStatusCode)
             {
-                await InvalidateVehicleCachesAsync(id);
+                InvalidateAllCaches();
                 return true;
             }
 
@@ -690,198 +773,15 @@ namespace AutoNext.Plotform.App.Backoffice.Integrations.Listings
                 throw new ArgumentNullException(nameof(rating));
 
             var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.PostAsJsonAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/rating", rating)
-            );
+                _httpClient.PostAsJsonAsync($"{BASE_PATH}/{Uri.EscapeDataString(id)}/rating", rating));
 
             if (response.IsSuccessStatusCode)
             {
-                await InvalidateVehicleCachesAsync(id);
+                InvalidateAllCaches();
                 return true;
             }
 
             return false;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByBrandAsync(string brandName, int limit = 20)
-        {
-            if (string.IsNullOrWhiteSpace(brandName))
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            string cacheKey = $"{CACHE_KEY_PREFIX}brand_{brandName}_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var fullUrl = $"{BASE_PATH}/brand/{Uri.EscapeDataString(brandName)}?limit={limit}";
-            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync(fullUrl)
-            );
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get featured vehicles by brand {BrandName}. Status: {StatusCode}", brandName, response.StatusCode);
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-            }
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var cacheOptions = new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                SlidingExpiration = TimeSpan.FromMinutes(2)
-            };
-
-            SetCacheEntry(cacheKey, items, cacheOptions);
-
-            return items;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByVehicleTypeAsync(string vehicleType, int limit = 20)
-        {
-            if (string.IsNullOrWhiteSpace(vehicleType))
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            string cacheKey = $"{CACHE_KEY_PREFIX}type_{vehicleType}_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var fullUrl = $"{BASE_PATH}/type/{Uri.EscapeDataString(vehicleType)}?limit={limit}";
-            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync(fullUrl)
-            );
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get featured vehicles by type {VehicleType}. Status: {StatusCode}", vehicleType, response.StatusCode);
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-            }
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var cacheOptions = new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                SlidingExpiration = TimeSpan.FromMinutes(2)
-            };
-
-            SetCacheEntry(cacheKey, items, cacheOptions);
-
-            return items;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByPriceRangeAsync(decimal minPrice, decimal maxPrice, int limit = 20)
-        {
-            string cacheKey = $"{CACHE_KEY_PREFIX}price_{minPrice}_{maxPrice}_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var fullUrl = $"{BASE_PATH}/price-range?minPrice={minPrice}&maxPrice={maxPrice}&limit={limit}";
-            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync(fullUrl)
-            );
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get featured vehicles by price range {MinPrice}-{MaxPrice}. Status: {StatusCode}", minPrice, maxPrice, response.StatusCode);
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-            }
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var cacheOptions = new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                SlidingExpiration = TimeSpan.FromMinutes(2)
-            };
-
-            SetCacheEntry(cacheKey, items, cacheOptions);
-
-            return items;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> GetByCityAsync(string city, int limit = 20)
-        {
-            if (string.IsNullOrWhiteSpace(city))
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            string cacheKey = $"{CACHE_KEY_PREFIX}city_{city}_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var fullUrl = $"{BASE_PATH}/city/{Uri.EscapeDataString(city)}?limit={limit}";
-            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync(fullUrl)
-            );
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to get featured vehicles by city {City}. Status: {StatusCode}", city, response.StatusCode);
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-            }
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var cacheOptions = new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                SlidingExpiration = TimeSpan.FromMinutes(2)
-            };
-
-            SetCacheEntry(cacheKey, items, cacheOptions);
-
-            return items;
-        }
-
-        public async Task<IEnumerable<FeaturedVehicleSummaryDto>> SearchAsync(string searchTerm, int limit = 20)
-        {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            string cacheKey = $"{CACHE_KEY_PREFIX}search_{searchTerm}_{limit}";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeaturedVehicleSummaryDto>? cached))
-                return cached!;
-
-            var fullUrl = $"{BASE_PATH}/search?q={Uri.EscapeDataString(searchTerm)}&limit={limit}";
-            _logger.LogInformation("Calling FeaturedVehicle API: {Url}", fullUrl);
-
-            var response = await _retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync(fullUrl)
-            );
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to search featured vehicles with term {SearchTerm}. Status: {StatusCode}", searchTerm, response.StatusCode);
-                return Enumerable.Empty<FeaturedVehicleSummaryDto>();
-            }
-
-            var items = await ReadApiResponseAsync<IEnumerable<FeaturedVehicleSummaryDto>>(response)
-                        ?? Enumerable.Empty<FeaturedVehicleSummaryDto>();
-
-            var cacheOptions = new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                SlidingExpiration = TimeSpan.FromMinutes(2)
-            };
-
-            SetCacheEntry(cacheKey, items, cacheOptions);
-
-            return items;
         }
     }
 }

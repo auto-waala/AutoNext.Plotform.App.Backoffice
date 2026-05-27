@@ -816,7 +816,7 @@ namespace AutoNext.Plotform.App.Backoffice.Components.Pages.Listings
             }
             else
             {
-                Navigation.NavigateTo($"/newly-arrived-vehicles/{VehicleId}");
+                Navigation.NavigateTo($"/newly-arrived-vehicles");
             }
         }
     }
