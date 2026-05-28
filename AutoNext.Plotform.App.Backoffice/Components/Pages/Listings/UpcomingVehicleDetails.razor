@@ -1,0 +1,1922 @@
+﻿@page "/upcoming-vehicles/{VehicleId}/edit"
+@inherits UpcomingVehicleDetailsBase
+
+<div class="container-fluid px-0">
+    @if (IsLoading)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted mt-3 small">Loading upcoming vehicle details...</p>
+        </div>
+    }
+    else if (Vehicle == null)
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-calendar-event-slash fs-1 text-muted"></i>
+            <h5 class="mt-3">Upcoming vehicle not found</h5>
+            <button class="btn btn-primary mt-2" @onclick="GoBack">Back to List</button>
+        </div>
+    }
+    else
+    {
+        <!-- Page Header with Global Save -->
+        <div class="card shadow-sm mb-4 border-0">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h4 class="mb-1 fw-bold">
+                            <i class="bi bi-pencil-square text-primary me-2"></i>
+                            Edit Upcoming Vehicle
+                        </h4>
+                        <p class="text-muted small mb-0">
+                            @Vehicle.BrandName @Vehicle.ModelName • Launch: @Vehicle.LaunchDate.ToString("dd MMM yyyy") • Last updated: @Vehicle.UpdatedAt.ToString("dd MMM yyyy, hh:mm tt")
+                        </p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary" @onclick="GoBack">
+                            <i class="bi bi-arrow-left me-1"></i>Back
+                        </button>
+                        <button class="btn btn-primary" @onclick="SaveAllChanges" disabled="@(!HasChanges)">
+                            <i class="bi bi-save me-1"></i>Save All Changes
+                            @if (HasChanges)
+                            {
+                                <span class="badge bg-light text-primary ms-2">@ChangedSections.Count</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+                @if (HasChanges)
+                {
+                    <div class="alert alert-info mt-3 mb-0 py-2 small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        You have unsaved changes in <strong>@string.Join(", ", ChangedSections)</strong>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Main Content with Edit Sections -->
+        <div class="row g-4">
+            <!-- LEFT COLUMN -->
+            <div class="col-lg-6">
+
+                <!-- Section 1: Basic Information -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-info-circle me-2"></i>Basic Information
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(BasicSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(BasicSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Brand Name</label>
+                                    <input type="text" class="form-control" @bind="EditModel.BrandName" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Model Name</label>
+                                    <input type="text" class="form-control" @bind="EditModel.ModelName" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Vehicle Type</label>
+                                    <input type="text" class="form-control" @bind="EditModel.VehicleType" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Body Type</label>
+                                    <input type="text" class="form-control" @bind="EditModel.BodyType" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Model Slug</label>
+                                    <input type="text" class="form-control" @bind="EditModel.ModelSlug" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Slug</label>
+                                    <input type="text" class="form-control" @bind="EditModel.Slug" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-medium">Title</label>
+                                    <input type="text" class="form-control" @bind="EditModel.Title" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-medium">Description</label>
+                                    <textarea class="form-control" rows="3" @bind="EditModel.Descriptions"></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-medium">Meta Title</label>
+                                    <input type="text" class="form-control" @bind="EditModel.MetaTitle" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-medium">Meta Description</label>
+                                    <textarea class="form-control" rows="2" @bind="EditModel.MetaDescription"></textarea>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(BasicSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(BasicSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Brand Name</small>
+                                    <span class="fw-medium">@Vehicle.BrandName</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Model Name</small>
+                                    <span class="fw-medium">@Vehicle.ModelName</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Vehicle Type</small>
+                                    <span>@Vehicle.VehicleType</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Body Type</small>
+                                    <span>@Vehicle.BodyType</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Model Slug</small>
+                                    <span class="text-muted">@Vehicle.ModelSlug</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Slug</small>
+                                    <span class="text-muted">@Vehicle.Slug</span>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted d-block">Title</small>
+                                    <span>@Vehicle.Title</span>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted d-block">Description</small>
+                                    <p class="small mb-0">@(Vehicle.Descriptions?.Length > 100 ? Vehicle.Descriptions[..100] + "..." : Vehicle.Descriptions)</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 2: Launch Information -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-calendar-event me-2"></i>Launch Information
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(LaunchSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(LaunchSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Launch Date</label>
+                                    <input type="date" class="form-control" @bind="EditModel.LaunchDate" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Launch Period</label>
+                                    <select class="form-select" @bind="EditModel.LaunchPeriod">
+                                        <option value="">Select Period</option>
+                                        @foreach (var period in LaunchPeriods)
+                                        {
+                                            <option value="@period">@period</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Expected Status</label>
+                                    <select class="form-select" @bind="EditModel.ExpectedStatus">
+                                        <option value="Upcoming">Upcoming</option>
+                                        <option value="Launching Soon">Launching Soon</option>
+                                        <option value="Just Launched">Just Launched</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" @bind="EditModel.IsFeatured" />
+                                        <label class="form-check-label small fw-medium">Featured</label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(LaunchSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(LaunchSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Launch Date</small>
+                                    <span class="fw-bold @(Vehicle.LaunchDate <= DateTime.UtcNow.AddDays(30) ? "text-warning" : "")">
+                                        @Vehicle.LaunchDate.ToString("dd MMM yyyy")
+                                    </span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Launch Period</small>
+                                    <span>@Vehicle.LaunchPeriod</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Expected Status</small>
+                                    <span class="badge bg-info">@Vehicle.ExpectedStatus</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Featured Status</small>
+                                    <span class="badge @(Vehicle.IsFeatured ? "bg-warning text-dark" : "bg-secondary")">
+                                        @(Vehicle.IsFeatured ? "Featured" : "Not Featured")
+                                    </span>
+                                </div>
+                                @if (!Vehicle.IsLaunched && Vehicle.LaunchDate > DateTime.UtcNow)
+                                {
+                                    <div class="col-12 mt-2">
+                                        <div class="alert alert-info py-1 small mb-0">
+                                            <i class="bi bi-clock-history me-1"></i>
+                                            Launches in @((int)(Vehicle.LaunchDate - DateTime.UtcNow).TotalDays) days
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 3: Pricing -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-currency-rupee me-2"></i>Pricing
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(PricingSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(PricingSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Ex-Showroom Price (₹)</label>
+                                    <input type="number" class="form-control" @bind="EditModel.Price.Amount" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">On-Road Price (₹)</label>
+                                    <input type="number" class="form-control" @bind="EditModel.Price.OnRoadPrice" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Price Range From</label>
+                                    <input type="text" class="form-control" @bind="EditModel.PriceRangeFrom" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Price Range To</label>
+                                    <input type="text" class="form-control" @bind="EditModel.PriceRangeTo" />
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="EditModel.Price.Negotiable" />
+                                        <label class="form-check-label small fw-medium">Negotiable</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Currency</label>
+                                    <select class="form-select" @bind="EditModel.Price.Currency">
+                                        <option value="INR">INR (₹)</option>
+                                        <option value="USD">USD ($)</option>
+                                        <option value="EUR">EUR (€)</option>
+                                        <option value="GBP">GBP (£)</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(PricingSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(PricingSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Ex-Showroom Price</small>
+                                    <span class="fw-bold text-primary">@FormatPrice(Vehicle.Price?.Amount ?? 0)</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">On-Road Price</small>
+                                    <span class="fw-bold">@FormatPrice(Vehicle.Price?.OnRoadPrice ?? 0)</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(Vehicle.PriceRangeFrom))
+                                {
+                                    <div class="col-12 mb-2">
+                                        <small class="text-muted d-block">Price Range</small>
+                                        <span>@Vehicle.PriceRangeFrom - @Vehicle.PriceRangeTo</span>
+                                    </div>
+                                }
+                                <div class="col-12">
+                                    <small class="text-muted d-block">Negotiable</small>
+                                    <span>@(Vehicle.Price?.Negotiable == true ? "Yes" : "No")</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 4: Key Specifications -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-speedometer2 me-2"></i>Key Specifications
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(SpecsSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(SpecsSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Engine</label>
+                                    <input type="text" class="form-control" @bind="EditModel.KeySpecifications.Engine" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Transmission</label>
+                                    <select class="form-select" @bind="EditModel.KeySpecifications.Transmission">
+                                        <option value="">Select</option>
+                                        <option value="Manual">Manual</option>
+                                        <option value="Automatic">Automatic</option>
+                                        <option value="CVT">CVT</option>
+                                        <option value="DCT">DCT</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Fuel Type</label>
+                                    <select class="form-select" @bind="EditModel.KeySpecifications.FuelType">
+                                        <option value="">Select</option>
+                                        <option value="Petrol">Petrol</option>
+                                        <option value="Diesel">Diesel</option>
+                                        <option value="Electric">Electric</option>
+                                        <option value="Hybrid">Hybrid</option>
+                                        <option value="CNG">CNG</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Mileage (km/l or km/kWh)</label>
+                                    <input type="text" class="form-control" @bind="EditModel.KeySpecifications.Mileage" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Max Power (bhp)</label>
+                                    <input type="text" class="form-control" @bind="EditModel.KeySpecifications.MaxPower" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Max Torque (Nm)</label>
+                                    <input type="text" class="form-control" @bind="EditModel.KeySpecifications.MaxTorque" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Seating Capacity</label>
+                                    <input type="number" class="form-control" @bind="EditModel.KeySpecifications.SeatingCapacity" />
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(SpecsSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(SpecsSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                @if (!string.IsNullOrEmpty(Vehicle.KeySpecifications?.Engine))
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Engine</small>
+                                        <span>@Vehicle.KeySpecifications.Engine</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Vehicle.KeySpecifications?.Transmission))
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Transmission</small>
+                                        <span>@Vehicle.KeySpecifications.Transmission</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Vehicle.KeySpecifications?.FuelType))
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Fuel Type</small>
+                                        <span>@Vehicle.KeySpecifications.FuelType</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Vehicle.KeySpecifications?.Mileage))
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Mileage</small>
+                                        <span>@Vehicle.KeySpecifications.Mileage</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Vehicle.KeySpecifications?.MaxPower))
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Max Power</small>
+                                        <span>@Vehicle.KeySpecifications.MaxPower</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Vehicle.KeySpecifications?.SeatingCapacity))
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Seating Capacity</small>
+                                        <span>@Vehicle.KeySpecifications.SeatingCapacity</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 5: Images -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-images me-2"></i>Images
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(ImagesSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(ImagesSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small fw-medium">Upload New Images</label>
+                                    <InputFile OnChange="@HandleImageFilesSelected" multiple accept="image/*" class="form-control" />
+                                    @if (SelectedImageFiles.Any())
+                                    {
+                                        <div class="mt-2">
+                                            <div class="alert alert-info small">
+                                                <strong>@SelectedImageFiles.Count</strong> file(s) selected
+                                            </div>
+                                            <button class="btn btn-sm btn-primary" @onclick="UploadImages" disabled="@IsUploadingImages">
+                                                @if (IsUploadingImages)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                                }
+                                                <i class="bi bi-cloud-upload me-1"></i>Upload Images
+                                            </button>
+                                            @if (!string.IsNullOrEmpty(ImageUploadProgress))
+                                            {
+                                                <span class="ms-2 small text-muted">@ImageUploadProgress</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold">Current Images (@EditModel.Images.Count)</label>
+                                    <div class="row g-2">
+                                        @for (int i = 0; i < EditModel.Images.Count; i++)
+                                        {
+                                            var index = i;
+                                            var image = EditModel.Images[index];
+                                            <div class="col-md-3">
+                                                <div class="position-relative">
+                                                    <img src="@image.FileUrl" alt="Vehicle Image"
+                                                         class="img-fluid rounded border"
+                                                         style="height: 100px; width: 100%; object-fit: cover;" />
+                                                    <div class="position-absolute top-0 end-0 m-1">
+                                                        <button class="btn btn-sm btn-danger rounded-circle"
+                                                                style="width: 24px; height: 24px; padding: 0;"
+                                                                @onclick="() => RemoveImage(index)">
+                                                            <i class="bi bi-x small"></i>
+                                                        </button>
+                                                    </div>
+                                                    @if (image.IsPrimary)
+                                                    {
+                                                        <div class="position-absolute bottom-0 start-0 m-1">
+                                                            <span class="badge bg-primary">Primary</span>
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-secondary position-absolute bottom-0 start-0 m-1"
+                                                                style="font-size: 10px; padding: 2px 4px;"
+                                                                @onclick="() => SetPrimaryImage(index)">
+                                                            Set Primary
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    @if (!EditModel.Images.Any())
+                                    {
+                                        <p class="text-muted small text-center py-3">No images uploaded yet</p>
+                                    }
+                                </div>
+
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(ImagesSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(ImagesSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if (Vehicle.Images.Any())
+                                    {
+                                        @foreach (var image in Vehicle.Images.Take(6))
+                                        {
+                                            <img src="@image.FileUrl" alt="Vehicle Image"
+                                                 class="rounded border"
+                                                 style="width: 80px; height: 80px; object-fit: cover;" />
+                                        }
+                                        @if (Vehicle.Images.Count > 6)
+                                        {
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-secondary">+@(Vehicle.Images.Count - 6)</span>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                                @if ((Vehicle.Images?.Count ?? 0) == 0)
+                                {
+                                    <p class="text-muted small mb-0">No images uploaded</p>
+                                }
+                                else
+                                {
+                                    <div class="mt-2">
+                                        <small class="text-muted">@(Vehicle.Images?.Count ?? 0) image(s)</small>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 6: Features -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-star me-2"></i>Features
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(FeaturesSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(FeaturesSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold">Top Features</label>
+                                    <div id="top-features-container">
+                                        @for (int i = 0; i < EditModel.TopFeatures.Count; i++)
+                                        {
+                                            var index = i;
+                                            <div class="input-group input-group-sm mb-2">
+                                                <input type="text" class="form-control" @bind="EditModel.TopFeatures[index].Feature" />
+                                                <button class="btn btn-outline-danger" type="button" @onclick="() => RemoveTopFeature(index)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary mt-1" @onclick="AddTopFeature">
+                                        <i class="bi bi-plus"></i> Add Top Feature
+                                    </button>
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <label class="form-label small fw-bold">Stand Out Features</label>
+                                    <div id="standout-features-container">
+                                        @for (int i = 0; i < EditModel.StandOutFeatures.Count; i++)
+                                        {
+                                            var index = i;
+                                            <div class="input-group input-group-sm mb-2">
+                                                <input type="text" class="form-control" @bind="EditModel.StandOutFeatures[index].Feature" />
+                                                <button class="btn btn-outline-danger" type="button" @onclick="() => RemoveStandOutFeature(index)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary mt-1" @onclick="AddStandOutFeature">
+                                        <i class="bi bi-plus"></i> Add Stand Out Feature
+                                    </button>
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(FeaturesSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(FeaturesSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div>
+                                @if (Vehicle.TopFeatures?.Any() == true)
+                                {
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-2">Top Features</small>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach (var feature in Vehicle.TopFeatures)
+                                            {
+                                                <span class="badge bg-light text-dark border">@feature.Feature</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                @if (Vehicle.StandOutFeatures?.Any() == true)
+                                {
+                                    <div>
+                                        <small class="text-muted d-block mb-2">Stand Out Features</small>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach (var feature in Vehicle.StandOutFeatures)
+                                            {
+                                                <span class="badge bg-warning text-dark">@feature.Feature</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 7: Variants -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-grid-3x3-gap-fill me-2"></i>Variants
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(VariantsSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(VariantsSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    @if (!IsAddingVariant)
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => { IsAddingVariant = true; StateHasChanged(); }">
+                                            <i class="bi bi-plus-circle me-1"></i>Add Variant
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <div class="border rounded p-3 mb-3">
+                                            <div class="row g-2">
+                                                <div class="col-md-4">
+                                                    <label class="form-label small fw-medium">Variant Name</label>
+                                                    <input type="text" class="form-control" @bind="NewVariant.VariantName" placeholder="e.g., ZX, VXi" />
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label small fw-medium">Price (₹)</label>
+                                                    <input type="number" class="form-control" @bind="NewVariant.ExShowRoomPrice" />
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label small fw-medium">Fuel Type</label>
+                                                    <select class="form-select" @bind="NewVariant.FuelType">
+                                                        <option value="">Select</option>
+                                                        <option value="Petrol">Petrol</option>
+                                                        <option value="Diesel">Diesel</option>
+                                                        <option value="Electric">Electric</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small fw-medium">Mileage</label>
+                                                    <input type="text" class="form-control" @bind="NewVariant.Mileage" placeholder="km/l" />
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="d-flex gap-2">
+                                                        <button class="btn btn-sm btn-success" @onclick="AddVariantToList">
+                                                            <i class="bi bi-check me-1"></i>Add
+                                                        </button>
+                                                        <button class="btn btn-sm btn-secondary" @onclick="CancelAddVariant">
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold">Current Variants (@EditModel.Variants.Count)</label>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Variant Name</th>
+                                                    <th>Price</th>
+                                                    <th>Fuel Type</th>
+                                                    <th>Mileage</th>
+                                                    <th style="width: 50px"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (int i = 0; i < EditModel.Variants.Count; i++)
+                                                {
+                                                    var index = i;
+                                                    <tr>
+                                                        <td>@EditModel.Variants[index].VariantName</td>
+                                                        <td class="text-nowrap">@EditModel.Variants[index].ExShowRoomPrice</td>
+                                                        <td>@EditModel.Variants[index].FuelType</td>
+                                                        <td>@EditModel.Variants[index].Mileage</td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveVariant(index)">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    @if (!EditModel.Variants.Any())
+                                    {
+                                        <p class="text-muted small text-center py-3">No variants added</p>
+                                    }
+                                </div>
+
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(VariantsSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(VariantsSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div>
+                                @if (Vehicle.Variants?.Any() == true)
+                                {
+                                    <div class="table-responsive">
+                                        <table class="table table-sm mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Variant</th>
+                                                    <th>Price</th>
+                                                    <th>Fuel Type</th>
+                                                    <th>Mileage</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var variant in Vehicle.Variants.Take(5))
+                                                {
+                                                    <tr>
+                                                        <td class="small fw-medium">@variant.VariantName</td>
+                                                        <td class="small text-nowrap">@variant.ExShowRoomPrice</td>
+                                                        <td class="small">@variant.FuelType</td>
+                                                        <td class="small">@variant.Mileage</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                        @if (Vehicle.Variants.Count > 5)
+                                        {
+                                            <small class="text-muted">+ @(Vehicle.Variants.Count - 5) more variants</small>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted small mb-0">No variants added</p>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="col-lg-6">
+
+                <!-- Section 8: Upcoming Settings -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-sliders2 me-2"></i>Upcoming Settings
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(UpcomingSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(UpcomingSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Priority</label>
+                                    <input type="number" class="form-control" @bind="EditModel.Priority" min="1" max="100" />
+                                    <small class="text-muted">Higher priority = Better position</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" @bind="EditModel.IsActive" />
+                                        <label class="form-check-label small fw-medium">Active</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" @bind="EditModel.IsLaunched" />
+                                        <label class="form-check-label small fw-medium">Mark as Launched</label>
+                                    </div>
+                                    <small class="text-muted">Check this to archive the vehicle</small>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(UpcomingSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(UpcomingSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Priority</small>
+                                    <span class="badge" style="background: @GetPriorityColor(Vehicle.Priority)">@Vehicle.Priority</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Status</small>
+                                    <span class="badge @GetStatusBadgeClass(Vehicle.IsActive, Vehicle.IsLaunched, Vehicle.LaunchDate)">
+                                        @GetStatusText(Vehicle.IsActive, Vehicle.IsLaunched, Vehicle.LaunchDate)
+                                    </span>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <span class="badge bg-info">Upcoming Vehicle</span>
+                                    @if (Vehicle.IsFeatured)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-1">Featured</span>
+                                    }
+                                    @if (Vehicle.IsLaunched)
+                                    {
+                                        <span class="badge bg-secondary ms-1">Launched</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 9: Videos -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-play-circle me-2"></i>Videos
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(VideosSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(VideosSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    @if (!IsAddingVideo)
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => { IsAddingVideo = true; StateHasChanged(); }">
+                                            <i class="bi bi-plus-circle me-1"></i>Add Video
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <div class="border rounded p-3">
+                                            <div class="mb-2">
+                                                <label class="form-label small fw-medium">YouTube URL</label>
+                                                <input type="text" class="form-control" @bind="NewVideo.FileUrl"
+                                                       @oninput="e => OnVideoUrlChanged(e.Value?.ToString() ?? string.Empty)" />
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label small fw-medium">Duration (optional)</label>
+                                                <input type="text" class="form-control" @bind="NewVideo.Duration" placeholder="e.g., 2:30" />
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(NewVideo.ThumbnailUrl))
+                                            {
+                                                <div class="mb-2">
+                                                    <img src="@NewVideo.ThumbnailUrl" alt="Thumbnail" style="height: 60px;" class="rounded" />
+                                                </div>
+                                            }
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-sm btn-success" @onclick="AddVideo">
+                                                    <i class="bi bi-check me-1"></i>Add
+                                                </button>
+                                                <button class="btn btn-sm btn-secondary" @onclick="CancelVideo">
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold">Current Videos (@EditModel.Videos.Count)</label>
+                                    <div class="row g-3">
+                                        @for (int i = 0; i < EditModel.Videos.Count; i++)
+                                        {
+                                            var index = i;
+                                            var video = EditModel.Videos[index];
+                                            <div class="col-md-6 col-lg-4">
+                                                <div class="card h-100 shadow-sm">
+                                                    <div class="position-relative">
+                                                        <div class="position-absolute top-0 end-0 m-2">
+                                                            <button class="btn btn-sm btn-danger rounded-circle"
+                                                                    style="width: 28px; height: 28px; padding: 0;"
+                                                                    @onclick="() => RemoveVideo(index)">
+                                                                <i class="bi bi-x small"></i>
+                                                            </button>
+                                                        </div>
+                                                        @if (!string.IsNullOrEmpty(video.Duration))
+                                                        {
+                                                            <div class="position-absolute bottom-0 end-0 m-2">
+                                                                <span class="badge bg-dark">@video.Duration</span>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                    <div class="card-body p-2">
+                                                        <small class="text-muted text-truncate d-block">@(video.FileUrl?.Length > 40 ? video.FileUrl[..40] + "..." : video.FileUrl)</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    @if (!EditModel.Videos.Any())
+                                    {
+                                        <p class="text-muted small text-center py-3">No videos added</p>
+                                    }
+                                </div>
+
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(VideosSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(VideosSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div>
+                                @if (Vehicle.Videos?.Any() == true)
+                                {
+                                    <div class="row g-3">
+                                        @foreach (var video in Vehicle.Videos.Take(6))
+                                        {
+                                            <div class="col-md-4 col-lg-3">
+                                                <div class="card shadow-sm border-0" style="cursor: pointer;">
+                                                    @if (!string.IsNullOrEmpty(video.ThumbnailUrl))
+                                                    {
+                                                        <img src="@video.ThumbnailUrl" alt="Video" class="card-img-top rounded" style="height: 100px; object-fit: cover;" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="bg-dark d-flex align-items-center justify-content-center rounded-top" style="height: 100px;">
+                                                            <i class="bi bi-play-circle-fill text-white fs-2"></i>
+                                                        </div>
+                                                    }
+                                                    <div class="card-body p-2">
+                                                        <small class="text-muted text-truncate d-block">@(video.FileUrl?.Length > 35 ? video.FileUrl[..35] + "..." : video.FileUrl)</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        @if (Vehicle.Videos.Count > 6)
+                                        {
+                                            <div class="col-12">
+                                                <small class="text-muted">+ @(Vehicle.Videos.Count - 6) more videos</small>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted small mb-0">No videos added</p>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 10: Shorts / Reels -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-camera-reels me-2"></i>Shorts / Reels
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(ShortsSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(ShortsSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    @if (!IsAddingShort)
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => { IsAddingShort = true; StateHasChanged(); }">
+                                            <i class="bi bi-plus-circle me-1"></i>Add Short
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <div class="border rounded p-3">
+                                            <div class="mb-2">
+                                                <label class="form-label small fw-medium">YouTube Shorts URL</label>
+                                                <input type="text" class="form-control" @bind="NewShort.FileUrl"
+                                                       @oninput="e => OnShortUrlChanged(e.Value?.ToString() ?? string.Empty)" />
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label small fw-medium">Duration (optional)</label>
+                                                <input type="text" class="form-control" @bind="NewShort.Duration" placeholder="e.g., 0:45" />
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(NewShort.ThumbnailUrl))
+                                            {
+                                                <div class="mb-2">
+                                                    <img src="@NewShort.ThumbnailUrl" alt="Thumbnail" style="height: 60px;" class="rounded" />
+                                                </div>
+                                            }
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-sm btn-success" @onclick="AddShort">
+                                                    <i class="bi bi-check me-1"></i>Add
+                                                </button>
+                                                <button class="btn btn-sm btn-secondary" @onclick="CancelShort">
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold">Current Shorts (@EditModel.Shorts.Count)</label>
+                                    <div class="row g-3">
+                                        @for (int i = 0; i < EditModel.Shorts.Count; i++)
+                                        {
+                                            var index = i;
+                                            var shortVideo = EditModel.Shorts[index];
+                                            <div class="col-md-3 col-lg-2">
+                                                <div class="card h-100 shadow-sm">
+                                                    <div class="position-relative">
+                                                        <div class="position-absolute top-0 end-0 m-1">
+                                                            <button class="btn btn-sm btn-danger rounded-circle"
+                                                                    style="width: 24px; height: 24px; padding: 0;"
+                                                                    @onclick="() => RemoveShort(index)">
+                                                                <i class="bi bi-x small"></i>
+                                                            </button>
+                                                        </div>
+                                                        @if (!string.IsNullOrEmpty(shortVideo.Duration))
+                                                        {
+                                                            <div class="position-absolute bottom-0 end-0 m-1">
+                                                                <span class="badge bg-dark" style="font-size: 10px;">@shortVideo.Duration</span>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    @if (!EditModel.Shorts.Any())
+                                    {
+                                        <p class="text-muted small text-center py-3">No shorts added</p>
+                                    }
+                                </div>
+
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(ShortsSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(ShortsSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div>
+                                @if (Vehicle.Shorts?.Any() == true)
+                                {
+                                    <div class="d-flex gap-3 flex-wrap">
+                                        @foreach (var shortVideo in Vehicle.Shorts.Take(8))
+                                        {
+                                            <div class="text-center" style="cursor: pointer;">
+                                                @if (!string.IsNullOrEmpty(shortVideo.ThumbnailUrl))
+                                                {
+                                                    <img src="@shortVideo.ThumbnailUrl" alt="Short"
+                                                         style="height: 100px; width: 100px; object-fit: cover;"
+                                                         class="rounded shadow-sm" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="bg-dark rounded d-flex align-items-center justify-content-center shadow-sm"
+                                                         style="height: 100px; width: 100px;">
+                                                        <i class="bi bi-camera-reels fs-2 text-white"></i>
+                                                    </div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(shortVideo.Duration))
+                                                {
+                                                    <div class="small text-muted mt-1">@shortVideo.Duration</div>
+                                                }
+                                            </div>
+                                        }
+                                        @if (Vehicle.Shorts.Count > 8)
+                                        {
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-secondary">+@(Vehicle.Shorts.Count - 8)</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted small mb-0">No shorts added</p>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 11: Pros & Cons -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-hand-thumbs-up me-2"></i>Pros & Cons
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(ProsConsSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(ProsConsSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-success">Pros</label>
+                                    <div id="pros-container">
+                                        @for (int i = 0; i < EditModel.Pros.Count; i++)
+                                        {
+                                            var index = i;
+                                            <div class="input-group input-group-sm mb-2">
+                                                <span class="input-group-text bg-success bg-opacity-10 text-success">✓</span>
+                                                <input type="text" class="form-control" @bind="EditModel.Pros[index].Pro" placeholder="Enter pro..." />
+                                                <button class="btn btn-outline-danger" type="button" @onclick="() => RemovePro(index)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-success mt-1" @onclick="AddPro">
+                                        <i class="bi bi-plus"></i> Add Pro
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-danger">Cons</label>
+                                    <div id="cons-container">
+                                        @for (int i = 0; i < EditModel.Cons.Count; i++)
+                                        {
+                                            var index = i;
+                                            <div class="input-group input-group-sm mb-2">
+                                                <span class="input-group-text bg-danger bg-opacity-10 text-danger">✗</span>
+                                                <input type="text" class="form-control" @bind="EditModel.Cons[index].Con" placeholder="Enter con..." />
+                                                <button class="btn btn-outline-danger" type="button" @onclick="() => RemoveCon(index)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger mt-1" @onclick="AddCon">
+                                        <i class="bi bi-plus"></i> Add Con
+                                    </button>
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(ProsConsSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(ProsConsSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block mb-2">Pros</small>
+                                    @if (Vehicle.Pros?.Any() == true)
+                                    {
+                                        <ul class="small mb-0 text-success">
+                                            @foreach (var pro in Vehicle.Pros)
+                                            {
+                                                <li>@pro.Pro</li>
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted small">No pros added</p>
+                                    }
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block mb-2">Cons</small>
+                                    @if (Vehicle.Cons?.Any() == true)
+                                    {
+                                        <ul class="small mb-0 text-danger">
+                                            @foreach (var con in Vehicle.Cons)
+                                            {
+                                                <li>@con.Con</li>
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted small">No cons added</p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 12: Tags -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-tags me-2"></i>Tags
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(TagsSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(TagsSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    @if (!IsAddingTag)
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => { IsAddingTag = true; StateHasChanged(); }">
+                                            <i class="bi bi-plus-circle me-1"></i>Add Tag
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control" @bind="NewTagName" placeholder="Enter tag name" @onkeypress="@(async (e) => { if (e.Key == "Enter") AddTagToList(); })" />
+                                            <button class="btn btn-success" @onclick="AddTagToList">Add</button>
+                                            <button class="btn btn-secondary" @onclick="CancelAddTag">Cancel</button>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @for (int i = 0; i < EditModel.Tags.Count; i++)
+                                        {
+                                            var index = i;
+                                            <span class="badge bg-light text-dark border py-2 px-3">
+                                                @EditModel.Tags[index].TagName
+                                                <i class="bi bi-x ms-2 text-danger" style="cursor: pointer;" @onclick="() => RemoveTag(index)"></i>
+                                            </span>
+                                        }
+                                    </div>
+                                    @if (!EditModel.Tags.Any())
+                                    {
+                                        <p class="text-muted small text-center py-3">No tags added</p>
+                                    }
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(TagsSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(TagsSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if (Vehicle.Tags?.Any() == true)
+                                    {
+                                        @foreach (var tag in Vehicle.Tags)
+                                        {
+                                            <span class="badge bg-light text-dark border">@tag.TagName</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted small mb-0">No tags added</p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 13: Seller & Location -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-building me-2"></i>Seller & Location
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(SellerSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(SellerSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Seller Name</label>
+                                    <input type="text" class="form-control" @bind="EditModel.Seller.Name" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Email</label>
+                                    <input type="email" class="form-control" @bind="EditModel.Seller.Email" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Phone</label>
+                                    <input type="tel" class="form-control" @bind="EditModel.Seller.Phone" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">City</label>
+                                    <input type="text" class="form-control" @bind="EditModel.Location.City" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">State</label>
+                                    <input type="text" class="form-control" @bind="EditModel.Location.State" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Pincode</label>
+                                    <input type="text" class="form-control" @bind="EditModel.Location.Pincode" />
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(SellerSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(SellerSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Seller Name</small>
+                                    <span class="fw-medium">@Vehicle.Seller?.Name</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">City</small>
+                                    <span>@Vehicle.Location?.City</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">State</small>
+                                    <span>@Vehicle.Location?.State</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Full Address</small>
+                                    <span>@Vehicle.Location?.FullAddress</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 14: Vehicle Condition -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-info-square me-2"></i>Vehicle Condition
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(ConditionSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(ConditionSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="EditModel.Condition.IsNew" />
+                                        <label class="form-check-label small fw-medium">Is New Vehicle</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Owner Count</label>
+                                    <input type="number" class="form-control" @bind="EditModel.Condition.OwnerCount" min="0" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">KM Driven</label>
+                                    <input type="number" class="form-control" @bind="EditModel.Condition.KMDriven" min="0" />
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" @bind="EditModel.Condition.Accidental" />
+                                        <label class="form-check-label small fw-medium">Accidental Vehicle</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="EditModel.Condition.ServiceHistoryAvailable" />
+                                        <label class="form-check-label small fw-medium">Service History Available</label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(ConditionSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(ConditionSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Condition Status</small>
+                                    <span class="badge @(Vehicle.Condition?.IsNew == true ? "bg-success" : "bg-info")">@Vehicle.Condition?.ConditionStatus</span>
+                                </div>
+                                @if (Vehicle.Condition?.IsNew == false)
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Owner Count</small>
+                                        <span>@Vehicle.Condition?.OwnerCount owner(s)</span>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">KM Driven</small>
+                                        <span>@(Vehicle.Condition?.KMDriven.ToString("N0")) km</span>
+                                    </div>
+                                }
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Accidental</small>
+                                    <span class="badge @(Vehicle.Condition?.Accidental == true ? "bg-danger" : "bg-success")">@(Vehicle.Condition?.Accidental == true ? "Yes" : "No")</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Service History</small>
+                                    <span class="badge @(Vehicle.Condition?.ServiceHistoryAvailable == true ? "bg-success" : "bg-secondary")">@(Vehicle.Condition?.ServiceHistoryAvailable == true ? "Available" : "Not Available")</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 15: Badges & Highlight -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-trophy me-2"></i>Badges & Highlight
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(BadgesSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(BadgesSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small fw-medium">Badges (comma separated)</label>
+                                    <input type="text" class="form-control"
+                                           id="badgesInput"
+                                           placeholder="e.g., Most Anticipated, Best Design, Premium Launch" />
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                        @for (int i = 0; i < EditModel.Badges.Count; i++)
+                                        {
+                                            var index = i;
+                                            <span class="badge bg-primary py-2 px-3">
+                                                @EditModel.Badges[index]
+                                                <i class="bi bi-x ms-2" style="cursor: pointer;" @onclick="() => RemoveBadge(index)"></i>
+                                            </span>
+                                        }
+                                    </div>
+                                    @if (!EditModel.Badges.Any())
+                                    {
+                                        <p class="text-muted small mt-2">No badges added</p>
+                                    }
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-medium">Highlight</label>
+                                    <input type="text" class="form-control" @bind="EditModel.Highlight" placeholder="e.g., Expected to be best in class" />
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(BadgesSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(BadgesSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div>
+                                @if (Vehicle.Badges?.Any() == true)
+                                {
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-2">Badges</small>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach (var badge in Vehicle.Badges)
+                                            {
+                                                <span class="badge bg-primary">@badge</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Vehicle.Highlight))
+                                {
+                                    <div>
+                                        <small class="text-muted d-block mb-2">Highlight</small>
+                                        <div class="alert alert-warning py-2 mb-0 small">✨ @Vehicle.Highlight</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 16: Test Drive -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-steering-wheel me-2"></i>Test Drive
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(TestDriveSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(TestDriveSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="EditModel.TestDrive.Available" />
+                                        <label class="form-check-label small fw-medium">Test Drive Available</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Booking Amount (₹)</label>
+                                    <input type="number" class="form-control" @bind="EditModel.TestDrive.BookingAmount" min="0" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Booking URL</label>
+                                    <input type="url" class="form-control" @bind="EditModel.TestDrive.BookingUrl" placeholder="https://..." />
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(TestDriveSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(TestDriveSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div>
+                                @if (Vehicle.TestDrive?.Available == true)
+                                {
+                                    <div>
+                                        <span class="badge bg-success mb-2">Available</span>
+                                        @if (Vehicle.TestDrive.BookingAmount > 0)
+                                        {
+                                            <div class="small text-muted mt-1">Booking Amount: @FormatPrice(Vehicle.TestDrive.BookingAmount)</div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(Vehicle.TestDrive.BookingUrl))
+                                        {
+                                            <div class="small">
+                                                <a href="@Vehicle.TestDrive.BookingUrl" target="_blank" rel="noopener noreferrer" class="text-primary">Book Now →</a>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted small mb-0">Test drive not available</p>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 17: Listing Details -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-file-text me-2"></i>Listing Details
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(ListingSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(ListingSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="EditModel.ListingDetails.IsAvailable" />
+                                        <label class="form-check-label small fw-medium">Is Available</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="EditModel.ListingDetails.IsVerified" />
+                                        <label class="form-check-label small fw-medium">Is Verified</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Verified By</label>
+                                    <input type="text" class="form-control" @bind="EditModel.ListingDetails.VerifiedBy" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-medium">Expiry Date</label>
+                                    <input type="datetime-local" class="form-control" @bind="EditModel.ListingDetails.ExpiryDate" />
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(ListingSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(ListingSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Availability</small>
+                                    <span class="badge @(Vehicle.ListingDetails?.IsAvailable == true ? "bg-success" : "bg-danger")">@(Vehicle.ListingDetails?.IsAvailable == true ? "Available" : "Not Available")</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Verification Status</small>
+                                    <span class="badge @(Vehicle.ListingDetails?.IsVerified == true ? "bg-success" : "bg-warning")">@(Vehicle.ListingDetails?.IsVerified == true ? "Verified" : "Pending")</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Posted Date</small>
+                                    <span>@Vehicle.ListingDetails?.PostedDate.ToString("dd MMM yyyy")</span>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted d-block">Days Listed</small>
+                                    <span>@Vehicle.ListingDetails?.DaysListed days</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 18: SEO Content -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-search-heart me-2"></i>SEO Content
+                        </h6>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ToggleSectionEdit(SeoSection)">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (EditingSections.Contains(SeoSection))
+                        {
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small fw-medium">Page Title</label>
+                                    <input type="text" class="form-control" @bind="EditModel.PageTitle" />
+                                    <small class="text-muted">SEO title for the vehicle page</small>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-medium">Description Text</label>
+                                    <textarea class="form-control" rows="3" @bind="EditModel.DescriptionText"></textarea>
+                                    <small class="text-muted">SEO description for the vehicle page</small>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" @onclick="() => SaveSection(SeoSection)">
+                                        <i class="bi bi-check-circle me-1"></i>Save Section
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary ms-2" @onclick="() => CancelSectionEdit(SeoSection)">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div>
+                                @if (!string.IsNullOrEmpty(Vehicle.PageTitle))
+                                {
+                                    <div class="mb-2">
+                                        <small class="text-muted d-block">Page Title</small>
+                                        <span class="small">@Vehicle.PageTitle</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Vehicle.DescriptionText))
+                                {
+                                    <div>
+                                        <small class="text-muted d-block">Description</small>
+                                        <p class="small mb-0">@(Vehicle.DescriptionText.Length > 150 ? Vehicle.DescriptionText[..150] + "..." : Vehicle.DescriptionText)</p>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Engagement Metrics (Read-only) -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-graph-up me-2"></i>Engagement Metrics
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-3">
+                                <div class="fs-4 fw-bold text-primary">@FormatNumber(Vehicle.Engagement?.Views ?? 0)</div>
+                                <small class="text-muted">Views</small>
+                            </div>
+                            <div class="col-3">
+                                <div class="fs-4 fw-bold text-danger">@FormatNumber(Vehicle.Engagement?.Likes ?? 0)</div>
+                                <small class="text-muted">Likes</small>
+                            </div>
+                            <div class="col-3">
+                                <div class="fs-4 fw-bold text-success">@FormatNumber(Vehicle.Engagement?.Shares ?? 0)</div>
+                                <small class="text-muted">Shares</small>
+                            </div>
+                            <div class="col-3">
+                                <div class="fs-4 fw-bold text-warning">@FormatNumber(Vehicle.Engagement?.Enquiries ?? 0)</div>
+                                <small class="text-muted">Enquiries</small>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-2 border-top text-center">
+                            <small class="text-muted">Engagement Rate: @(Vehicle.Engagement?.EngagementRate.ToString("F1") ?? "0")%</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Video Player Modal -->
+@if (ShowVideoModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.95)" @onclick="CloseVideoModal">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-body p-0">
+                    <button class="btn btn-light rounded-circle position-absolute top-0 end-0 m-3"
+                            style="width: 40px; height: 40px; z-index: 1060; background: white; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"
+                            @onclick="CloseVideoModal">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                    <div class="ratio ratio-16x9">
+                        <iframe id="videoPlayer"
+                                src="@GetYouTubeEmbedUrl(SelectedVideoUrl)"
+                                title="YouTube video player"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Shorts Player Modal -->
+@if (ShowShortModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.95)" @onclick="CloseShortModal">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-body p-0">
+                    <button class="btn btn-light rounded-circle position-absolute top-0 end-0 m-3"
+                            style="width: 40px; height: 40px; z-index: 1060; background: white; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"
+                            @onclick="CloseShortModal">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                    <div style="position: relative; padding-bottom: 177.77%; height: 0; overflow: hidden; border-radius: 12px;">
+                        <iframe id="shortsPlayer"
+                                src="@GetYouTubeEmbedUrl(SelectedShortUrl)"
+                                title="YouTube Shorts player"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowfullscreen
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Save Confirmation Modal -->
+@if (ShowSaveConfirmation)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Save Changes</h5>
+                    <button type="button" class="btn-close" @onclick="CloseSaveConfirmation"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to save all changes?</p>
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Sections with changes: <strong>@string.Join(", ", ChangedSections)</strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="CloseSaveConfirmation">Cancel</button>
+                    <button class="btn btn-sm btn-primary" @onclick="ConfirmSaveAll" disabled="@IsSaving">
+                        @if (IsSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        <i class="bi bi-save me-1"></i>Save All
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .form-control, .form-select {
+        font-size: 0.875rem;
+    }
+
+    .btn-sm {
+        font-size: 0.8125rem;
+    }
+
+    .card-header {
+        background-color: #fff;
+    }
+
+    .badge {
+        font-weight: 500;
+    }
+
+    .modal.fade.show {
+        background-color: rgba(0,0,0,0.5);
+    }
+
+    .ratio-16x9 {
+        aspect-ratio: 16/9;
+    }
+</style>
