@@ -165,6 +165,7 @@ try
     RegisterServiceWithTokenHandler<IBlobService, BlobService>();
     RegisterServiceWithTokenHandler<IUsedVehiclesService, UsedVehiclesService>();
     RegisterServiceWithTokenHandler<IPremiumVehicleService, PremiumVehicleService>();
+    RegisterServiceWithTokenHandler<IUpcomingVehiclesService, UpcomingVehiclesService>();
     // ===== AUTO MAPPER CONFIGURATION =====
 
     builder.Services.AddAutoMapper(cfg =>
